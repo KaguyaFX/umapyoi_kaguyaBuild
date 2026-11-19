@@ -6,6 +6,7 @@ An unofficial, personally maintained continuation of **[Umapyoi](https://github.
 > [!IMPORTANT]
 > This is **not** an official Umapyoi release. It is a personal update. Every new Umamusume model added
 > in this fork was modelled by me. Please don't report bugs from this fork to the original authors.
+> This project involves the use of AI, but the vast majority of the code was written by me. I also created the model myself.
 
 
 
