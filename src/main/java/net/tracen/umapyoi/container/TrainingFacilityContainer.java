@@ -1,9 +1,13 @@
 package net.tracen.umapyoi.container;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -151,23 +155,7 @@ public class TrainingFacilityContainer extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            if (stack.getItem()instanceof SupportContainer support) {
-                var soul = this.getItemHandler().getStackInSlot(0);
-                for (int i = 1; i < 7; i++) {
-                    ItemStack other = this.getItemHandler().getStackInSlot(i);
-                    
-                    if(!soul.isEmpty()) {
-                        if (!support.canSupport(this.tileEntity.getLevel(), stack).test(soul))
-                            return false;
-                    }
-                    
-                    if (i == this.getSlotIndex() || other.isEmpty())
-                        continue;
-                    if (!(support.canSupport(this.tileEntity.getLevel(), stack).test(other)))
-                        return false;
-                }
-            }
-            return true;
+            return getPlaceProblem(this.tileEntity.getLevel(), this.getItemHandler(), this.getSlotIndex(), stack) == null;
         }
 
         @Override
@@ -188,21 +176,46 @@ public class TrainingFacilityContainer extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            if (stack.is(ItemRegistry.UMA_SOUL.get())) {
-                for (int i = 1; i < 7; i++) {
-                    ItemStack other = this.getItemHandler().getStackInSlot(i);
-                    if (other.isEmpty())
-                        continue;
-                    if (other.getItem() instanceof SupportContainer support) {
-                        if (!(support.canSupport(this.tileEntity.getLevel(), other).test(stack)))
-                            return false;
-                    } else {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            return false;
+            return getPlaceProblem(this.tileEntity.getLevel(), this.getItemHandler(), this.getSlotIndex(), stack) == null;
         }
+    }
+
+    /**
+     * Explains why {@code stack} cannot be put into terminal slot {@code slot}
+     * (0 = Uma soul, 1-6 = support cards). Returns null when it can.
+     * The slots' mayPlace() is defined by this method, so the rule and the
+     * message shown to the player always agree.
+     */
+    @Nullable
+    public static Component getPlaceProblem(@Nullable Level level, IItemHandler handler, int slot, ItemStack stack) {
+        if (slot == 0) {
+            if (!stack.is(ItemRegistry.UMA_SOUL.get()))
+                return Component.translatable("tooltip.umapyoi.training.need_uma_soul");
+            for (int i = 1; i < 7; i++) {
+                ItemStack other = handler.getStackInSlot(i);
+                if (other.isEmpty())
+                    continue;
+                if (!(other.getItem() instanceof SupportContainer support))
+                    return Component.translatable("tooltip.umapyoi.training.invalid_support", other.getHoverName());
+                if (!support.canSupport(level, other).test(stack))
+                    return Component.translatable("tooltip.umapyoi.training.soul_is_supporter", other.getHoverName());
+            }
+            return null;
+        }
+
+        if (stack.getItem() instanceof SupportContainer support) {
+            Predicate<ItemStack> check = support.canSupport(level, stack);
+            ItemStack soul = handler.getStackInSlot(0);
+            if (!soul.isEmpty() && !check.test(soul))
+                return Component.translatable("tooltip.umapyoi.training.card_has_soul", soul.getHoverName());
+            for (int i = 1; i < 7; i++) {
+                ItemStack other = handler.getStackInSlot(i);
+                if (i == slot || other.isEmpty())
+                    continue;
+                if (!check.test(other))
+                    return Component.translatable("tooltip.umapyoi.training.card_conflict", other.getHoverName());
+            }
+        }
+        return null;
     }
 }

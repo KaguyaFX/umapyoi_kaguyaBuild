@@ -3,7 +3,11 @@ package net.tracen.umapyoi.registry.races;
 import com.google.common.base.Functions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.Util;
 import net.minecraft.core.Registry;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -160,9 +164,24 @@ public class Race {
     }
 
     public boolean isAvailableToUmaSoul(ItemStack stack) {
-        if (this.id.equals(RaceRegistry.DEFAULT.location())) return false;
-        if (!(stack.is(ItemRegistry.UMA_SOUL.get()) &&
-                ((this.ranking == RaceRanking.DEBUT) ^ UmaSoulUtils.hasUmaSoulDebut(stack)))) return false;
+        return this.getUnavailableReason(stack) == null;
+    }
+
+    /**
+     * Explains why the soul cannot enter this race, or returns null if it can.
+     * isAvailableToUmaSoul() is defined by this method, so the rule and the
+     * message shown in the race terminal always agree.
+     */
+    @Nullable
+    public Component getUnavailableReason(ItemStack stack) {
+        if (this.id.equals(RaceRegistry.DEFAULT.location()) || !stack.is(ItemRegistry.UMA_SOUL.get()))
+            return Component.translatable("tooltip.umapyoi.race.unavailable.invalid");
+        boolean debuted = UmaSoulUtils.hasUmaSoulDebut(stack);
+        if (this.ranking == RaceRanking.DEBUT && debuted)
+            return Component.translatable("tooltip.umapyoi.race.unavailable.already_debuted");
+        if (this.ranking != RaceRanking.DEBUT && !debuted)
+            return Component.translatable("tooltip.umapyoi.race.unavailable.need_debut");
+
         UmaRaceHistory hist = stack.getOrDefault(DataComponentsTypeRegistry.UMA_RACE_HISTORY, UmaRaceHistory.DEFAULT);
         int last = hist.lastAttendTime();
         if (this.exclusive) {
@@ -173,7 +192,8 @@ public class Race {
                     break;
                 }
             }
-            if (!canAttend) return false;
+            if (!canAttend)
+                return Component.translatable("tooltip.umapyoi.race.unavailable.time_passed", describeRaceTime(last));
         }
         if (!this.afterRace.isEmpty()) {
             Map<ResourceLocation, Integer> attended = hist.attended();
@@ -184,9 +204,48 @@ public class Race {
                     break;
                 }
             }
-            if (!canAttend) return false;
+            if (!canAttend) {
+                MutableComponent names = Component.empty();
+                this.afterRace.stream().sorted().forEachOrdered(key -> {
+                    if (!names.getSiblings().isEmpty())
+                        names.append(" / ");
+                    names.append(Component.translatable(Util.makeDescriptionId("race", key) + ".name"));
+                });
+                return Component.translatable("tooltip.umapyoi.race.unavailable.need_previous_race", names);
+            }
         }
-        return this.isAllowed(stack) && last >= laterThen;
+        if (!this.isAllowed(stack)) {
+            MutableComponent allowed = Component.empty();
+            for (String status : List.of("untrained", "trained", "retired")) {
+                if (!this.allowStatus.contains(status))
+                    continue;
+                if (!allowed.getSiblings().isEmpty())
+                    allowed.append(" / ");
+                allowed.append(Component.translatable("tooltip.umapyoi.race.status." + status));
+            }
+            return Component.translatable("tooltip.umapyoi.race.unavailable.wrong_status",
+                    Component.translatable("tooltip.umapyoi.race.status." + soulStatus(stack)), allowed);
+        }
+        if (last < laterThen)
+            return Component.translatable("tooltip.umapyoi.race.unavailable.too_early", describeRaceTime(laterThen));
+        return null;
+    }
+
+    private static String soulStatus(ItemStack stack) {
+        UmaDataTraining training = stack.get(DataComponentsTypeRegistry.UMADATA_TRAINING);
+        if (training == null) return "retired";
+        return training.hasTrained() ? "trained" : "untrained";
+    }
+
+    /** Turns a race-calendar index (year * 24 + half-month, 1-based) into e.g. "Classic Early April". */
+    private static Component describeRaceTime(int time) {
+        if (time <= 0)
+            return Component.translatable("tooltip.umapyoi.race.time.none");
+        int yearIndex = Math.min((time - 1) / 24, Year.values().length - 1);
+        int halfMonth = (time - 1) % 24 + 1;
+        return Component.translatable("tooltip.umapyoi.race.time." + Year.values()[yearIndex].name().toLowerCase())
+                .append(" ")
+                .append(Component.translatable("tooltip.umapyoi.race.time." + halfMonth));
     }
 
     public double getUmaFactorCorrection(ItemStack stack, Level world) {

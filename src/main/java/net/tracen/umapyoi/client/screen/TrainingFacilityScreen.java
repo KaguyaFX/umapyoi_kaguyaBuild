@@ -2,7 +2,14 @@ package net.tracen.umapyoi.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.world.inventory.Slot;
+import net.tracen.umapyoi.item.ItemRegistry;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -36,6 +43,76 @@ public class TrainingFacilityScreen extends AbstractContainerScreen<TrainingFaci
     public void render(GuiGraphics graphic, final int mouseX, final int mouseY, float partialTicks) {
         super.render(graphic, mouseX, mouseY, partialTicks);
         this.renderTooltip(graphic, mouseX, mouseY);
+    }
+
+    // ---- Feedback: say why an item is rejected, or why the terminal is idle ----
+
+    private static final int TERMINAL_SLOTS = 7;
+
+    private static boolean isTerminalSlot(@Nullable Slot slot) {
+        return slot != null && slot.index < TERMINAL_SLOTS;
+    }
+
+    @Override
+    protected void renderTooltip(GuiGraphics graphic, int mouseX, int mouseY) {
+        // Holding an item over a terminal slot that will not accept it: explain why.
+        ItemStack carried = this.menu.getCarried();
+        if (!carried.isEmpty() && isTerminalSlot(this.hoveredSlot)) {
+            Component problem = TrainingFacilityContainer.getPlaceProblem(this.menu.tileEntity.getLevel(),
+                    this.menu.inventory, this.hoveredSlot.getContainerSlot(), carried);
+            if (problem != null) {
+                graphic.renderTooltip(this.font, problem.copy().withStyle(ChatFormatting.RED), mouseX, mouseY);
+                return;
+            }
+        }
+        super.renderTooltip(graphic, mouseX, mouseY);
+    }
+
+    @Override
+    protected List<Component> getTooltipFromContainerItem(ItemStack stack) {
+        List<Component> tooltip = new ArrayList<>(super.getTooltipFromContainerItem(stack));
+        if (this.hoveredSlot == null)
+            return tooltip;
+        Component hint = isTerminalSlot(this.hoveredSlot)
+                ? this.getSoulStatus(this.hoveredSlot.getContainerSlot() == 0, stack)
+                : this.getInsertHint(stack);
+        if (hint != null)
+            tooltip.add(hint.copy().withStyle(ChatFormatting.RED));
+        return tooltip;
+    }
+
+    /** Why a soul cannot (or can no longer) be trained, or null if it can. */
+    @Nullable
+    private Component getSoulStatus(boolean isSoulSlot, ItemStack stack) {
+        if (!isSoulSlot || !stack.is(ItemRegistry.UMA_SOUL.get()))
+            return null;
+        if (!stack.has(DataComponentsTypeRegistry.UMADATA_TRAINING))
+            return Component.translatable("tooltip.umapyoi.training.soul_retired");
+        if (UmaSoulUtils.getPhysique(stack) <= 0)
+            return Component.translatable("tooltip.umapyoi.uma_soul.should_retire");
+        return null;
+    }
+
+    /** For an item in the player's inventory: why it would not go into (or train in) the terminal. */
+    @Nullable
+    private Component getInsertHint(ItemStack stack) {
+        int target = -1;
+        if (stack.is(ItemRegistry.UMA_SOUL.get())) {
+            Component status = this.getSoulStatus(true, stack);
+            if (status != null)
+                return status;
+            if (this.menu.inventory.getStackInSlot(0).isEmpty())
+                target = 0;
+        } else if (stack.getItem() instanceof SupportContainer) {
+            for (int i = 1; i < TERMINAL_SLOTS && target < 0; i++) {
+                if (this.menu.inventory.getStackInSlot(i).isEmpty())
+                    target = i;
+            }
+        }
+        if (target < 0)
+            return null;
+        return TrainingFacilityContainer.getPlaceProblem(this.menu.tileEntity.getLevel(), this.menu.inventory,
+                target, stack);
     }
 
     @Override

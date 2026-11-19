@@ -343,6 +343,22 @@ public class RaceRegisterBlockEntity extends SyncedBlockEntity implements MenuPr
         return race.isAvailableToUmaSoul(stackSoul);
     }
 
+    /**
+     * Why the race cannot start with the soul and ticket currently inside, for the GUI.
+     * Returns null when both slots are filled and the race can run (or when a slot is empty).
+     */
+    @Nullable
+    public Component getUnavailableReason() {
+        ItemStack stackSoul = this.inventory.getStackInSlot(0);
+        ItemStack stackRace = this.inventory.getStackInSlot(1);
+        if (!umaSoulConstraint(stackSoul) || !raceConstraint(stackRace) || this.level == null)
+            return null;
+        Race race = UmapyoiAPI.getRaceRegistry(this.level).get(getRaceID(stackRace));
+        if (race == null)
+            return Component.translatable("tooltip.umapyoi.race.unavailable.invalid");
+        return race.getUnavailableReason(stackSoul);
+    }
+
     public NonNullList<ItemStack> getDroppableInventory() {
         NonNullList<ItemStack> drops = NonNullList.create();
         for (int i = 0; i < 6; ++i) {

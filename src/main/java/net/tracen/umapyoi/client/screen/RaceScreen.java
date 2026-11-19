@@ -17,6 +17,7 @@ import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.utils.Position;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 
 import static net.tracen.umapyoi.item.UmaRaceTicketItem.getRaceNameInRawComponent;
@@ -101,9 +102,45 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
 
     private Component raceLabel = null;
 
+    // Track picture area (GUI coordinates), used for the "why can't this race start" overlay.
+    private static final int TRACK_X = 7, TRACK_Y = 25, TRACK_W = 161, TRACK_H = 35;
+    private static final int REASON_MAX_LINES = 2;
+
+    @Nullable
+    private Component unavailableReason = null;
+
+    private void renderUnavailableReason(GuiGraphics graphic) {
+        this.unavailableReason = this.menu.tileEntity.getUnavailableReason();
+        if (this.unavailableReason == null)
+            return;
+        int x0 = this.leftPos + TRACK_X, y0 = this.topPos + TRACK_Y;
+        graphic.fill(x0, y0, x0 + TRACK_W, y0 + TRACK_H, 0xB0000000);
+
+        Component header = Component.translatable("tooltip.umapyoi.race.unavailable");
+        List<FormattedCharSequence> lines = this.font.split(this.unavailableReason, TRACK_W - 8);
+        boolean cut = lines.size() > REASON_MAX_LINES;
+        if (cut)
+            lines = lines.subList(0, REASON_MAX_LINES);
+        int lineHeight = this.font.lineHeight + 1;
+        int y = y0 + (TRACK_H - lineHeight * (lines.size() + 1)) / 2 + 1;
+        graphic.drawString(this.font, header, x0 + (TRACK_W - this.font.width(header)) / 2, y, 0xFFD24A);
+        for (int i = 0; i < lines.size(); i++) {
+            FormattedCharSequence line = lines.get(i);
+            if (cut && i == lines.size() - 1)
+                line = FormattedCharSequence.composite(line, Component.literal("...").getVisualOrderText());
+            y += lineHeight;
+            graphic.drawString(this.font, line, x0 + (TRACK_W - this.font.width(line)) / 2, y, 0xFF8080);
+        }
+    }
+
     @Override
     protected void renderTooltip(GuiGraphics pGuiGraphics, int pX, int pY) {
         super.renderTooltip(pGuiGraphics, pX, pY);
+        // Full text of a long reason when hovering the overlay.
+        if (this.unavailableReason != null && this.menu.getCarried().isEmpty()
+                && this.isHovering(TRACK_X, TRACK_Y, TRACK_W, TRACK_H, pX, pY)) {
+            pGuiGraphics.renderTooltip(this.font, this.font.split(this.unavailableReason, 200), pX, pY);
+        }
         if (raceLabel == null) return;
         if (this.isHovering(55, 16, 66, 12, pX, pY)) {
             pGuiGraphics.renderComponentTooltip(this.font, List.of(this.raceLabel), pX, pY);
@@ -143,13 +180,15 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
     }
 
     private void renderDetail(GuiGraphics graphic) {
+        this.unavailableReason = null;
         if (this.menu.inventory.getStackInSlot(0).isEmpty() || this.menu.inventory.getStackInSlot(1).isEmpty()) {
             raceLabel = null;
             return;
         };
         if (!this.menu.tileEntity.fulfill()) {
-            // Condition doesn't satisfy. However, no place left for error message in GUI.
+            // Condition doesn't satisfy: the track is empty anyway, so explain why on top of it.
             raceLabel = null;
+            this.renderUnavailableReason(graphic);
             return;
         }
         // Goal (Most underlay)

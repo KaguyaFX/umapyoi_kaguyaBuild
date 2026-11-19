@@ -3,7 +3,9 @@ package net.tracen.umapyoi.container;
 import java.util.Objects;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -137,21 +139,7 @@ public class ThreeGoddessContainer extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            if (stack.is(ItemRegistry.BLANK_UMA_SOUL.get())) {
-            	if(this.getItemHandler().getStackInSlot(1).isEmpty() && this.getItemHandler().getStackInSlot(2).isEmpty()) 
-            		return true;
-            	DataLocation defaultloc = new DataLocation(UmaData.DEFAULT_UMA_ID);
-                ResourceLocation name = stack.getOrDefault(DataComponentsTypeRegistry.DATA_LOCATION, defaultloc).name();
-                return !(
-                		name.equals(this.getItemHandler().getStackInSlot(1)
-                				.getOrDefault(DataComponentsTypeRegistry.DATA_LOCATION, defaultloc).name())
-                        || 
-                        name.equals(this.getItemHandler().getStackInSlot(2)
-                        		.getOrDefault(DataComponentsTypeRegistry.DATA_LOCATION, defaultloc).name())
-                        );
-                
-            }
-            return false;
+            return getPlaceProblem(this.getItemHandler(), this.getSlotIndex(), stack) == null;
         }
 
         @Override
@@ -168,32 +156,58 @@ public class ThreeGoddessContainer extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            boolean result = stack.is(ItemRegistry.UMA_FACTOR_ITEM.get());
-            if(!result)
-            	return false;
-            boolean factorFlag = false;
-            ResourceLocation name = stack.get(DataComponentsTypeRegistry.DATA_LOCATION).name();
-            var soulStack = this.getItemHandler().getStackInSlot(0);
-            boolean soulFlag = !soulStack.isEmpty() && stack.get(DataComponentsTypeRegistry.DATA_LOCATION).name()
-                    .equals(soulStack.get(DataComponentsTypeRegistry.DATA_LOCATION).name());
-
-            switch (this.getSlotIndex()) {
-            case 1: {
-                factorFlag = !this.getItemHandler().getStackInSlot(2).isEmpty() && name
-                        .equals(this.getItemHandler().getStackInSlot(2).get(DataComponentsTypeRegistry.DATA_LOCATION).name());
-                break;
-            }
-            case 2: {
-                factorFlag = !this.getItemHandler().getStackInSlot(1).isEmpty() && name
-                        .equals(this.getItemHandler().getStackInSlot(1).get(DataComponentsTypeRegistry.DATA_LOCATION).name());
-                break;
-            }
-            default:
-                break;
-            }
-
-            return result && !soulFlag && !factorFlag;
+            return getPlaceProblem(this.getItemHandler(), this.getSlotIndex(), stack) == null;
         }
+    }
+
+    private static ResourceLocation nameOf(ItemStack stack) {
+        return stack.getOrDefault(DataComponentsTypeRegistry.DATA_LOCATION, new DataLocation(UmaData.DEFAULT_UMA_ID)).name();
+    }
+
+    /**
+     * Explains why {@code stack} cannot be put into statue slot {@code slot}
+     * (0 = faded soul, 1/2 = the two wishes/factors). Returns null when it can.
+     * The slots' mayPlace() is defined by this method, so the rule and the
+     * message shown to the player always agree.
+     */
+    @Nullable
+    public static Component getPlaceProblem(IItemHandler handler, int slot, ItemStack stack) {
+        if (slot == 0) {
+            if (!stack.is(ItemRegistry.BLANK_UMA_SOUL.get()))
+                return Component.translatable("tooltip.umapyoi.three_goddess.need_faded_soul");
+            ItemStack father = handler.getStackInSlot(1);
+            ItemStack mother = handler.getStackInSlot(2);
+            if (father.isEmpty() && mother.isEmpty())
+                return null;
+            ResourceLocation name = nameOf(stack);
+            if (name.equals(nameOf(father)))
+                return Component.translatable("tooltip.umapyoi.three_goddess.soul_same_as_factor", father.getHoverName());
+            if (name.equals(nameOf(mother)))
+                return Component.translatable("tooltip.umapyoi.three_goddess.soul_same_as_factor", mother.getHoverName());
+            return null;
+        }
+
+        if (slot == 1 || slot == 2) {
+            if (!stack.is(ItemRegistry.UMA_FACTOR_ITEM.get()))
+                return Component.translatable("tooltip.umapyoi.three_goddess.need_factor");
+            ResourceLocation name = nameOf(stack);
+            ItemStack soul = handler.getStackInSlot(0);
+            if (!soul.isEmpty() && name.equals(nameOf(soul)))
+                return Component.translatable("tooltip.umapyoi.three_goddess.factor_same_as_soul", soul.getHoverName());
+            ItemStack otherFactor = handler.getStackInSlot(slot == 1 ? 2 : 1);
+            if (!otherFactor.isEmpty() && name.equals(nameOf(otherFactor)))
+                return Component.translatable("tooltip.umapyoi.three_goddess.factor_same_as_factor", otherFactor.getHoverName());
+            return null;
+        }
+        return null;
+    }
+
+    /** Why the statue is idle even though a faded soul is inside, or null. */
+    @Nullable
+    public static Component getIdleProblem(IItemHandler handler) {
+        if (handler.getStackInSlot(1).isEmpty() != handler.getStackInSlot(2).isEmpty())
+            return Component.translatable("tooltip.umapyoi.three_goddess.need_two_factors");
+        return null;
     }
 
 }
