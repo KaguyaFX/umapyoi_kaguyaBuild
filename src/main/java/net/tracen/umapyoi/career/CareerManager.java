@@ -37,6 +37,8 @@ public final class CareerManager {
     public static final int PERIODS = 62;
     public static final int FIRST_PERIOD = 11;
     public static final long MILLION = 1_000_000L;
+    /** Lowest stat a soul can have. A stat of 0 breaks other code (e.g. max action points = wisdom x 200). */
+    public static final int MIN_STAT = 1;
 
     public static final int SPEED = 0, STAMINA = 1, STRENGTH = 2, GUTS = 3, WISDOM = 4;
 
@@ -263,7 +265,7 @@ public final class CareerManager {
         int[] max = UmaSoulUtils.getMaxProperty(soul).toArray();
         for (int i = 0; i < 5; i++) {
             // Stats changed outside the career (race rewards, training books) are merged in.
-            cache.precise[i] = precise[i] + (long) (current[i] - lastWritten[i]) * MILLION;
+            cache.precise[i] = Math.max(MIN_STAT * MILLION, precise[i] + (long) (current[i] - lastWritten[i]) * MILLION);
             cache.baseline[i] = current[i];
             cache.max[i] = max[i];
             cache.cardMultiplier[i] = cards[i];
@@ -291,7 +293,7 @@ public final class CareerManager {
         int[] precise = new int[5];
         for (int i = 0; i < 5; i++) {
             cache.precise[i] += (long) (current[i] - cache.baseline[i]) * MILLION;
-            cache.precise[i] = Math.max(0, Math.min(max[i] * MILLION, cache.precise[i]));
+            cache.precise[i] = Math.max(MIN_STAT * MILLION, Math.min(max[i] * MILLION, cache.precise[i]));
             cache.max[i] = max[i];
             ints[i] = (int) (cache.precise[i] / MILLION);
             precise[i] = (int) cache.precise[i];

@@ -46,7 +46,7 @@ public class ActionBarOverlay implements LayeredDraw.Layer {
     private void renderSkill(ItemStack soul, GuiGraphics guiGraphics, int x, int y) {
         int ap = UmaSoulUtils.getActionPoint(soul);
         int maxAp = UmaSoulUtils.getMaxActionPoint(soul);
-        if (ap == maxAp)
+        if (ap == maxAp || maxAp <= 0)
             return;
         guiGraphics.blit(HUD, x, y - 128, 11, 0, 5, 128, 16, 128);
         int apbar = ap != 0 ? ap * 128 / maxAp : 0;
