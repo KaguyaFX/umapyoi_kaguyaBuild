@@ -70,7 +70,8 @@ public class UmaSoulItem extends Item{
         else if (careerState == CareerState.IN_CAREER && careerData != null)
             tooltip.add(Component.translatable("tooltip.umapyoi.career.in_career",
                     CareerManager.periodName(careerData.periodIndex())).withStyle(ChatFormatting.LIGHT_PURPLE));
-        else if (careerState == CareerState.FINISHED)
+        else if (careerState == CareerState.FINISHED && stack.has(DataComponentsTypeRegistry.UMADATA_TRAINING))
+            // Only until it is registered; registering removes UMADATA_TRAINING.
             tooltip.add(Component.translatable("tooltip.umapyoi.career.finished").withStyle(ChatFormatting.LIGHT_PURPLE));
         int ranking = ResultRankingUtils.getRanking(stack);
         if(!stack.has(DataComponentsTypeRegistry.UMADATA_TRAINING))
