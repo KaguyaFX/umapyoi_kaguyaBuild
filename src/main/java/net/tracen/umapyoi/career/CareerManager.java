@@ -15,6 +15,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.blessing.BlessingManager;
+import net.tracen.umapyoi.blessing.BlessingType;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.training.ExtraStatusSupport;
@@ -209,12 +211,14 @@ public final class CareerManager {
         UmaCareerData data = soul.get(DataComponentsTypeRegistry.CAREER_DATA);
         if (data == null || !data.careerId().equals(cache.careerId))
             return;
-        addPoints(cache, soul, stat, milliPoints);
+        addPoints(player, cache, soul, stat, milliPoints);
     }
 
-    private static void addPoints(CareerCache cache, ItemStack soul, int stat, long milliPoints) {
+    private static void addPoints(ServerPlayer player, CareerCache cache, ItemStack soul, int stat, long milliPoints) {
         long mood = Math.round(UmaSoulUtils.getMotivation(soul).getMultiplier() * 1000);
-        long delta = milliPoints * mood * cache.cardMultiplier[stat]
+        // 專注 blessing: x1.05 / 1.10 / 1.15
+        long focus = 1000 + 50L * (BlessingManager.level(player, BlessingType.FOCUS) + 1);
+        long delta = milliPoints * mood * cache.cardMultiplier[stat] / 1000L * focus
                 / (1000L * UmapyoiConfig.CAREER_POINTS_PER_LEVEL.get());
         cache.precise[stat] = Math.min(cache.max[stat] * MILLION, cache.precise[stat] + delta);
     }
@@ -232,7 +236,7 @@ public final class CareerManager {
             if (moved > 0.0009 && moved < 4.0) {
                 int perSecond = player.isSprinting() ? UmapyoiConfig.CAREER_SPEED_SPRINT_PER_SECOND.get()
                         : UmapyoiConfig.CAREER_SPEED_WALK_PER_SECOND.get();
-                addPoints(cache, soul, SPEED, perSecond * 1000L / 20);
+                addPoints(player, cache, soul, SPEED, perSecond * 1000L / 20);
             }
         }
         cache.lastX = x;
@@ -243,12 +247,12 @@ public final class CareerManager {
         boolean harmful = player.getActiveEffects().stream()
                 .anyMatch(effect -> effect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL);
         if (harmful)
-            addPoints(cache, soul, GUTS, UmapyoiConfig.CAREER_GUTS_PER_SECOND_HARMFUL.get() * 1000L / 20);
+            addPoints(player, cache, soul, GUTS, UmapyoiConfig.CAREER_GUTS_PER_SECOND_HARMFUL.get() * 1000L / 20);
 
         // Wisdom: experience levels spent (enchanting table, anvil).
         int level = player.experienceLevel;
         if (cache.lastXpLevel >= 0 && level < cache.lastXpLevel)
-            addPoints(cache, soul, WISDOM,
+            addPoints(player, cache, soul, WISDOM,
                     (cache.lastXpLevel - level) * (long) UmapyoiConfig.CAREER_WISDOM_PER_LEVEL_SPENT.get() * 1000L);
         cache.lastXpLevel = level;
     }
@@ -314,14 +318,19 @@ public final class CareerManager {
         if (!data.careerId().equals(cache.careerId) || !cache.isActive(player))
             load(player, cache, soul, data);
         flush(soul, cache);
-        long keep = UmapyoiConfig.CAREER_DEATH_KEEP_PERMILLE.get();
-        for (int i = 0; i < 5; i++)
-            cache.precise[i] = cache.precise[i] * keep / 1000;
-        flush(soul, cache);
+        // 悲傷 blessing: level I or higher keeps the stats, level II or higher also the motivation
+        int sorrow = BlessingManager.level(player, BlessingType.SORROW);
+        if (sorrow < 0) {
+            long keep = UmapyoiConfig.CAREER_DEATH_KEEP_PERMILLE.get();
+            for (int i = 0; i < 5; i++)
+                cache.precise[i] = cache.precise[i] * keep / 1000;
+            flush(soul, cache);
+        }
         soul.set(DataComponentsTypeRegistry.CAREER_DATA,
                 soul.get(DataComponentsTypeRegistry.CAREER_DATA).withDeaths(data.deaths() + 1));
-        UmaSoulUtils.setMotivation(soul, Motivations.BAD);
-        player.sendSystemMessage(Component.translatable("umapyoi.career.death"));
+        if (sorrow < 1)
+            UmaSoulUtils.setMotivation(soul, Motivations.BAD);
+        player.sendSystemMessage(Component.translatable(sorrow < 0 ? "umapyoi.career.death" : "umapyoi.career.death_blessed"));
         cache.clear();
     }
 

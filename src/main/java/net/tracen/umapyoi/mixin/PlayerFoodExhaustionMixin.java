@@ -9,6 +9,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.blessing.BlessingManager;
+import net.tracen.umapyoi.blessing.BlessingType;
+import net.tracen.umapyoi.blessing.GaleBlessingEffect;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 import net.tracen.umapyoi.utils.UmaStatusUtils.StatusType;
@@ -25,6 +28,10 @@ public class PlayerFoodExhaustionMixin {
             if (!player.getAbilities().invulnerable) {
                 if (!player.level().isClientSide()) {
                     double exhaustionMultipler = 1.2D - this.getExactProperty(umaSoul, StatusType.STAMINA, 0.85F);
+                    // 疾風 blessing: less hunger while sprinting
+                    int gale = BlessingManager.level(player, BlessingType.GALE);
+                    if (gale >= 0 && player.isSprinting())
+                        exhaustionMultipler *= 1.0D - GaleBlessingEffect.exhaustionCut(gale);
                     player.getFoodData().addExhaustion((float) (pExhaustion * exhaustionMultipler));
                 }
              }

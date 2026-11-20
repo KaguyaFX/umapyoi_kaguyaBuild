@@ -19,6 +19,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.blessing.BlessingManager;
+import net.tracen.umapyoi.blessing.BlessingType;
 import net.tracen.umapyoi.data.tag.UmapyoiItemTags;
 import net.tracen.umapyoi.effect.MobEffectRegistry;
 import net.tracen.umapyoi.events.ApplyFactorEvent;
@@ -43,8 +45,13 @@ public class CommonEvents {
             return;
         if (event.getNewDamage() < UmapyoiConfig.DAMAGE_MOTIVATION_EFFECT.get())
             return;
-        if (UmapyoiConfig.CHANCE_MOTIVATION_EFFECT.get() > 0) {
-            if (entityLiving.level().getRandom().nextDouble() <= UmapyoiConfig.CHANCE_MOTIVATION_EFFECT.get())
+        double chance = UmapyoiConfig.CHANCE_MOTIVATION_EFFECT.get();
+        // 平靜 blessing: -30 / 60 / 100 % chance
+        int calm = BlessingManager.level(entityLiving, BlessingType.CALM);
+        if (calm >= 0)
+            chance *= new double[] { 0.7, 0.4, 0.0 }[calm];
+        if (chance > 0) {
+            if (entityLiving.level().getRandom().nextDouble() <= chance)
                 UmaStatusUtils.downMotivation(soul);
         }
     }
@@ -54,6 +61,8 @@ public class CommonEvents {
         LivingEntity entityLiving = event.getEntity();
         ItemStack soul = UmapyoiAPI.getUmaSoul(entityLiving);
         if (soul.isEmpty() || UmaSoulUtils.getMotivation(soul) != Motivations.BAD)
+            return;
+        if (BlessingManager.level(entityLiving, BlessingType.CALM) >= 0) // 平靜: never panicking
             return;
         if (event.getNewDamage() < UmapyoiConfig.DAMAGE_MOTIVATION_EFFECT.get())
             return;
@@ -146,6 +155,7 @@ public class CommonEvents {
         if (player.isSleeping()) return;
         if (player instanceof ServerPlayer serverplayer) {
             if (UmapyoiAPI.getUmaSoul(serverplayer).isEmpty()) return;
+            if (BlessingManager.level(serverplayer, BlessingType.SLUMBER) >= 0) return; // 安眠: no Night Owl
             ServerStatsCounter serverstatscounter = serverplayer.getStats();
             int timeSinceRest = serverstatscounter.getValue(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));
             if (timeSinceRest >= UmapyoiConfig.NIGHT_OWL_THRESHOLD.get()) {
@@ -165,7 +175,9 @@ public class CommonEvents {
         Player player = evt.getEntity();
         if (player.level().isClientSide() || evt.wakeImmediately() || !player.isSleepingLongEnough())
             return;
-        UmaStatusUtils.changeMotivation(player, 1);
+        // 安眠 blessing: +1 / +1 / +2 on top
+        int slumber = BlessingManager.level(player, BlessingType.SLUMBER);
+        UmaStatusUtils.changeMotivation(player, 1 + (slumber < 0 ? 0 : slumber == 2 ? 2 : 1));
     }
 
     @SubscribeEvent

@@ -5,6 +5,9 @@ import java.util.Objects;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.tracen.umapyoi.blessing.BlessingManager;
+import net.tracen.umapyoi.blessing.BlessingType;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -43,12 +46,33 @@ public class ThreeGoddessContainer extends AbstractContainerMenu {
         this.canInteractWithCallable = ContainerLevelAccess.create(tileEntity.getLevel(), tileEntity.getBlockPos());
         int startX = 8;
 
-        this.addSlot(new ThreeGoddessJewelSlot(inventory, 0, 80, 27));
+        // Inheritance page (page 0) slots; hidden on the blessing page.
+        this.addSlot(new ThreeGoddessJewelSlot(inventory, 0, 80, 27) {
+            @Override
+            public boolean isActive() {
+                return page == PAGE_INHERIT;
+            }
+        });
 
-        this.addSlot(new ThreeGoddessFactorSlot(inventory, 1, 50, 78));
-        this.addSlot(new ThreeGoddessFactorSlot(inventory, 2, 109, 78));
+        this.addSlot(new ThreeGoddessFactorSlot(inventory, 1, 50, 78) {
+            @Override
+            public boolean isActive() {
+                return page == PAGE_INHERIT;
+            }
+        });
+        this.addSlot(new ThreeGoddessFactorSlot(inventory, 2, 109, 78) {
+            @Override
+            public boolean isActive() {
+                return page == PAGE_INHERIT;
+            }
+        });
 
-        this.addSlot(new CommonResultSlot(playerInventory.player, inventory, 3, 80, 79));
+        this.addSlot(new CommonResultSlot(playerInventory.player, inventory, 3, 80, 79) {
+            @Override
+            public boolean isActive() {
+                return page == PAGE_INHERIT;
+            }
+        });
 
         // Main Player Inventory
         int startPlayerInvY = 137;
@@ -64,7 +88,71 @@ public class ThreeGoddessContainer extends AbstractContainerMenu {
             this.addSlot(new Slot(playerInventory, column, startX + (column * 18), 195));
         }
 
+        // Blessing page (page 1): the offering slot, added last so the old slot numbers stay the same.
+        this.addSlot(new SlotItemHandler(tileEntity.getOffering(), 0, 100, 30) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return BlessingManager.pointsOf(stack) > 0;
+            }
+
+            @Override
+            public boolean isActive() {
+                return page == PAGE_BLESSING && !hideOffering;
+            }
+        });
+
         this.addDataSlots(dataIn);
+    }
+
+    // ---------------------------------------------------------------- blessing page
+
+    public static final int PAGE_INHERIT = 0;
+    public static final int PAGE_BLESSING = 1;
+    public static final int OFFERING_SLOT = 40;
+    /** Button ids: 0/1 = show page, 2 = pray, 100 + n = choose blessing n, 200 + n = extend blessing n. */
+    public static final int BUTTON_PRAY = 2, BUTTON_CHOOSE = 100, BUTTON_EXTEND = 200;
+
+    private int page = PAGE_INHERIT;
+    /** Client only: the chooser list covers the offering slot. */
+    public boolean hideOffering;
+
+    public int getPage() {
+        return page;
+    }
+
+    /** Client side; the server is told through the button packet. */
+    public void setPage(int page) {
+        this.page = page;
+    }
+
+    public int getBlessingPoints() {
+        return this.containerData.get(1);
+    }
+
+    @Override
+    public boolean clickMenuButton(Player player, int id) {
+        if (id == PAGE_INHERIT || id == PAGE_BLESSING) {
+            this.page = id;
+            return true;
+        }
+        if (!(player instanceof ServerPlayer serverPlayer))
+            return false;
+        BlessingManager.PointStore store = this.tileEntity.blessingPointStore;
+        if (id == BUTTON_PRAY) {
+            BlessingManager.pray(serverPlayer, store);
+            return true;
+        }
+        BlessingType chosen = BlessingType.byOrdinal(id - BUTTON_CHOOSE);
+        if (id >= BUTTON_CHOOSE && id < BUTTON_EXTEND && chosen != null) {
+            BlessingManager.choose(serverPlayer, store, chosen);
+            return true;
+        }
+        BlessingType extended = BlessingType.byOrdinal(id - BUTTON_EXTEND);
+        if (id >= BUTTON_EXTEND && extended != null) {
+            BlessingManager.extend(serverPlayer, store, extended);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -76,7 +164,7 @@ public class ThreeGoddessContainer extends AbstractContainerMenu {
             ItemStack itemStack1 = slot.getItem();
             itemStack = itemStack1.copy();
 
-            if (index >= 0 && index <= 3) {
+            if ((index >= 0 && index <= 3) || index == OFFERING_SLOT) {
                 if (!this.moveItemStackTo(itemStack1, 4, 40, true)) {
                     return ItemStack.EMPTY;
                 }
@@ -84,7 +172,11 @@ public class ThreeGoddessContainer extends AbstractContainerMenu {
                 slot.onQuickCraft(itemStack1, itemStack);
             } else if (index >= 4) {
                 if (index >= 4 && index < 40) {
-                    if (!this.moveItemStackTo(itemStack1, 0, 3, false)) {
+                    if (page == PAGE_BLESSING) {
+                        if (BlessingManager.pointsOf(itemStack1) <= 0
+                                || !this.moveItemStackTo(itemStack1, OFFERING_SLOT, OFFERING_SLOT + 1, false))
+                            return ItemStack.EMPTY;
+                    } else if (!this.moveItemStackTo(itemStack1, 0, 3, false)) {
                         return ItemStack.EMPTY;
                     }
                 }

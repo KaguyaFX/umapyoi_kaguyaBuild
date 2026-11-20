@@ -32,6 +32,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.blessing.BlessingManager;
 import net.tracen.umapyoi.career.CareerState;
 import net.tracen.umapyoi.container.ThreeGoddessContainer;
 import net.tracen.umapyoi.inventory.ThreeGoddessItemHandler;
@@ -54,6 +55,51 @@ public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuPr
     protected final ContainerData tileData;
 
     private int recipeTime;
+
+    /** Three Goddesses blessings: points from offerings, shared by everyone using this statue. */
+    private int blessingPoints;
+    private final ItemStackHandler offering = createOfferingHandler();
+
+    public ItemStackHandler getOffering() {
+        return offering;
+    }
+
+    public final BlessingManager.PointStore blessingPointStore = new BlessingManager.PointStore() {
+        @Override
+        public int getPoints() {
+            return blessingPoints;
+        }
+
+        @Override
+        public void setPoints(int points) {
+            blessingPoints = Math.max(0, points);
+            setChanged();
+        }
+    };
+
+    /** Offerings turn into points the moment they are put in; the items are gone. */
+    private ItemStackHandler createOfferingHandler() {
+        return new ItemStackHandler(1) {
+            @Override
+            public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+                return BlessingManager.pointsOf(stack) > 0;
+            }
+
+            @Override
+            protected void onContentsChanged(int slot) {
+                if (level == null || level.isClientSide())
+                    return;
+                ItemStack stack = this.getStackInSlot(0);
+                int points = BlessingManager.pointsOf(stack) * stack.getCount();
+                if (points <= 0)
+                    return;
+                blessingPoints += points;
+                this.setStackInSlot(0, ItemStack.EMPTY);
+                level.playSound(null, worldPosition, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1F, 1F);
+                setChanged();
+            }
+        };
+    }
 
     public int getProcessTime() {
         return recipeTime;
@@ -216,12 +262,14 @@ public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuPr
 		super.loadAdditional(compound, registries);
         inventory.deserializeNBT(registries, compound.getCompound("Inventory"));
         recipeTime = compound.getInt("RecipeTime");
+        blessingPoints = compound.getInt("BlessingPoints");
     }
 
     @Override
 	public void saveAdditional(CompoundTag compound, HolderLookup.Provider registries) {
 		super.saveAdditional(compound, registries);
         compound.putInt("RecipeTime", recipeTime);
+        compound.putInt("BlessingPoints", blessingPoints);
         compound.put("Inventory", inventory.serializeNBT(registries));
     }
 
@@ -299,6 +347,8 @@ public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuPr
                 switch (index) {
                 case 0:
                     return ThreeGoddessBlockEntity.this.recipeTime;
+                case 1: // synced as a short
+                    return Math.min(ThreeGoddessBlockEntity.this.blessingPoints, Short.MAX_VALUE);
                 default:
                     return 0;
                 }
@@ -315,7 +365,7 @@ public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuPr
 
             @Override
             public int getCount() {
-                return 1;
+                return 2;
             }
         };
     }
