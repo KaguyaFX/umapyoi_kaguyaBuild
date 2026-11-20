@@ -157,6 +157,32 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
 
         addTooltip(".uma_soul.should_retire", "Couldn't continue training anymore, maybe it's time to retire.");
 
+        // Why the training terminal / Three Goddesses / race terminal rejects something
+        addTooltip(".training.card_conflict", "Conflicts with %s already inside (same card, or a shared supporter).");
+        addTooltip(".training.card_has_soul", "This card's supporters include %s, so they can't train together.");
+        addTooltip(".training.invalid_support", "A support slot holds something that isn't a support card: %s");
+        addTooltip(".training.need_uma_soul", "Only an Umamusume Soul can go here.");
+        addTooltip(".training.soul_is_supporter", "This Umamusume is a supporter of %s, so they can't train together.");
+        addTooltip(".training.soul_retired", "This soul has already retired and can't be trained.");
+        addTooltip(".three_goddess.factor_same_as_factor", "The two spirits must be different Umamusume (%s is already inside).");
+        addTooltip(".three_goddess.factor_same_as_soul", "Same Umamusume as the soul %s; a soul can't inherit from itself.");
+        addTooltip(".three_goddess.need_factor", "Only an Umamusume Spirit can go here.");
+        addTooltip(".three_goddess.need_faded_soul", "Only a Faded Umamusume Soul can go here.");
+        addTooltip(".three_goddess.need_two_factors", "Needs two spirits");
+        addTooltip(".three_goddess.soul_same_as_factor", "Same Umamusume as the spirit %s; a soul can't inherit from itself.");
+        addTooltip(".race.unavailable", "Can't enter this race");
+        addTooltip(".race.unavailable.already_debuted", "Already debuted, so debut races are closed.");
+        addTooltip(".race.unavailable.invalid", "This race ticket is not valid.");
+        addTooltip(".race.unavailable.need_debut", "Hasn't debuted yet. Run a debut race first.");
+        addTooltip(".race.unavailable.need_previous_race", "Must have run one of these first: %s");
+        addTooltip(".race.unavailable.time_passed", "This race's date has passed (schedule is at %s).");
+        addTooltip(".race.unavailable.too_early", "Too early in the schedule; open after %s.");
+        addTooltip(".race.unavailable.wrong_status", "Soul is %s; this race only takes: %s");
+        addTooltip(".race.status.retired", "retired");
+        addTooltip(".race.status.trained", "trained");
+        addTooltip(".race.status.untrained", "untrained");
+        addTooltip(".race.time.none", "no races yet");
+
         addTooltip(".umadata.name", "Umamusume's Name:%s");
         addTooltip(".support_card.name", "Support Card:%s");
         addTooltip(".umafactor.data", "Has %s and %d more factors.");

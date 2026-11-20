@@ -1,7 +1,15 @@
 package net.tracen.umapyoi.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.inventory.Slot;
+import net.tracen.umapyoi.item.ItemRegistry;
 
 import com.mojang.blaze3d.platform.Lighting;
 
@@ -86,6 +94,59 @@ public class ThreeGoddessScreen extends AbstractContainerScreen<ThreeGoddessCont
 				(this.imageWidth / 2) - (this.font.width(this.title.getVisualOrderText()) / 2), this.titleLabelY - 3,
 				0xFFFFFF);
 		graphic.drawString(this.font, this.playerInventoryTitle, 8, this.imageHeight - 96 + 2, 4210752, false);
+
+		// Statue is idle because only one wish is inside: say so on the free right side of the inventory label row.
+		Component idle = ThreeGoddessContainer.getIdleProblem(this.menu.inventory);
+		if (idle != null) {
+			graphic.drawString(this.font, idle, this.imageWidth - 8 - this.font.width(idle),
+					this.imageHeight - 96 + 2, 0xB02020, false);
+		}
+	}
+
+	// ---- Feedback: say why an item is rejected ----
+
+	private static final int STATUE_INPUT_SLOTS = 3;
+
+	private static boolean isStatueInputSlot(@Nullable Slot slot) {
+		return slot != null && slot.index < STATUE_INPUT_SLOTS;
+	}
+
+	@Override
+	protected void renderTooltip(GuiGraphics graphic, int mouseX, int mouseY) {
+		ItemStack carried = this.menu.getCarried();
+		if (!carried.isEmpty() && isStatueInputSlot(this.hoveredSlot)) {
+			Component problem = ThreeGoddessContainer.getPlaceProblem(this.menu.inventory,
+					this.hoveredSlot.getContainerSlot(), carried);
+			if (problem != null) {
+				graphic.renderTooltip(this.font, problem.copy().withStyle(ChatFormatting.RED), mouseX, mouseY);
+				return;
+			}
+		}
+		super.renderTooltip(graphic, mouseX, mouseY);
+	}
+
+	/** Items in the player's inventory get a red line when shift-clicking them into the statue would fail. */
+	@Override
+	protected List<Component> getTooltipFromContainerItem(ItemStack stack) {
+		List<Component> tooltip = new ArrayList<>(super.getTooltipFromContainerItem(stack));
+		if (this.hoveredSlot == null || this.hoveredSlot.index <= 3)
+			return tooltip;
+		int target = -1;
+		if (stack.is(ItemRegistry.BLANK_UMA_SOUL.get())) {
+			if (this.menu.inventory.getStackInSlot(0).isEmpty())
+				target = 0;
+		} else if (stack.is(ItemRegistry.UMA_FACTOR_ITEM.get())) {
+			if (this.menu.inventory.getStackInSlot(1).isEmpty())
+				target = 1;
+			else if (this.menu.inventory.getStackInSlot(2).isEmpty())
+				target = 2;
+		}
+		if (target >= 0) {
+			Component problem = ThreeGoddessContainer.getPlaceProblem(this.menu.inventory, target, stack);
+			if (problem != null)
+				tooltip.add(problem.copy().withStyle(ChatFormatting.RED));
+		}
+		return tooltip;
 	}
 
 }
