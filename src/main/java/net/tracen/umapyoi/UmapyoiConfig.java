@@ -75,6 +75,8 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_X;
+    public static ModConfigSpec.IntValue TOPLEFT_COORD_CAREER_X;
+    public static ModConfigSpec.IntValue TOPLEFT_COORD_CAREER_Y;
 
     static {
         ModConfigSpec.Builder COMMON_BUILDER = new ModConfigSpec.Builder();
@@ -240,6 +242,10 @@ public class UmapyoiConfig {
                 .defineInRange("top_left_motivation_x", 118, Integer.MIN_VALUE, Integer.MAX_VALUE);
         TOPLEFT_COORD_MOTIVATION_Y = CLIENT_BUILDER.comment("The y-coordinate of the top-left coordinate of motivation overlay. Default: -21")
                 .defineInRange("top_left_motivation_y", -37, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        TOPLEFT_COORD_CAREER_X = CLIENT_BUILDER.comment("The x-coordinate of the career calendar, from the top-left corner of the screen. Default: 4")
+                .defineInRange("top_left_career_x", 4, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        TOPLEFT_COORD_CAREER_Y = CLIENT_BUILDER.comment("The y-coordinate of the career calendar, from the top-left corner of the screen. Default: 4")
+                .defineInRange("top_left_career_y", 4, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
         CLIENT_BUILDER.pop();
         CLIENT_CONFIG = CLIENT_BUILDER.build();

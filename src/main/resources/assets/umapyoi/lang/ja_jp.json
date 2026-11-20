@@ -893,7 +893,8 @@
   "gui.umapyoi.training.three_year.tooltip": "この魂を身につけ、彼女として3年間を過ごします。カードの耐久は今消費され、ステータスはあなたの行動で伸びます。",
   "gui.umapyoi.training.auto_accept": "自動受付：%s",
   "gui.umapyoi.training.auto_accept.tooltip": "オンにすると、入れられた新しい魂（ホッパーなど）はそのまま自動育成になります。",
-  "umapyoi.career.overlay": "3年間の育成・%s",
+  "umapyoi.career.calendar.header": "あと",
+  "umapyoi.career.calendar.footer": "ターン",
   "umapyoi.career.started": "彼女の3年間が始まりました。魂を身につけている間だけ時間が進みます。",
   "umapyoi.career.finished": "3年間が終わりました！魂を引退登録台に持っていきましょう。",
   "umapyoi.career.death": "育成でつまずきました。ステータスが下がり、やる気が絶不調になりました。"

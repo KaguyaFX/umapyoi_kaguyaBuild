@@ -169,7 +169,8 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("gui.umapyoi.training.three_year.tooltip", "Wear this soul and live as her for three years. The cards are charged now; stats grow from what you do.");
         add("gui.umapyoi.training.auto_accept", "Auto-accept: %s");
         add("gui.umapyoi.training.auto_accept.tooltip", "When on, new souls put in (e.g. by a hopper) go straight to Auto Training.");
-        add("umapyoi.career.overlay", "Three-Year Career · %s");
+        add("umapyoi.career.calendar.header", "Only");
+        add("umapyoi.career.calendar.footer", "more");
         add("umapyoi.career.started", "Her three years begin. Time only passes while you wear her soul.");
         add("umapyoi.career.finished", "Three years complete! Take her soul to the Retire Register Lectern.");
         add("umapyoi.career.death", "A setback in her career: stats lowered, motivation at its lowest.");
