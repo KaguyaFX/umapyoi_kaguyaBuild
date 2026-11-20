@@ -17,6 +17,11 @@ public class GaleBlessingEffect extends BlessingEffect {
                 ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "effect.blessing_gale"),
                 AttributeModifier.Operation.ADD_VALUE, amplifier -> {
                     double percent = 0.05 * (amplifier + 1);
+                    // NeoForge also evaluates this once while registering, before configs are loaded,
+                    // so the config may only be read when it is available. When the effect is applied
+                    // the curve is evaluated again with the config loaded.
+                    if (!UmapyoiConfig.COMMON_CONFIG.isLoaded())
+                        return percent;
                     // percent mode multiplies movement speed; otherwise it is added to the 0.1 base speed
                     return UmapyoiConfig.UMASOUL_SPEED_PRECENT_ENABLE.get() ? percent : percent * 0.1;
                 });
