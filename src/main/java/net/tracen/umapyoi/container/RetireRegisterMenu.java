@@ -37,6 +37,7 @@ import net.tracen.umapyoi.registry.factors.StatusFactor;
 import net.tracen.umapyoi.registry.factors.UmaFactor;
 import net.tracen.umapyoi.registry.factors.UmaFactorStack;
 import net.tracen.umapyoi.registry.skills.UmaSkill;
+import net.tracen.umapyoi.career.CareerManager;
 import net.tracen.umapyoi.utils.ResultRankingUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
@@ -71,6 +72,9 @@ public class RetireRegisterMenu extends AbstractContainerMenu {
     protected boolean hasResult() {
         ItemStack inputSoul = this.inputSlots.getItem(0);
         if (inputSoul.getItem() instanceof UmaSoulItem) {
+            // A soul still in its three-year career can't be registered halfway.
+            if (CareerManager.isInCareer(inputSoul))
+                return false;
             return inputSoul.getOrDefault(DataComponentsTypeRegistry.UMADATA_TRAINING, new UmaDataTraining(1, 6, false)).hasTrained();
         }
         return false;

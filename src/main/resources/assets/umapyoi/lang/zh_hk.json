@@ -926,5 +926,20 @@
   "tooltip.umapyoi.race.status.untrained": "未訓練",
   "tooltip.umapyoi.race.status.trained": "已訓練",
   "tooltip.umapyoi.race.status.retired": "已育成",
-  "tooltip.umapyoi.race.time.none": "尚未參賽"
+  "tooltip.umapyoi.race.time.none": "尚未參賽",
+  "tooltip.umapyoi.career.undecided": "尚未決定育成方式。放進訓練設施終端選擇。",
+  "tooltip.umapyoi.career.in_career": "三年育成中：%s",
+  "tooltip.umapyoi.career.finished": "三年育成已完成，可以育成登記了。",
+  "tooltip.umapyoi.training.choose_route": "請用終端右側的按鈕選擇育成方式。",
+  "tooltip.umapyoi.training.career_soul": "三年育成中或已完成的魂不能自動育成。",
+  "gui.umapyoi.training.auto": "自動育成",
+  "gui.umapyoi.training.auto.tooltip": "跟以前一樣，用裏面的支援卡自動訓練這隻魂。",
+  "gui.umapyoi.training.three_year": "三年育成",
+  "gui.umapyoi.training.three_year.tooltip": "穿上這隻魂，以她的身分生活三年。現在就扣除支援卡耐久，屬性靠你的行動成長。",
+  "gui.umapyoi.training.auto_accept": "自動接收：%s",
+  "gui.umapyoi.training.auto_accept.tooltip": "開啟後，放進來的新魂（例如漏斗送進來的）會直接走自動育成。",
+  "umapyoi.career.overlay": "三年育成・%s",
+  "umapyoi.career.started": "她的三年開始了。只有穿着這隻魂時，時間才會前進。",
+  "umapyoi.career.finished": "三年結束了！帶着她的魂去育成登記台吧。",
+  "umapyoi.career.death": "生涯受挫：屬性下降，心情跌到極差。"
 }

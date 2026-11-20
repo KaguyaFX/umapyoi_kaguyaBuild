@@ -157,6 +157,23 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
 
         addTooltip(".uma_soul.should_retire", "Couldn't continue training anymore, maybe it's time to retire.");
 
+        // Three-year career
+        addTooltip(".career.undecided", "Training route not chosen. Put it in a Training Terminal to choose.");
+        addTooltip(".career.in_career", "Three-year career: %s");
+        addTooltip(".career.finished", "Three-year career complete. Ready to retire.");
+        addTooltip(".training.choose_route", "Choose a training route with the buttons beside the terminal.");
+        addTooltip(".training.career_soul", "A soul in or after its three-year career can't be auto-trained.");
+        add("gui.umapyoi.training.auto", "Auto Training");
+        add("gui.umapyoi.training.auto.tooltip", "Train this soul automatically with the cards inside, as before.");
+        add("gui.umapyoi.training.three_year", "Three-Year Career");
+        add("gui.umapyoi.training.three_year.tooltip", "Wear this soul and live as her for three years. The cards are charged now; stats grow from what you do.");
+        add("gui.umapyoi.training.auto_accept", "Auto-accept: %s");
+        add("gui.umapyoi.training.auto_accept.tooltip", "When on, new souls put in (e.g. by a hopper) go straight to Auto Training.");
+        add("umapyoi.career.overlay", "Three-Year Career · %s");
+        add("umapyoi.career.started", "Her three years begin. Time only passes while you wear her soul.");
+        add("umapyoi.career.finished", "Three years complete! Take her soul to the Retire Register Lectern.");
+        add("umapyoi.career.death", "A setback in her career: stats lowered, motivation at its lowest.");
+
         // Why the training terminal / Three Goddesses / race terminal rejects something
         addTooltip(".training.card_conflict", "Conflicts with %s already inside (same card, or a shared supporter).");
         addTooltip(".training.card_has_soul", "This card's supporters include %s, so they can't train together.");

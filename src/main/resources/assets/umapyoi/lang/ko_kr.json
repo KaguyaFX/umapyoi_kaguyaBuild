@@ -1046,5 +1046,20 @@
   "tooltip.umapyoi.race.status.untrained": "미트레이닝",
   "tooltip.umapyoi.race.status.trained": "트레이닝 완료",
   "tooltip.umapyoi.race.status.retired": "육성 완료",
-  "tooltip.umapyoi.race.time.none": "출주 기록 없음"
+  "tooltip.umapyoi.race.time.none": "출주 기록 없음",
+  "tooltip.umapyoi.career.undecided": "육성 방식이 정해지지 않았습니다. 트레이닝 단말기에 넣어 선택하세요.",
+  "tooltip.umapyoi.career.in_career": "3년 육성 중: %s",
+  "tooltip.umapyoi.career.finished": "3년 육성이 끝났습니다. 육성을 마칠 수 있습니다.",
+  "tooltip.umapyoi.training.choose_route": "단말기 오른쪽 버튼으로 육성 방식을 선택하세요.",
+  "tooltip.umapyoi.training.career_soul": "3년 육성 중이거나 끝난 소울은 자동 육성할 수 없습니다.",
+  "gui.umapyoi.training.auto": "자동 육성",
+  "gui.umapyoi.training.auto.tooltip": "기존처럼 안에 있는 서포트 카드로 자동 트레이닝합니다.",
+  "gui.umapyoi.training.three_year": "3년 육성",
+  "gui.umapyoi.training.three_year.tooltip": "이 소울을 장착하고 그녀로서 3년을 보냅니다. 카드 내구도는 지금 소모되며, 스탯은 당신의 행동으로 성장합니다.",
+  "gui.umapyoi.training.auto_accept": "자동 접수: %s",
+  "gui.umapyoi.training.auto_accept.tooltip": "켜면 새로 들어온 소울(호퍼 등)은 바로 자동 육성됩니다.",
+  "umapyoi.career.overlay": "3년 육성 · %s",
+  "umapyoi.career.started": "그녀의 3년이 시작되었습니다. 소울을 장착하고 있을 때만 시간이 흐릅니다.",
+  "umapyoi.career.finished": "3년이 끝났습니다! 소울을 육성 완료 독서대로 가져가세요.",
+  "umapyoi.career.death": "육성에 차질이 생겼습니다. 스탯이 내려가고 컨디션이 최악이 되었습니다."
 }

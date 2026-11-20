@@ -17,6 +17,9 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.career.CareerManager;
+import net.tracen.umapyoi.career.CareerState;
+import net.tracen.umapyoi.career.UmaCareerData;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.umadata.UmaData;
 import net.tracen.umapyoi.registry.umadata.UmaDataBasicStatus;
@@ -60,6 +63,15 @@ public class UmaSoulItem extends Item{
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip,
     		TooltipFlag tooltipFlag) {
     	super.appendHoverText(stack, context, tooltip, tooltipFlag);
+        CareerState careerState = CareerManager.getState(stack);
+        UmaCareerData careerData = stack.get(DataComponentsTypeRegistry.CAREER_DATA);
+        if (careerState == CareerState.UNDECIDED)
+            tooltip.add(Component.translatable("tooltip.umapyoi.career.undecided").withStyle(ChatFormatting.YELLOW));
+        else if (careerState == CareerState.IN_CAREER && careerData != null)
+            tooltip.add(Component.translatable("tooltip.umapyoi.career.in_career",
+                    CareerManager.periodName(careerData.periodIndex())).withStyle(ChatFormatting.LIGHT_PURPLE));
+        else if (careerState == CareerState.FINISHED)
+            tooltip.add(Component.translatable("tooltip.umapyoi.career.finished").withStyle(ChatFormatting.LIGHT_PURPLE));
         int ranking = ResultRankingUtils.getRanking(stack);
         if(!stack.has(DataComponentsTypeRegistry.UMADATA_TRAINING))
             tooltip.add(Component.translatable("tooltip.umapyoi.uma_soul.ranking", UmaStatusUtils.getStatusLevel(ranking))

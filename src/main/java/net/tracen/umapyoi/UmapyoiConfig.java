@@ -54,6 +54,23 @@ public class UmapyoiConfig {
 
     public static ModConfigSpec.BooleanValue GRANT_GUIDE_ON_FIRST_JOIN;
 
+    // Three-year career. Point values are per action.
+    public static ModConfigSpec.IntValue CAREER_LENGTH_MINUTES;
+    public static ModConfigSpec.IntValue CAREER_POINTS_PER_LEVEL;
+    public static ModConfigSpec.IntValue CAREER_BASE_REWARD_PERCENT;
+    public static ModConfigSpec.IntValue CAREER_DEATH_KEEP_PERMILLE;
+    public static ModConfigSpec.IntValue CAREER_SPEED_WALK_PER_SECOND;
+    public static ModConfigSpec.IntValue CAREER_SPEED_SPRINT_PER_SECOND;
+    public static ModConfigSpec.IntValue CAREER_STAMINA_PER_FOOD;
+    public static ModConfigSpec.IntValue CAREER_STAMINA_PER_HEAL;
+    public static ModConfigSpec.IntValue CAREER_STRENGTH_PER_HARDNESS;
+    public static ModConfigSpec.IntValue CAREER_STRENGTH_PER_DAMAGE;
+    public static ModConfigSpec.IntValue CAREER_GUTS_PER_DAMAGE_TAKEN;
+    public static ModConfigSpec.IntValue CAREER_GUTS_PER_DAMAGE_BLOCKED;
+    public static ModConfigSpec.IntValue CAREER_GUTS_PER_SECOND_HARMFUL;
+    public static ModConfigSpec.IntValue CAREER_WISDOM_PER_LEVEL_SPENT;
+    public static ModConfigSpec.IntValue CAREER_WISDOM_PER_POTION;
+
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_Y;
@@ -145,8 +162,44 @@ public class UmapyoiConfig {
 
         GRANT_GUIDE_ON_FIRST_JOIN = COMMON_BUILDER.comment("Determines if the guide would be given to player on their first join to the world or not.")
                 .define("grant_guide_on_first_join", true);
-        
+
         COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("Three-year career settings").push("career");
+        CAREER_LENGTH_MINUTES = COMMON_BUILDER.comment("Real-time length of a three-year career, in minutes.",
+                "Time only passes while the soul is worn. Only affects careers started after the change.")
+                .defineInRange("career_length_minutes", 45, 1, 6000);
+        CAREER_POINTS_PER_LEVEL = COMMON_BUILDER.comment("Training points needed for one stat level.")
+                .defineInRange("career_points_per_level", 1000, 1, Integer.MAX_VALUE);
+        CAREER_BASE_REWARD_PERCENT = COMMON_BUILDER.comment("Base reward at the end of a career, as a percentage of",
+                "the worst-case auto-training growth (rounded up). 110 = +10%.")
+                .defineInRange("career_base_reward_percent", 110, 0, 1000);
+        CAREER_DEATH_KEEP_PERMILLE = COMMON_BUILDER.comment("Share of stats kept after dying during a career, per mille. 900 = lose 10%.")
+                .defineInRange("career_death_keep_permille", 900, 0, 1000);
+        CAREER_SPEED_WALK_PER_SECOND = COMMON_BUILDER.comment("Speed points per second of moving on foot.")
+                .defineInRange("career_speed_walk_per_second", 3, 0, 100000);
+        CAREER_SPEED_SPRINT_PER_SECOND = COMMON_BUILDER.comment("Speed points per second of sprinting on foot.")
+                .defineInRange("career_speed_sprint_per_second", 6, 0, 100000);
+        CAREER_STAMINA_PER_FOOD = COMMON_BUILDER.comment("Stamina points per hunger point eaten.")
+                .defineInRange("career_stamina_per_food", 35, 0, 100000);
+        CAREER_STAMINA_PER_HEAL = COMMON_BUILDER.comment("Stamina points per health point healed (not while under Regeneration).")
+                .defineInRange("career_stamina_per_heal", 50, 0, 100000);
+        CAREER_STRENGTH_PER_HARDNESS = COMMON_BUILDER.comment("Strength points per 1.0 hardness of a mined block.")
+                .defineInRange("career_strength_per_hardness", 5, 0, 100000);
+        CAREER_STRENGTH_PER_DAMAGE = COMMON_BUILDER.comment("Strength points per point of melee damage dealt.")
+                .defineInRange("career_strength_per_damage", 10, 0, 100000);
+        CAREER_GUTS_PER_DAMAGE_TAKEN = COMMON_BUILDER.comment("Guts points per point of damage taken.")
+                .defineInRange("career_guts_per_damage_taken", 30, 0, 100000);
+        CAREER_GUTS_PER_DAMAGE_BLOCKED = COMMON_BUILDER.comment("Guts points per point of damage blocked with a shield.")
+                .defineInRange("career_guts_per_damage_blocked", 20, 0, 100000);
+        CAREER_GUTS_PER_SECOND_HARMFUL = COMMON_BUILDER.comment("Guts points per second under any harmful effect.")
+                .defineInRange("career_guts_per_second_harmful", 10, 0, 100000);
+        CAREER_WISDOM_PER_LEVEL_SPENT = COMMON_BUILDER.comment("Wisdom points per experience level spent (enchanting, anvil).")
+                .defineInRange("career_wisdom_per_level_spent", 100, 0, 100000);
+        CAREER_WISDOM_PER_POTION = COMMON_BUILDER.comment("Wisdom points per potion taken out of a brewing stand.")
+                .defineInRange("career_wisdom_per_potion", 200, 0, 100000);
+        COMMON_BUILDER.pop();
+
         COMMON_CONFIG = COMMON_BUILDER.build();
     }
     static {

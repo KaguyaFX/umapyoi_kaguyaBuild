@@ -17,6 +17,9 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.tracen.umapyoi.career.CareerManager;
+import net.tracen.umapyoi.career.CareerState;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
@@ -47,6 +50,8 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
     private final IItemHandler inputHandler;
     private final IItemHandler outputHandler;
     private int recipeTime;
+    /** Off by default: undecided souls wait for the player to choose a route. */
+    private boolean autoAccept;
 
     public TrainingFacilityBlockEntity(BlockPos pos, BlockState state) {
         super(BlockEntityRegistry.TRAINING_FACILITY.get(), pos, state);
@@ -76,6 +81,11 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
             return;
 
         boolean didInventoryChange = false;
+        // "Auto-accept new souls": undecided souls (e.g. from a hopper) go straight to auto-training.
+        if (blockEntity.autoAccept && CareerManager.isUndecided(blockEntity.inventory.getStackInSlot(0))) {
+            blockEntity.chooseAutoTraining();
+            didInventoryChange = true;
+        }
         if (blockEntity.canWork()) {
             didInventoryChange = blockEntity.processRecipe();
         } else {
@@ -145,8 +155,32 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
         return true;
     }
 
+    /** The player picked auto-training for the undecided soul in slot 0. */
+    public void chooseAutoTraining() {
+        ItemStack soul = this.inventory.getStackInSlot(0);
+        if (!CareerManager.isUndecided(soul))
+            return;
+        ItemStack result = soul.copy();
+        result.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.AUTO);
+        this.inventory.setStackInSlot(0, result);
+    }
+
+    /** The player picked the three-year career for the undecided soul in slot 0. */
+    public void startThreeYearCareer(ServerPlayer player) {
+        if (this.level instanceof ServerLevel serverLevel)
+            CareerManager.startCareer(serverLevel, this.inventory, player);
+    }
+
+    public void toggleAutoAccept() {
+        this.autoAccept = !this.autoAccept;
+        this.inventoryChanged();
+    }
+
     private boolean hasInput() {
         ItemStack input = this.inventory.getStackInSlot(0);
+        // Undecided souls wait for the player's choice; career souls never auto-train.
+        if (CareerManager.isUndecided(input) || CareerManager.isCareerSoul(input))
+            return false;
         if (input.getItem() instanceof UmaSoulItem) {
             if (input.has(DataComponentsTypeRegistry.UMADATA_TRAINING) && UmaSoulUtils.getPhysique(input) > 0) {
                 for (int i = 1; i < 7; i++) {
@@ -186,12 +220,14 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
 		super.loadAdditional(compound, registries);
         inventory.deserializeNBT(registries, compound.getCompound("Inventory"));
         recipeTime = compound.getInt("RecipeTime");
+        autoAccept = compound.getBoolean("AutoAcceptSouls");
     }
 
     @Override
 	public void saveAdditional(CompoundTag compound, HolderLookup.Provider registries) {
 		super.saveAdditional(compound, registries);
         compound.putInt("RecipeTime", recipeTime);
+        compound.putBoolean("AutoAcceptSouls", autoAccept);
         compound.put("Inventory", inventory.serializeNBT(registries));
     }
 
@@ -217,6 +253,8 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
             public boolean isItemValid(int slot, @NotNull ItemStack stack) {
                 if(slot == 0) {
                     if(!(stack.is(ItemRegistry.UMA_SOUL.get()) && stack.has(DataComponentsTypeRegistry.UMADATA_TRAINING)))
+                        return false;
+                    if (CareerManager.isCareerSoul(stack))
                         return false;
                     for (int i = 1; i < 7; i++) {
                         ItemStack other = this.getStackInSlot(i);
@@ -262,6 +300,8 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
                 switch (index) {
                 case 0:
                     return TrainingFacilityBlockEntity.this.recipeTime;
+                case 1:
+                    return TrainingFacilityBlockEntity.this.autoAccept ? 1 : 0;
                 default:
                     return 0;
                 }
@@ -273,12 +313,15 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
                 case 0:
                     TrainingFacilityBlockEntity.this.recipeTime = value;
                     break;
+                case 1:
+                    TrainingFacilityBlockEntity.this.autoAccept = value != 0;
+                    break;
                 }
             }
 
             @Override
             public int getCount() {
-                return 1;
+                return 2;
             }
         };
     }

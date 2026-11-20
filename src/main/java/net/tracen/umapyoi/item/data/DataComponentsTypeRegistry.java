@@ -9,6 +9,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.career.CareerState;
+import net.tracen.umapyoi.career.UmaCareerData;
 import net.tracen.umapyoi.registry.factors.FactorData;
 import net.tracen.umapyoi.registry.races.UmaRaceHistory;
 import net.tracen.umapyoi.registry.umadata.*;
@@ -103,4 +105,14 @@ public class DataComponentsTypeRegistry {
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResourceLocation>> RACE_DATA =
 			DATA_COMPONENTS.registerComponentType("race",
 					builder -> builder.persistent(ResourceLocation.CODEC).networkSynchronized(ResourceLocation.STREAM_CODEC));
+
+	/** Training route of a soul (three-year career). Absent = already decided (old souls). */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<CareerState>> CAREER_STATE =
+			DATA_COMPONENTS.registerComponentType("career_state",
+					builder -> builder.persistent(CareerState.CODEC).networkSynchronized(CareerState.STREAM));
+
+	/** Three-year career progress, present once a career has started. */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<UmaCareerData>> CAREER_DATA =
+			DATA_COMPONENTS.registerComponentType("career_data",
+					builder -> builder.persistent(UmaCareerData.CODEC).networkSynchronized(UmaCareerData.STREAM));
 }

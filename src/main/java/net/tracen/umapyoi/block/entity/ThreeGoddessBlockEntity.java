@@ -32,6 +32,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.career.CareerState;
 import net.tracen.umapyoi.container.ThreeGoddessContainer;
 import net.tracen.umapyoi.inventory.ThreeGoddessItemHandler;
 import net.tracen.umapyoi.item.FadedUmaSoulItem;
@@ -170,6 +171,8 @@ public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuPr
             .forEach(fac -> fac.applyFactor(result));
         }
 
+        // New souls must choose a training route at the terminal before they can be worn.
+        result.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.UNDECIDED);
         return result;
     }
 

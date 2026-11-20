@@ -6,7 +6,9 @@ import java.util.function.Predicate;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.tracen.umapyoi.career.CareerManager;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -132,6 +134,30 @@ public class TrainingFacilityContainer extends AbstractContainerMenu {
         return stillValid(canInteractWithCallable, playerIn, BlockRegistry.TRAINING_FACILITY.get());
     }
 
+    public static final int BUTTON_AUTO_TRAINING = 0;
+    public static final int BUTTON_THREE_YEAR = 1;
+    public static final int BUTTON_AUTO_ACCEPT = 2;
+
+    /** Route buttons (three-year career), sent with the vanilla menu button packet. */
+    @Override
+    public boolean clickMenuButton(Player player, int id) {
+        if (!(player instanceof ServerPlayer serverPlayer))
+            return false;
+        switch (id) {
+            case BUTTON_AUTO_TRAINING -> this.tileEntity.chooseAutoTraining();
+            case BUTTON_THREE_YEAR -> this.tileEntity.startThreeYearCareer(serverPlayer);
+            case BUTTON_AUTO_ACCEPT -> this.tileEntity.toggleAutoAccept();
+            default -> {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isAutoAccept() {
+        return this.containerData.get(1) != 0;
+    }
+
     @OnlyIn(Dist.CLIENT)
     public int getProgressionScaled() {
         int i = this.containerData.get(0);
@@ -191,6 +217,8 @@ public class TrainingFacilityContainer extends AbstractContainerMenu {
         if (slot == 0) {
             if (!stack.is(ItemRegistry.UMA_SOUL.get()))
                 return Component.translatable("tooltip.umapyoi.training.need_uma_soul");
+            if (CareerManager.isCareerSoul(stack))
+                return Component.translatable("tooltip.umapyoi.training.career_soul");
             for (int i = 1; i < 7; i++) {
                 ItemStack other = handler.getStackInSlot(i);
                 if (other.isEmpty())

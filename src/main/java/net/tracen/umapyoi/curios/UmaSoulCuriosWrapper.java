@@ -5,6 +5,7 @@ import com.google.common.collect.Multimap;
 
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -15,6 +16,7 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.NeoForgeMod;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.career.CareerManager;
 import net.tracen.umapyoi.effect.MobEffectRegistry;
 import net.tracen.umapyoi.events.ApplyUmasoulAttributeEvent;
 import net.tracen.umapyoi.events.ResumeActionPointEvent;
@@ -39,12 +41,13 @@ public class UmaSoulCuriosWrapper implements ICurio {
 
     @Override
     public boolean canEquip(SlotContext slotContext) {
-        return slotContext.identifier().equals("uma_soul");
+        // A soul whose training route is not chosen yet can't be worn (three-year career).
+        return slotContext.identifier().equals("uma_soul") && !CareerManager.isUndecided(this.getStack());
     }
 
     @Override
     public boolean canEquipFromUse(SlotContext slotContext) {
-        return slotContext.identifier().equals("uma_soul");
+        return slotContext.identifier().equals("uma_soul") && !CareerManager.isUndecided(this.getStack());
     }
 
     @Override
@@ -69,6 +72,8 @@ public class UmaSoulCuriosWrapper implements ICurio {
 
         if (!commandSenderWorld.isClientSide()) {
             resumeActionPoint(entity);
+            if (entity instanceof ServerPlayer player)
+                CareerManager.tick(player, this.getStack());
         }
 
     }

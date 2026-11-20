@@ -11,6 +11,10 @@ import net.minecraft.world.inventory.Slot;
 import net.tracen.umapyoi.item.ItemRegistry;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.network.chat.CommonComponents;
+import net.tracen.umapyoi.career.CareerManager;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -37,6 +41,48 @@ public class TrainingFacilityScreen extends AbstractContainerScreen<TrainingFaci
         this.topPos = 0;
         this.imageWidth = 176;
         this.imageHeight = 202;
+    }
+
+    // ---- Training route buttons (three-year career): shown to the right of the terminal ----
+
+    private Button autoButton;
+    private Button careerButton;
+    private Button acceptButton;
+
+    @Override
+    protected void init() {
+        super.init();
+        int x = this.leftPos + this.imageWidth + 4;
+        int y = this.topPos + 92;
+        this.autoButton = this.addRenderableWidget(Button.builder(Component.translatable("gui.umapyoi.training.auto"),
+                b -> this.clickButton(TrainingFacilityContainer.BUTTON_AUTO_TRAINING)).bounds(x, y, 96, 20).build());
+        this.careerButton = this.addRenderableWidget(Button.builder(Component.translatable("gui.umapyoi.training.three_year"),
+                b -> this.clickButton(TrainingFacilityContainer.BUTTON_THREE_YEAR)).bounds(x, y + 22, 96, 20).build());
+        this.acceptButton = this.addRenderableWidget(Button.builder(Component.empty(),
+                b -> this.clickButton(TrainingFacilityContainer.BUTTON_AUTO_ACCEPT)).bounds(x, y + 52, 96, 20).build());
+        this.autoButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.auto.tooltip")));
+        this.careerButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.three_year.tooltip")));
+        this.acceptButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.auto_accept.tooltip")));
+        this.updateButtons();
+    }
+
+    private void clickButton(int id) {
+        if (this.minecraft != null && this.minecraft.gameMode != null)
+            this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, id);
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        this.updateButtons();
+    }
+
+    private void updateButtons() {
+        boolean undecided = CareerManager.isUndecided(this.menu.inventory.getStackInSlot(0));
+        this.autoButton.visible = undecided;
+        this.careerButton.visible = undecided;
+        this.acceptButton.setMessage(Component.translatable("gui.umapyoi.training.auto_accept",
+                CommonComponents.optionStatus(this.menu.isAutoAccept())));
     }
 
     @Override
@@ -86,6 +132,10 @@ public class TrainingFacilityScreen extends AbstractContainerScreen<TrainingFaci
     private Component getSoulStatus(boolean isSoulSlot, ItemStack stack) {
         if (!isSoulSlot || !stack.is(ItemRegistry.UMA_SOUL.get()))
             return null;
+        if (CareerManager.isUndecided(stack))
+            return Component.translatable("tooltip.umapyoi.training.choose_route");
+        if (CareerManager.isCareerSoul(stack))
+            return Component.translatable("tooltip.umapyoi.training.career_soul");
         if (!stack.has(DataComponentsTypeRegistry.UMADATA_TRAINING))
             return Component.translatable("tooltip.umapyoi.training.soul_retired");
         if (UmaSoulUtils.getPhysique(stack) <= 0)

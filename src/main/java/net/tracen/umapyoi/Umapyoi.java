@@ -14,6 +14,7 @@ import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.tracen.umapyoi.advancements.trigger.TriggerRegistry;
 import net.tracen.umapyoi.block.BlockRegistry;
 import net.tracen.umapyoi.block.entity.BlockEntityRegistry;
+import net.tracen.umapyoi.career.CareerAttachments;
 import net.tracen.umapyoi.command.CommandRegistry;
 import net.tracen.umapyoi.container.ContainerRegistry;
 import net.tracen.umapyoi.data.loot.GLMRegistry;
@@ -53,6 +54,7 @@ public class Umapyoi {
         CommandRegistry.ARGUMENT_TYPES.register(modEventBus);
         TriggerRegistry.TRIGGERS.register(modEventBus);
         DataComponentsTypeRegistry.DATA_COMPONENTS.register(modEventBus);
+        CareerAttachments.ATTACHMENT_TYPES.register(modEventBus);
         SoundRegistry.SOUNDS.register(modEventBus);
         GLMRegistry.GLM.register(modEventBus);
         modEventBus.addListener(EventPriority.HIGHEST, this::onEntityAttributeModification);

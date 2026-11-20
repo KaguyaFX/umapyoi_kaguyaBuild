@@ -881,5 +881,20 @@
   "tooltip.umapyoi.race.status.trained": "トレーニング済み",
   "tooltip.umapyoi.race.status.retired": "引退済み",
   "tooltip.umapyoi.race.time.none": "未出走",
-  "tooltip.umapyoi.uma_soul.should_retire": "これ以上トレーニングできません。引退登録をしましょう。"
+  "tooltip.umapyoi.uma_soul.should_retire": "これ以上トレーニングできません。引退登録をしましょう。",
+  "tooltip.umapyoi.career.undecided": "育成方法が未決定です。トレーニングターミナルに入れて選んでください。",
+  "tooltip.umapyoi.career.in_career": "3年間の育成中：%s",
+  "tooltip.umapyoi.career.finished": "3年間の育成が完了しました。引退登録できます。",
+  "tooltip.umapyoi.training.choose_route": "ターミナルの右にあるボタンで育成方法を選んでください。",
+  "tooltip.umapyoi.training.career_soul": "3年間の育成中・育成済みの魂は自動育成できません。",
+  "gui.umapyoi.training.auto": "自動育成",
+  "gui.umapyoi.training.auto.tooltip": "これまで通り、中のサポートカードで自動的にトレーニングします。",
+  "gui.umapyoi.training.three_year": "3年間の育成",
+  "gui.umapyoi.training.three_year.tooltip": "この魂を身につけ、彼女として3年間を過ごします。カードの耐久は今消費され、ステータスはあなたの行動で伸びます。",
+  "gui.umapyoi.training.auto_accept": "自動受付：%s",
+  "gui.umapyoi.training.auto_accept.tooltip": "オンにすると、入れられた新しい魂（ホッパーなど）はそのまま自動育成になります。",
+  "umapyoi.career.overlay": "3年間の育成・%s",
+  "umapyoi.career.started": "彼女の3年間が始まりました。魂を身につけている間だけ時間が進みます。",
+  "umapyoi.career.finished": "3年間が終わりました！魂を引退登録台に持っていきましょう。",
+  "umapyoi.career.death": "育成でつまずきました。ステータスが下がり、やる気が絶不調になりました。"
 }
