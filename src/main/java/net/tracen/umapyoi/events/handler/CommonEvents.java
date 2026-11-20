@@ -15,6 +15,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerSpawnPhantomsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
@@ -152,6 +153,19 @@ public class CommonEvents {
                 serverplayer.addEffect(effectInstance);
             }
         }
+    }
+
+    /**
+     * A good night's sleep raises motivation by one step, for any worn soul.
+     * Only when the night actually passed (woken by the morning, not by leaving the bed),
+     * so getting in and out of bed can't be used to raise it.
+     */
+    @SubscribeEvent
+    public static void onPlayerWokeUp(PlayerWakeUpEvent evt) {
+        Player player = evt.getEntity();
+        if (player.level().isClientSide() || evt.wakeImmediately() || !player.isSleepingLongEnough())
+            return;
+        UmaStatusUtils.changeMotivation(player, 1);
     }
 
     @SubscribeEvent
