@@ -15,6 +15,7 @@ import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.entity.living.LivingShieldBlockEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
@@ -83,6 +84,15 @@ public class CareerEvents {
         if (hardness > 0)
             CareerManager.addPoints(player, CareerManager.STRENGTH,
                     (long) (hardness * UmapyoiConfig.CAREER_STRENGTH_PER_HARDNESS.get() * 1000));
+    }
+
+    /** Wisdom from experience orbs: something every player collects (mobs, ores, smelting). */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onPickupXp(PlayerXpEvent.PickupXp event) {
+        if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player))
+            return;
+        CareerManager.addPoints(player, CareerManager.WISDOM,
+                event.getOrb().getValue() * (long) UmapyoiConfig.CAREER_WISDOM_PER_XP.get() * 1000L);
     }
 
     @SubscribeEvent

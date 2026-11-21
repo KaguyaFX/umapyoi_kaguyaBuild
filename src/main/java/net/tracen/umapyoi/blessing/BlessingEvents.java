@@ -1,6 +1,11 @@
 package net.tracen.umapyoi.blessing;
 
+import java.util.List;
+
+import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.effect.MobEffect;
+import net.tracen.umapyoi.effect.MobEffectRegistry;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -27,12 +32,24 @@ import net.tracen.umapyoi.utils.UmaStatusUtils;
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public class BlessingEvents {
 
-    /** Uma-only: no soul worn, no blessings (they don't come back). */
+    /** The mod's own Umamusume states, which make no sense on a player without a soul. */
+    private static final List<Holder<MobEffect>> UMA_ONLY_EFFECTS = List.of(MobEffectRegistry.MOOD_BONUS,
+            MobEffectRegistry.PANICKING, MobEffectRegistry.NIGHT_OWL, MobEffectRegistry.SLOW_METABOLISM);
+
+    /**
+     * Uma-only rule (design principle 6): with no soul worn, blessings and the other Umamusume
+     * states are removed right away and don't come back.
+     */
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (event.getEntity() instanceof ServerPlayer player && BlessingManager.hasAny(player)
-                && UmapyoiAPI.getUmaSoul(player).isEmpty())
-            BlessingManager.removeAll(player);
+        if (!(event.getEntity() instanceof ServerPlayer player))
+            return;
+        boolean blessed = BlessingManager.hasAny(player);
+        boolean umaState = UMA_ONLY_EFFECTS.stream().anyMatch(player::hasEffect);
+        if ((!blessed && !umaState) || !UmapyoiAPI.getUmaSoul(player).isEmpty())
+            return;
+        BlessingManager.removeAll(player);
+        UMA_ONLY_EFFECTS.forEach(player::removeEffect);
     }
 
     @SubscribeEvent
