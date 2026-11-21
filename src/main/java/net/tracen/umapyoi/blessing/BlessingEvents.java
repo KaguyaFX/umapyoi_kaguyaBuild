@@ -34,7 +34,8 @@ public class BlessingEvents {
 
     /** The mod's own Umamusume states, which make no sense on a player without a soul. */
     private static final List<Holder<MobEffect>> UMA_ONLY_EFFECTS = List.of(MobEffectRegistry.MOOD_BONUS,
-            MobEffectRegistry.PANICKING, MobEffectRegistry.NIGHT_OWL, MobEffectRegistry.SLOW_METABOLISM);
+            MobEffectRegistry.PANICKING, MobEffectRegistry.NIGHT_OWL, MobEffectRegistry.SLOW_METABOLISM,
+            MobEffectRegistry.FRIGHT);
 
     /**
      * Uma-only rule (design principle 6): with no soul worn, blessings and the other Umamusume

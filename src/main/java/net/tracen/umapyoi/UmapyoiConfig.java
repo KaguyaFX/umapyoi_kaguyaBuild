@@ -72,6 +72,20 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue CAREER_WISDOM_PER_POTION;
     public static ModConfigSpec.IntValue CAREER_WISDOM_PER_XP;
 
+    // Uma traits and fright (design doc 8.4, 8.5). Checked once per second.
+    public static ModConfigSpec.DoubleValue FRIGHT_BONUS_CUT;
+    public static ModConfigSpec.IntValue FRIGHT_SECONDS;
+    public static ModConfigSpec.IntValue FRIGHT_MOOD_INTERVAL_SECONDS;
+    public static ModConfigSpec.DoubleValue FRIGHT_MOOD_CHANCE;
+    public static ModConfigSpec.IntValue TRAIT_FEAR_RANGE;
+    public static ModConfigSpec.IntValue TRAIT_FIRE_RANGE;
+    public static ModConfigSpec.IntValue TRAIT_CRAMPED_MAX_OPEN_CELLS;
+    public static ModConfigSpec.IntValue TRAIT_CRAMPED_SECONDS;
+    public static ModConfigSpec.IntValue TRAIT_RESTLESS_SECONDS;
+    public static ModConfigSpec.IntValue TRAIT_CURIOUS_COOLDOWN_SECONDS;
+    public static ModConfigSpec.IntValue TRAIT_HORSE_RANGE;
+    public static ModConfigSpec.IntValue TRAIT_HORSE_SECONDS;
+
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_Y;
@@ -203,6 +217,35 @@ public class UmapyoiConfig {
                 .defineInRange("career_wisdom_per_potion", 200, 0, 100000);
         CAREER_WISDOM_PER_XP = COMMON_BUILDER.comment("Wisdom points per experience point picked up (orbs from mobs, ores, smelting...).")
                 .defineInRange("career_wisdom_per_xp", 8, 0, 100000);
+        COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("Uma traits and the fright status. Checked once per second.").push("traits");
+        FRIGHT_BONUS_CUT = COMMON_BUILDER.comment("Share of the soul's own bonuses that fright takes away. 0.2 = 20%.",
+                "It is a share of the soul's bonus, so a frightened player never drops below a player without a soul.")
+                .defineInRange("fright_bonus_cut", 0.2, 0.0, 1.0);
+        FRIGHT_SECONDS = COMMON_BUILDER.comment("Fright is refreshed to this many seconds while its cause is there.")
+                .defineInRange("fright_seconds", 10, 1, 600);
+        FRIGHT_MOOD_INTERVAL_SECONDS = COMMON_BUILDER.comment("While frightened, motivation may drop once every this many seconds.")
+                .defineInRange("fright_mood_interval_seconds", 60, 1, 3600);
+        FRIGHT_MOOD_CHANCE = COMMON_BUILDER.comment("Chance that motivation drops one step at each of those checks.")
+                .defineInRange("fright_mood_chance", 0.5, 0.0, 1.0);
+        TRAIT_FEAR_RANGE = COMMON_BUILDER.comment("Afraid of a creature: frightened when one is seen within this many blocks.")
+                .defineInRange("trait_fear_range", 8, 1, 64);
+        TRAIT_FIRE_RANGE = COMMON_BUILDER.comment("Afraid of fire: frightened when fire, lava or a lit campfire is this close, or when burning.")
+                .defineInRange("trait_fire_range", 3, 1, 16);
+        TRAIT_CRAMPED_MAX_OPEN_CELLS = COMMON_BUILDER.comment("Claustrophobia: a 5x3x5 box at the feet (75 cells) counts as cramped",
+                "when at most this many cells are not full blocks and the sky can't be seen.")
+                .defineInRange("trait_cramped_max_open_cells", 20, 0, 75);
+        TRAIT_CRAMPED_SECONDS = COMMON_BUILDER.comment("Claustrophobia: seconds in a row in a cramped place before fright. Not checked while sleeping.")
+                .defineInRange("trait_cramped_seconds", 30, 1, 3600);
+        TRAIT_RESTLESS_SECONDS = COMMON_BUILDER.comment("Restless: motivation drops one step after this many seconds without sprinting, then again after as many more.")
+                .defineInRange("trait_restless_seconds", 300, 10, 36000);
+        TRAIT_CURIOUS_COOLDOWN_SECONDS = COMMON_BUILDER.comment("Curious: seconds before another new biome can raise motivation.")
+                .defineInRange("trait_curious_cooldown_seconds", 300, 0, 36000);
+        TRAIT_HORSE_RANGE = COMMON_BUILDER.comment("Horse lover: a horse, donkey or mule within this many blocks counts as near.")
+                .defineInRange("trait_horse_range", 8, 1, 64);
+        TRAIT_HORSE_SECONDS = COMMON_BUILDER.comment("Horse lover: motivation rises one step per this many seconds in a row near one.")
+                .defineInRange("trait_horse_seconds", 60, 1, 3600);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

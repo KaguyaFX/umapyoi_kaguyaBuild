@@ -122,6 +122,12 @@ public class DataComponentsTypeRegistry {
 			DATA_COMPONENTS.registerComponentType("career_skill",
 					builder -> builder.persistent(ResourceLocation.CODEC).networkSynchronized(ResourceLocation.STREAM_CODEC));
 
+	/** Biomes this soul has already been to, for the Curious Uma trait. */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<List<ResourceLocation>>> VISITED_BIOMES =
+			DATA_COMPONENTS.registerComponentType("visited_biomes",
+					builder -> builder.persistent(ResourceLocation.CODEC.listOf())
+							.networkSynchronized(ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list())));
+
 	/** Three-year career progress, present once a career has started. */
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<UmaCareerData>> CAREER_DATA =
 			DATA_COMPONENTS.registerComponentType("career_data",

@@ -139,6 +139,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add(ItemRegistry.SWIMSUIT.get(), "Tracen Swimsuit");
 
         add(MobEffectRegistry.PANICKING.get(), "Panicking");
+        add(MobEffectRegistry.FRIGHT.get(), "Fright");
         add(MobEffectRegistry.MOOD_BONUS.get(), "Hyper Mood");
         add(MobEffectRegistry.NIGHT_OWL.get(), "Night Owl");
         add(MobEffectRegistry.SLOW_METABOLISM.get(), "Slow Metabolism");
