@@ -23,7 +23,8 @@ public class UmapyoiBlockTagProvider extends BlockTagsProvider {
                 .add(BlockRegistry.SUPPORT_ALBUM_PEDESTAL.get()).add(BlockRegistry.UMA_PEDESTAL.get())
                 .add(BlockRegistry.SILVER_SUPPORT_ALBUM_PEDESTAL.get()).add(BlockRegistry.SILVER_UMA_PEDESTAL.get())
                 .add(BlockRegistry.UMA_STATUES.get()).add(BlockRegistry.THREE_GODDESS_UPPER.get())
-                .add(BlockRegistry.TRAINING_FACILITY.get()).add(BlockRegistry.FACTOR_DECOMPOSE_TABLE.get())
+                .add(BlockRegistry.TRAINING_FACILITY.get()).add(BlockRegistry.SELF_TRAINING_TERMINAL.get())
+                .add(BlockRegistry.FACTOR_DECOMPOSE_TABLE.get())
                 .add(BlockRegistry.FACTOR_RESEARCH_TABLE.get()).add(BlockRegistry.GATE.get())
                 .add(BlockRegistry.GATE_DOOR.get()).add(BlockRegistry.RACE_REGISTER_BLOCK.get());
 

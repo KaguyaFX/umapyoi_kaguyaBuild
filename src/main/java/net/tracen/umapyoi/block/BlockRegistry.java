@@ -22,6 +22,8 @@ public class BlockRegistry {
 			() -> new StatuesUpperBlock(THREE_GODDESS, Shapes.block(), true));
 	public static final DeferredBlock<TrainingFacilityBlock> TRAINING_FACILITY = BLOCKS.register("training_facility",
 			TrainingFacilityBlock::new);
+	public static final DeferredBlock<SelfTrainingTerminalBlock> SELF_TRAINING_TERMINAL = BLOCKS.register("self_training_terminal",
+			SelfTrainingTerminalBlock::new);
 	public static final DeferredBlock<SkillLearningTableBlock> SKILL_LEARNING_TABLE = BLOCKS
 			.register("skill_learning_table", SkillLearningTableBlock::new);
 	public static final DeferredBlock<RetireRegisterLecternBlock> REGISTER_LECTERN = BLOCKS.register("register_lectern",

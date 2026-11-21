@@ -43,10 +43,9 @@ public class TrainingFacilityScreen extends AbstractContainerScreen<TrainingFaci
         this.imageHeight = 202;
     }
 
-    // ---- Training route buttons (three-year career): shown to the right of the terminal ----
+    // ---- Start button (an undecided soul waits for it) and the auto-accept toggle, right of the terminal ----
 
     private Button autoButton;
-    private Button careerButton;
     private Button acceptButton;
 
     @Override
@@ -54,14 +53,11 @@ public class TrainingFacilityScreen extends AbstractContainerScreen<TrainingFaci
         super.init();
         int x = this.leftPos + this.imageWidth + 4;
         int y = this.topPos + 92;
-        this.autoButton = this.addRenderableWidget(Button.builder(Component.translatable("gui.umapyoi.training.auto"),
+        this.autoButton = this.addRenderableWidget(Button.builder(Component.translatable("gui.umapyoi.training.start"),
                 b -> this.clickButton(TrainingFacilityContainer.BUTTON_AUTO_TRAINING)).bounds(x, y, 96, 20).build());
-        this.careerButton = this.addRenderableWidget(Button.builder(Component.translatable("gui.umapyoi.training.three_year"),
-                b -> this.clickButton(TrainingFacilityContainer.BUTTON_THREE_YEAR)).bounds(x, y + 22, 96, 20).build());
         this.acceptButton = this.addRenderableWidget(Button.builder(Component.empty(),
-                b -> this.clickButton(TrainingFacilityContainer.BUTTON_AUTO_ACCEPT)).bounds(x, y + 52, 96, 20).build());
-        this.autoButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.auto.tooltip")));
-        this.careerButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.three_year.tooltip")));
+                b -> this.clickButton(TrainingFacilityContainer.BUTTON_AUTO_ACCEPT)).bounds(x, y + 30, 96, 20).build());
+        this.autoButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.start.tooltip")));
         this.acceptButton.setTooltip(Tooltip.create(Component.translatable("gui.umapyoi.training.auto_accept.tooltip")));
         this.updateButtons();
     }
@@ -80,7 +76,6 @@ public class TrainingFacilityScreen extends AbstractContainerScreen<TrainingFaci
     private void updateButtons() {
         boolean undecided = CareerManager.isUndecided(this.menu.inventory.getStackInSlot(0));
         this.autoButton.visible = undecided;
-        this.careerButton.visible = undecided;
         this.acceptButton.setMessage(Component.translatable("gui.umapyoi.training.auto_accept",
                 CommonComponents.optionStatus(this.menu.isAutoAccept())));
     }

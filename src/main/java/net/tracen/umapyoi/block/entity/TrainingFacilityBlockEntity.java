@@ -165,12 +165,6 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
         this.inventory.setStackInSlot(0, result);
     }
 
-    /** The player picked the three-year career for the undecided soul in slot 0. */
-    public void startThreeYearCareer(ServerPlayer player) {
-        if (this.level instanceof ServerLevel serverLevel)
-            CareerManager.startCareer(serverLevel, this.inventory, player);
-    }
-
     public void toggleAutoAccept() {
         this.autoAccept = !this.autoAccept;
         this.inventoryChanged();

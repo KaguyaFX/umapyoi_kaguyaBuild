@@ -12,7 +12,9 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.minecraft.world.level.Level;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.blessing.BlessingManager;
@@ -98,23 +100,9 @@ public final class CareerManager {
                 return false;
         }
 
-        // Worst case: fixed stat supports and fixed extra supports count; random stats,
-        // acupuncturist and skills count as failed. Training count = physique.
-        int cycles = UmaSoulUtils.getPhysique(soul);
-        ItemStack sim = soul.copy();
-        int[] used = new int[7];
-        for (int cycle = 0; cycle < cycles; cycle++) {
-            for (int i = 1; i < 7; i++) {
-                ItemStack card = inventory.getStackInSlot(i);
-                if (!(card.getItem() instanceof SupportContainer support) || used[i] >= usesLeft(level, card))
-                    continue;
-                used[i]++;
-                for (SupportStack stack : support.getSupports(level, card)) {
-                    if (stack.getFactor() instanceof StatusSupport || stack.getFactor() instanceof ExtraStatusSupport)
-                        stack.applySupport(sim, level.getRandom());
-                }
-            }
-        }
+        Simulation simulation = simulateWorstCase(level, inventory, soul);
+        ItemStack sim = simulation.result();
+        int[] used = simulation.used();
 
         // Same cost as auto-training: a card that would break in the simulation breaks now.
         for (int i = 1; i < 7; i++) {
@@ -134,12 +122,10 @@ public final class CareerManager {
         }
 
         int[] start = UmaSoulUtils.getProperty(soul).toArray();
-        int[] simulated = UmaSoulUtils.getProperty(sim).toArray();
-        int[] growth = new int[5];
+        int[] growth = simulation.growth();
         int[] precise = new int[5];
         int[] cards = new int[5];
         for (int i = 0; i < 5; i++) {
-            growth[i] = Math.max(0, simulated[i] - start[i]);
             precise[i] = (int) (start[i] * MILLION);
             cards[i] = 1000; // placeholder: cards don't change career growth yet
         }
@@ -163,7 +149,45 @@ public final class CareerManager {
         return true;
     }
 
-    private static int usesLeft(ServerLevel level, ItemStack card) {
+    /** Worst-case auto-training of a soul with the cards in slots 1-6 of {@code inventory}. */
+    public record Simulation(ItemStack result, int[] used, int[] growth) {
+    }
+
+    /**
+     * Worst case: fixed stat supports and fixed extra supports count; random stats, acupuncturist and
+     * skills count as failed. Training count = physique; a card stops once its uses run out.
+     * Used to start a career and, on the client, to preview the guaranteed grades.
+     */
+    public static Simulation simulateWorstCase(Level level, IItemHandler inventory, ItemStack soul) {
+        int cycles = soul.has(DataComponentsTypeRegistry.UMADATA_TRAINING) ? UmaSoulUtils.getPhysique(soul) : 0;
+        ItemStack sim = soul.copy();
+        int[] used = new int[7];
+        for (int cycle = 0; cycle < cycles; cycle++) {
+            for (int i = 1; i < 7; i++) {
+                ItemStack card = inventory.getStackInSlot(i);
+                if (!(card.getItem() instanceof SupportContainer support) || used[i] >= usesLeft(level, card))
+                    continue;
+                used[i]++;
+                for (SupportStack stack : support.getSupports(level, card)) {
+                    if (stack.getFactor() instanceof StatusSupport || stack.getFactor() instanceof ExtraStatusSupport)
+                        stack.applySupport(sim, level.getRandom());
+                }
+            }
+        }
+        int[] start = UmaSoulUtils.getProperty(soul).toArray();
+        int[] simulated = UmaSoulUtils.getProperty(sim).toArray();
+        int[] growth = new int[5];
+        for (int i = 0; i < 5; i++)
+            growth[i] = Math.max(0, simulated[i] - start[i]);
+        return new Simulation(sim, used, growth);
+    }
+
+    /** Base reward for one stat: ceil(growth x percent), in integers. */
+    public static int baseReward(int growth) {
+        return (growth * UmapyoiConfig.CAREER_BASE_REWARD_PERCENT.get() + 99) / 100;
+    }
+
+    private static int usesLeft(Level level, ItemStack card) {
         if (((SupportContainer) card.getItem()).isConsumable(level, card))
             return card.getCount();
         if (!card.isDamageableItem())
@@ -357,7 +381,7 @@ public final class CareerManager {
         int[] result = new int[5];
         int[] precise = new int[5];
         for (int i = 0; i < 5; i++) {
-            int base = (growth[i] * percent + 99) / 100; // ceil(g x 110%) in integers
+            int base = baseReward(growth[i]); // ceil(g x 110%) in integers
             result[i] = Math.min(max[i], current[i] + base);
             precise[i] = (int) (result[i] * MILLION);
         }

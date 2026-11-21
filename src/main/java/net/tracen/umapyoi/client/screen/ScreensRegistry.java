@@ -14,6 +14,7 @@ public class ScreensRegistry {
     public static void screenRegistry(final RegisterMenuScreensEvent event) {
         event.register(ContainerRegistry.THREE_GODDESS.get(), ThreeGoddessScreen::new);
         event.register(ContainerRegistry.TRAINING_FACILITY.get(), TrainingFacilityScreen::new);
+        event.register(ContainerRegistry.SELF_TRAINING_TERMINAL.get(), SelfTrainingScreen::new);
         event.register(ContainerRegistry.SKILL_LEARNING_TABLE.get(), SkillLearningScreen::new);
         event.register(ContainerRegistry.RETIRE_REGISTER.get(), RetireRegisterScreen::new);
         event.register(ContainerRegistry.DISASSEMBLY_BLOCK.get(), DisassemblyBlockScreen::new);

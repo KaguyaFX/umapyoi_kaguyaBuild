@@ -18,6 +18,9 @@ public class BlockEntityRegistry {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TrainingFacilityBlockEntity>> TRAINING_FACILITY = BLOCK_ENTITIES
             .register("training_facility", () -> BlockEntityType.Builder
                     .of(TrainingFacilityBlockEntity::new, BlockRegistry.TRAINING_FACILITY.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SelfTrainingTerminalBlockEntity>> SELF_TRAINING_TERMINAL = BLOCK_ENTITIES
+            .register("self_training_terminal", () -> BlockEntityType.Builder
+                    .of(SelfTrainingTerminalBlockEntity::new, BlockRegistry.SELF_TRAINING_TERMINAL.get()).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<UmaPedestalBlockEntity>> UMA_PEDESTAL = BLOCK_ENTITIES
             .register("uma_pedestal", () -> BlockEntityType.Builder

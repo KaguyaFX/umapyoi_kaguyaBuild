@@ -17,6 +17,8 @@ public class ContainerRegistry {
 
     public static final DeferredHolder<MenuType<?>, MenuType<TrainingFacilityContainer>> TRAINING_FACILITY = CONTAINER_TYPES
             .register("training_facility", () -> IMenuTypeExtension.create(TrainingFacilityContainer::new));
+    public static final DeferredHolder<MenuType<?>, MenuType<SelfTrainingContainer>> SELF_TRAINING_TERMINAL = CONTAINER_TYPES
+            .register("self_training_terminal", () -> IMenuTypeExtension.create(SelfTrainingContainer::new));
 
     public static final DeferredHolder<MenuType<?>, MenuType<SkillLearningMenu>> SKILL_LEARNING_TABLE = CONTAINER_TYPES
             .register("skill_learning_table", () -> new MenuType<>((SkillLearningMenu::new), FeatureFlags.DEFAULT_FLAGS));

@@ -24,6 +24,8 @@ public class UmapyoiBlockStateProvider extends AbstractBlockStateProvider {
                 models().getExistingFile(ResourceLocation.parse("umapyoi:block/uma_statue")));
         horizontalBlock(BlockRegistry.TRAINING_FACILITY.get(),
                 models().getExistingFile(ResourceLocation.parse("umapyoi:block/training_facility")));
+        horizontalBlock(BlockRegistry.SELF_TRAINING_TERMINAL.get(),
+                models().getExistingFile(ResourceLocation.parse("umapyoi:block/self_training_terminal")));
         horizontalBlock(BlockRegistry.DISASSEMBLY_BLOCK.get(),
                 models().getExistingFile(ResourceLocation.parse("umapyoi:block/disassembly_block")));
         horizontalBlock(BlockRegistry.REGISTER_LECTERN.get(),

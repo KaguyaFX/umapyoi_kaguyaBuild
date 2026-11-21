@@ -11,6 +11,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.career.CareerState;
 import net.tracen.umapyoi.career.UmaCareerData;
+import net.tracen.umapyoi.trait.UmaTraits;
 import net.tracen.umapyoi.registry.factors.FactorData;
 import net.tracen.umapyoi.registry.races.UmaRaceHistory;
 import net.tracen.umapyoi.registry.umadata.*;
@@ -110,6 +111,16 @@ public class DataComponentsTypeRegistry {
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<CareerState>> CAREER_STATE =
 			DATA_COMPONENTS.registerComponentType("career_state",
 					builder -> builder.persistent(CareerState.CODEC).networkSynchronized(CareerState.STREAM));
+
+	/** Uma traits, personality traits and food preferences of a soul (all may be empty). */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<UmaTraits>> UMA_TRAITS =
+			DATA_COMPONENTS.registerComponentType("uma_traits",
+					builder -> builder.persistent(UmaTraits.CODEC).networkSynchronized(UmaTraits.STREAM));
+
+	/** Basic skill picked in the self-training terminal, learned when the career starts. */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResourceLocation>> CAREER_SKILL =
+			DATA_COMPONENTS.registerComponentType("career_skill",
+					builder -> builder.persistent(ResourceLocation.CODEC).networkSynchronized(ResourceLocation.STREAM_CODEC));
 
 	/** Three-year career progress, present once a career has started. */
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<UmaCareerData>> CAREER_DATA =

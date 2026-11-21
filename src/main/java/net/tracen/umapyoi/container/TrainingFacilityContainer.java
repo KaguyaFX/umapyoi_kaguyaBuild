@@ -135,17 +135,15 @@ public class TrainingFacilityContainer extends AbstractContainerMenu {
     }
 
     public static final int BUTTON_AUTO_TRAINING = 0;
-    public static final int BUTTON_THREE_YEAR = 1;
     public static final int BUTTON_AUTO_ACCEPT = 2;
 
-    /** Route buttons (three-year career), sent with the vanilla menu button packet. */
+    /** Start button for an undecided soul and the auto-accept toggle, sent with the vanilla menu button packet. */
     @Override
     public boolean clickMenuButton(Player player, int id) {
         if (!(player instanceof ServerPlayer serverPlayer))
             return false;
         switch (id) {
             case BUTTON_AUTO_TRAINING -> this.tileEntity.chooseAutoTraining();
-            case BUTTON_THREE_YEAR -> this.tileEntity.startThreeYearCareer(serverPlayer);
             case BUTTON_AUTO_ACCEPT -> this.tileEntity.toggleAutoAccept();
             default -> {
                 return false;

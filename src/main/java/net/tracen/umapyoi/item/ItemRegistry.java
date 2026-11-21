@@ -36,6 +36,8 @@ public class ItemRegistry {
 
     public static final DeferredItem<Item> TRAINING_FACILITY = register("training_facility",
             () -> new BlockItem(BlockRegistry.TRAINING_FACILITY.get(), Umapyoi.defaultItemProperties()));
+    public static final DeferredItem<Item> SELF_TRAINING_TERMINAL = register("self_training_terminal",
+            () -> new BlockItem(BlockRegistry.SELF_TRAINING_TERMINAL.get(), Umapyoi.defaultItemProperties()));
 
     public static final DeferredItem<Item> SKILL_LEARNING_TABLE = register("skill_learning_table",
             () -> new BlockItem(BlockRegistry.SKILL_LEARNING_TABLE.get(), Umapyoi.defaultItemProperties()));

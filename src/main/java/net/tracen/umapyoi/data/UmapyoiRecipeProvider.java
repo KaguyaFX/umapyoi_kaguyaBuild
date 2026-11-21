@@ -135,6 +135,10 @@ public class UmapyoiRecipeProvider extends AbstractRecipeProvider {
                 .define('J', ItemRegistry.JEWEL.get()).unlockedBy("has_item", has(ItemRegistry.JEWEL.get()))
                 .save(consumer);
 
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.DECORATIONS, BlockRegistry.SELF_TRAINING_TERMINAL.get())
+                .requires(BlockRegistry.TRAINING_FACILITY.get()).requires(Items.LAPIS_LAZULI)
+                .unlockedBy("has_item", has(BlockRegistry.TRAINING_FACILITY.get())).save(consumer);
+
         ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, BlockRegistry.FACTOR_RESEARCH_TABLE.get()).pattern("BJF")
                 .pattern("SSS").define('B', Items.BOOK).define('J', ItemRegistry.JEWEL.get())
                 .define('F', ItemRegistry.UMA_FACTOR_ITEM.get()).define('S', Tags.Items.STONES)

@@ -18,6 +18,7 @@ public class UmapyoiBlockLoot extends AbstartctBlockLoot {
         dropSelf(BlockRegistry.REGISTER_LECTERN.get());
         dropSelf(BlockRegistry.SKILL_LEARNING_TABLE.get());
         dropSelf(BlockRegistry.TRAINING_FACILITY.get());
+        dropSelf(BlockRegistry.SELF_TRAINING_TERMINAL.get());
         dropSelf(BlockRegistry.UMA_PEDESTAL.get());
         dropSelf(BlockRegistry.SILVER_UMA_PEDESTAL.get());
         dropSelf(BlockRegistry.DISASSEMBLY_BLOCK.get());
