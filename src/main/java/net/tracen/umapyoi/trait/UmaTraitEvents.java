@@ -1,8 +1,10 @@
 package net.tracen.umapyoi.trait;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,6 +13,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -213,20 +216,39 @@ public class UmaTraitEvents {
     }
 
     /**
-     * Counts the cells of a 5x3x5 box at the feet that are not full blocks (torches, grass, doors,
-     * slabs and water count as open). Cramped when few are open and the sky can't be seen.
+     * Counts the open cells of a 5x3x5 box at the feet that the player can reach from where they
+     * stand, moving through cells that are not full blocks (torches, grass, doors, slabs and water
+     * count as open). Air behind a wall doesn't count, so thin walls or a cave on the other side of
+     * the rock don't make a tunnel feel roomy. Cramped when few are reachable and the sky can't be seen.
      */
     private static boolean isCramped(ServerPlayer player) {
         Level level = player.level();
         BlockPos feet = player.blockPosition();
         if (level.canSeeSky(feet.above()))
             return false;
+        int limit = UmapyoiConfig.TRAIT_CRAMPED_MAX_OPEN_CELLS.get();
+        BlockPos min = feet.offset(-2, 0, -2);
+        BlockPos max = feet.offset(2, 2, 2);
+        Set<BlockPos> seen = new HashSet<>();
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        seen.add(feet);
+        queue.add(feet);
         int open = 0;
-        for (BlockPos pos : BlockPos.betweenClosed(feet.offset(-2, 0, -2), feet.offset(2, 2, 2))) {
-            if (!level.getBlockState(pos).isCollisionShapeFullBlock(level, pos))
-                open++;
+        while (!queue.isEmpty()) {
+            BlockPos pos = queue.poll();
+            if (level.getBlockState(pos).isCollisionShapeFullBlock(level, pos))
+                continue;
+            if (++open > limit)
+                return false;
+            for (Direction direction : Direction.values()) {
+                BlockPos next = pos.relative(direction);
+                if (next.getX() >= min.getX() && next.getX() <= max.getX() && next.getY() >= min.getY()
+                        && next.getY() <= max.getY() && next.getZ() >= min.getZ() && next.getZ() <= max.getZ()
+                        && seen.add(next))
+                    queue.add(next);
+            }
         }
-        return open <= UmapyoiConfig.TRAIT_CRAMPED_MAX_OPEN_CELLS.get();
+        return true;
     }
 
     /** 坐不住: too long without sprinting lowers motivation one step, again and again. */

@@ -233,8 +233,8 @@ public class UmapyoiConfig {
                 .defineInRange("trait_fear_range", 8, 1, 64);
         TRAIT_FIRE_RANGE = COMMON_BUILDER.comment("Afraid of fire: frightened when fire, lava or a lit campfire is this close, or when burning.")
                 .defineInRange("trait_fire_range", 3, 1, 16);
-        TRAIT_CRAMPED_MAX_OPEN_CELLS = COMMON_BUILDER.comment("Claustrophobia: a 5x3x5 box at the feet (75 cells) counts as cramped",
-                "when at most this many cells are not full blocks and the sky can't be seen.")
+        TRAIT_CRAMPED_MAX_OPEN_CELLS = COMMON_BUILDER.comment("Claustrophobia: cramped when, in a 5x3x5 box at the feet (75 cells), the player can reach",
+                "at most this many cells that are not full blocks, and the sky can't be seen. A 1x2 tunnel is about 10, a 2x2 one 20.")
                 .defineInRange("trait_cramped_max_open_cells", 20, 0, 75);
         TRAIT_CRAMPED_SECONDS = COMMON_BUILDER.comment("Claustrophobia: seconds in a row in a cramped place before fright. Not checked while sleeping.")
                 .defineInRange("trait_cramped_seconds", 30, 1, 3600);
