@@ -78,7 +78,8 @@ public class UmapyoiAPI {
         if (stackHandler.getSlots() <= 0)
             return ItemStack.EMPTY;
         ItemStack stackInSlot = stackHandler.getStackInSlot(0);
-        if (stackInSlot.getItem() instanceof UmaSoulItem) {
+        // A bare soul without data counts as no soul at all, so nothing Uma-related runs on it.
+        if (UmaSoulUtils.hasSoulData(stackInSlot)) {
             return stackInSlot;
         }
         return ItemStack.EMPTY;

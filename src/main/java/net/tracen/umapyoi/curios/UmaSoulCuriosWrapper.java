@@ -42,12 +42,14 @@ public class UmaSoulCuriosWrapper implements ICurio {
     @Override
     public boolean canEquip(SlotContext slotContext) {
         // A soul whose training route is not chosen yet can't be worn (three-year career).
-        return slotContext.identifier().equals("uma_soul") && !CareerManager.isUndecided(this.getStack());
+        return slotContext.identifier().equals("uma_soul") && UmaSoulUtils.hasSoulData(this.getStack())
+                && !CareerManager.isUndecided(this.getStack());
     }
 
     @Override
     public boolean canEquipFromUse(SlotContext slotContext) {
-        return slotContext.identifier().equals("uma_soul") && !CareerManager.isUndecided(this.getStack());
+        return slotContext.identifier().equals("uma_soul") && UmaSoulUtils.hasSoulData(this.getStack())
+                && !CareerManager.isUndecided(this.getStack());
     }
 
     @Override
@@ -62,7 +64,8 @@ public class UmaSoulCuriosWrapper implements ICurio {
 
     @Override
     public void curioTick(SlotContext slotContext) {
-        if (this.getStack().isEmpty())
+        // A bare soul forced into the slot (e.g. /item replace) does nothing instead of crashing.
+        if (!UmaSoulUtils.hasSoulData(this.getStack()))
             return;
         if (!slotContext.identifier().equalsIgnoreCase("uma_soul"))
             return;
@@ -91,7 +94,7 @@ public class UmaSoulCuriosWrapper implements ICurio {
     public Multimap<Holder<Attribute>, AttributeModifier> getAttributeModifiers(SlotContext slotContext, ResourceLocation id) {
         Multimap<Holder<Attribute>, AttributeModifier> atts = LinkedHashMultimap.create();
         LivingEntity user = slotContext.entity();
-        if (!slotContext.identifier().equalsIgnoreCase("uma_soul"))
+        if (!slotContext.identifier().equalsIgnoreCase("uma_soul") || !UmaSoulUtils.hasSoulData(this.getStack()))
             return atts;
         CuriosApi.addSlotModifier(atts, "uma_suit", id, 1.0, AttributeModifier.Operation.ADD_VALUE);
         if (!Optional.ofNullable(getStack().get(DataComponentsTypeRegistry.UMADATA_TRAINING)).map(UmaDataTraining::hasTrained).orElse(true))
