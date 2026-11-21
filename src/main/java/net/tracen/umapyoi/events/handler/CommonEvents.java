@@ -34,6 +34,7 @@ import net.tracen.umapyoi.utils.ResultRankingUtils;
 import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
+import net.tracen.umapyoi.trait.PersonalityEffects;
 
 @EventBusSubscriber
 public class CommonEvents {
@@ -45,7 +46,8 @@ public class CommonEvents {
             return;
         if (event.getNewDamage() < UmapyoiConfig.DAMAGE_MOTIVATION_EFFECT.get())
             return;
-        double chance = UmapyoiConfig.CHANCE_MOTIVATION_EFFECT.get();
+        // 玻璃心 x2, 開朗 x0.5
+        double chance = PersonalityEffects.hurtMoodChance(entityLiving, UmapyoiConfig.CHANCE_MOTIVATION_EFFECT.get());
         // 平靜 blessing: -30 / 60 / 100 % chance
         int calm = BlessingManager.level(entityLiving, BlessingType.CALM);
         if (calm >= 0)
@@ -158,7 +160,8 @@ public class CommonEvents {
             if (BlessingManager.level(serverplayer, BlessingType.SLUMBER) >= 0) return; // 安眠: no Night Owl
             ServerStatsCounter serverstatscounter = serverplayer.getStats();
             int timeSinceRest = serverstatscounter.getValue(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));
-            if (timeSinceRest >= UmapyoiConfig.NIGHT_OWL_THRESHOLD.get()) {
+            // 嗜睡: sooner
+            if (timeSinceRest >= PersonalityEffects.nightOwlThreshold(serverplayer, UmapyoiConfig.NIGHT_OWL_THRESHOLD.get())) {
                 MobEffectInstance effectInstance = new MobEffectInstance(MobEffectRegistry.NIGHT_OWL, -1);
                 serverplayer.addEffect(effectInstance);
             }

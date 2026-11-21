@@ -15,6 +15,7 @@ import net.tracen.umapyoi.blessing.GaleBlessingEffect;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 import net.tracen.umapyoi.utils.UmaStatusUtils.StatusType;
+import net.tracen.umapyoi.trait.PersonalityEffects;
 
 
 @Mixin(value = Player.class, priority = 10)
@@ -32,6 +33,8 @@ public class PlayerFoodExhaustionMixin {
                     int gale = BlessingManager.level(player, BlessingType.GALE);
                     if (gale >= 0 && player.isSprinting())
                         exhaustionMultipler *= 1.0D - GaleBlessingEffect.exhaustionCut(gale);
+                    // 貪吃 personality trait
+                    exhaustionMultipler *= PersonalityEffects.hungerMultiplier(player);
                     player.getFoodData().addExhaustion((float) (pExhaustion * exhaustionMultipler));
                 }
              }

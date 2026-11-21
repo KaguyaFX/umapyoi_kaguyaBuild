@@ -32,6 +32,7 @@ import net.tracen.umapyoi.registry.umadata.UmaDataTraining;
 import net.tracen.umapyoi.utils.ResultRankingUtils;
 import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
+import net.tracen.umapyoi.trait.PersonalityEffects;
 
 /**
  * Three-year career: soul lifecycle, career time, training points, death and the end of the career.
@@ -242,8 +243,10 @@ public final class CareerManager {
         long mood = Math.round(UmaSoulUtils.getMotivation(soul).getMultiplier() * 1000);
         // 專注 blessing: x1.05 / 1.10 / 1.15
         long focus = 1000 + 50L * (BlessingManager.level(player, BlessingType.FOCUS) + 1);
-        long delta = milliPoints * mood * cache.cardMultiplier[stat] / 1000L * focus
-                / (1000L * UmapyoiConfig.CAREER_POINTS_PER_LEVEL.get());
+        // 厭光 (day/night) and 踏實 (motivation Normal or better)
+        long personality = PersonalityEffects.pointsPermille(player, soul);
+        long delta = milliPoints * mood * cache.cardMultiplier[stat] / 1000L * focus * personality
+                / (1000L * 1000L * UmapyoiConfig.CAREER_POINTS_PER_LEVEL.get());
         cache.precise[stat] = Math.min(cache.max[stat] * MILLION, cache.precise[stat] + delta);
     }
 

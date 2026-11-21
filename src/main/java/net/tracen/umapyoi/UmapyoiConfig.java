@@ -86,6 +86,27 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue TRAIT_HORSE_RANGE;
     public static ModConfigSpec.IntValue TRAIT_HORSE_SECONDS;
 
+    // Personality traits (design doc 8.2, 8.3). Active whenever a soul that has them is worn.
+    public static ModConfigSpec.DoubleValue TIMID_CHANCE;
+    public static ModConfigSpec.IntValue TIMID_SLOWNESS_SECONDS;
+    public static ModConfigSpec.IntValue COWARDLY_RANGE;
+    public static ModConfigSpec.IntValue COWARDLY_WEAKNESS_SECONDS;
+    public static ModConfigSpec.DoubleValue DULL_MOOD_GAIN_FAIL_CHANCE;
+    public static ModConfigSpec.IntValue AFRAID_OF_DARK_LIGHT;
+    public static ModConfigSpec.DoubleValue GLUTTON_HUNGER_MULTIPLIER;
+    public static ModConfigSpec.DoubleValue SLEEPY_NIGHT_OWL_FACTOR;
+    public static ModConfigSpec.IntValue PICKY_EATER_SAME_FOOD;
+    public static ModConfigSpec.IntValue HATES_RAIN_SECONDS;
+    public static ModConfigSpec.DoubleValue FRAGILE_HURT_MOOD_MULTIPLIER;
+    public static ModConfigSpec.IntValue LIGHT_AVERSE_DAY_PERMILLE;
+    public static ModConfigSpec.IntValue LIGHT_AVERSE_NIGHT_PERMILLE;
+    public static ModConfigSpec.DoubleValue TENACIOUS_HEALTH;
+    public static ModConfigSpec.DoubleValue CHEERFUL_MOOD_DROP_MULTIPLIER;
+    public static ModConfigSpec.DoubleValue STUDIOUS_XP_BONUS;
+    public static ModConfigSpec.IntValue STEADY_PERMILLE;
+    public static ModConfigSpec.IntValue EXCITABLE_COMBAT_PERMILLE;
+    public static ModConfigSpec.IntValue EXCITABLE_AP_PAUSE_SECONDS;
+
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_Y;
@@ -246,6 +267,47 @@ public class UmapyoiConfig {
                 .defineInRange("trait_horse_range", 8, 1, 64);
         TRAIT_HORSE_SECONDS = COMMON_BUILDER.comment("Horse lover: motivation rises one step per this many seconds in a row near one.")
                 .defineInRange("trait_horse_seconds", 60, 1, 3600);
+        COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("Personality traits. Points multipliers are per mille: 1100 = x1.1.").push("personality");
+        TIMID_CHANCE = COMMON_BUILDER.comment("Timid: chance to get Slowness I when hurt.")
+                .defineInRange("timid_chance", 0.3, 0.0, 1.0);
+        TIMID_SLOWNESS_SECONDS = COMMON_BUILDER.comment("Timid: how long that Slowness lasts.")
+                .defineInRange("timid_slowness_seconds", 3, 1, 600);
+        COWARDLY_RANGE = COMMON_BUILDER.comment("Cowardly: hurt with no companion this close (another player, a tamed animal, an iron golem) gives Weakness I.")
+                .defineInRange("cowardly_range", 8, 1, 64);
+        COWARDLY_WEAKNESS_SECONDS = COMMON_BUILDER.comment("Cowardly: how long that Weakness lasts.")
+                .defineInRange("cowardly_weakness_seconds", 5, 1, 600);
+        DULL_MOOD_GAIN_FAIL_CHANCE = COMMON_BUILDER.comment("Dull: chance that a motivation gain doesn't happen.")
+                .defineInRange("dull_mood_gain_fail_chance", 0.5, 0.0, 1.0);
+        AFRAID_OF_DARK_LIGHT = COMMON_BUILDER.comment("Afraid of the dark: Darkness while the light at the eyes is at most this.")
+                .defineInRange("afraid_of_dark_light", 3, 0, 15);
+        GLUTTON_HUNGER_MULTIPLIER = COMMON_BUILDER.comment("Glutton: hunger use multiplier.")
+                .defineInRange("glutton_hunger_multiplier", 1.3, 1.0, 10.0);
+        SLEEPY_NIGHT_OWL_FACTOR = COMMON_BUILDER.comment("Sleepy: Night Owl comes after this share of the usual sleepless time. 0.5 = twice as soon.")
+                .defineInRange("sleepy_night_owl_factor", 0.5, 0.01, 1.0);
+        PICKY_EATER_SAME_FOOD = COMMON_BUILDER.comment("Picky eater: eating the same food this many times in a row lowers motivation one step.")
+                .defineInRange("picky_eater_same_food", 3, 2, 64);
+        HATES_RAIN_SECONDS = COMMON_BUILDER.comment("Hates rain: motivation drops one step per this many seconds in a row out in the rain.")
+                .defineInRange("hates_rain_seconds", 60, 1, 3600);
+        FRAGILE_HURT_MOOD_MULTIPLIER = COMMON_BUILDER.comment("Fragile: multiplier on the chance to lose motivation when hurt.")
+                .defineInRange("fragile_hurt_mood_multiplier", 2.0, 1.0, 100.0);
+        LIGHT_AVERSE_DAY_PERMILLE = COMMON_BUILDER.comment("Light-averse: career points in direct daylight, per mille.")
+                .defineInRange("light_averse_day_permille", 900, 0, 10000);
+        LIGHT_AVERSE_NIGHT_PERMILLE = COMMON_BUILDER.comment("Light-averse: career points at night, per mille.")
+                .defineInRange("light_averse_night_permille", 1150, 0, 10000);
+        TENACIOUS_HEALTH = COMMON_BUILDER.comment("Tenacious: Resistance I at or below this share of max health.")
+                .defineInRange("tenacious_health", 0.25, 0.0, 1.0);
+        CHEERFUL_MOOD_DROP_MULTIPLIER = COMMON_BUILDER.comment("Cheerful: multiplier on the chance of every motivation drop. 0.5 = half as likely.")
+                .defineInRange("cheerful_mood_drop_multiplier", 0.5, 0.0, 1.0);
+        STUDIOUS_XP_BONUS = COMMON_BUILDER.comment("Studious: extra experience from picked-up orbs. 0.15 = +15%.")
+                .defineInRange("studious_xp_bonus", 0.15, 0.0, 10.0);
+        STEADY_PERMILLE = COMMON_BUILDER.comment("Steady: career points while motivation is Normal or better, per mille.")
+                .defineInRange("steady_permille", 1100, 0, 10000);
+        EXCITABLE_COMBAT_PERMILLE = COMMON_BUILDER.comment("Excitable: career points from combat (hitting, getting hurt, blocking), per mille.")
+                .defineInRange("excitable_combat_permille", 1200, 0, 10000);
+        EXCITABLE_AP_PAUSE_SECONDS = COMMON_BUILDER.comment("Excitable: action points don't recover for this long after hitting or getting hurt.")
+                .defineInRange("excitable_ap_pause_seconds", 10, 0, 600);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

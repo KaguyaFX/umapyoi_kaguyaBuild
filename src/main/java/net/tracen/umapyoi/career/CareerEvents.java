@@ -19,6 +19,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.trait.PersonalityEffects;
 
 /**
  * Everyday actions that give career training points,
@@ -60,12 +61,12 @@ public class CareerEvents {
             return;
         if (event.getEntity() instanceof ServerPlayer victim)
             CareerManager.addPoints(victim, CareerManager.GUTS,
-                    (long) (damage * UmapyoiConfig.CAREER_GUTS_PER_DAMAGE_TAKEN.get() * 1000));
+                    (long) (damage * UmapyoiConfig.CAREER_GUTS_PER_DAMAGE_TAKEN.get() * PersonalityEffects.combatPermille(victim)));
         DamageSource source = event.getSource();
         if (source.getEntity() instanceof ServerPlayer attacker && source.getDirectEntity() == attacker
                 && attacker != event.getEntity())
             CareerManager.addPoints(attacker, CareerManager.STRENGTH,
-                    (long) (damage * UmapyoiConfig.CAREER_STRENGTH_PER_DAMAGE.get() * 1000));
+                    (long) (damage * UmapyoiConfig.CAREER_STRENGTH_PER_DAMAGE.get() * PersonalityEffects.combatPermille(attacker)));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -73,7 +74,7 @@ public class CareerEvents {
         if (!event.getBlocked() || !(event.getEntity() instanceof ServerPlayer player))
             return;
         CareerManager.addPoints(player, CareerManager.GUTS,
-                (long) (event.getBlockedDamage() * UmapyoiConfig.CAREER_GUTS_PER_DAMAGE_BLOCKED.get() * 1000));
+                (long) (event.getBlockedDamage() * UmapyoiConfig.CAREER_GUTS_PER_DAMAGE_BLOCKED.get() * PersonalityEffects.combatPermille(player)));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

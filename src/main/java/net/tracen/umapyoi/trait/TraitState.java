@@ -14,6 +14,14 @@ public class TraitState {
     int horseSeconds;
     int frightSeconds;
     int curiousCooldown;
+    int rainSeconds;
+    /** Studious: the fraction of a bonus experience point not given yet. */
+    double xpFraction;
+    /** Excitable: game time of the last hit given or taken. */
+    long lastCombatTick = Long.MIN_VALUE;
+    /** Picky eater: the last food eaten and how many times in a row. */
+    net.minecraft.world.item.Item lastFood;
+    int sameFoodCount;
     /** Fright modifiers currently on the player, so they can be taken off again. */
     final Map<Holder<Attribute>, Map<AttributeModifier.Operation, AttributeModifier>> frightModifiers = new HashMap<>();
 }
