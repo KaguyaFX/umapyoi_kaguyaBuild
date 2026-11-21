@@ -43,6 +43,7 @@ import net.tracen.umapyoi.item.data.DataLocation;
 import net.tracen.umapyoi.registry.umadata.UmaData;
 import net.tracen.umapyoi.utils.UmaFactorUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
+import net.tracen.umapyoi.trait.TraitRoller;
 
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = Umapyoi.MODID)
 public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuProvider {
@@ -219,6 +220,8 @@ public class ThreeGoddessBlockEntity extends SyncedBlockEntity implements MenuPr
 
         // New souls must choose a training route at the terminal before they can be worn.
         result.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.UNDECIDED);
+        // Uma traits, the negative personality trait and food likes are the Goddesses' to give.
+        result.set(DataComponentsTypeRegistry.UMA_TRAITS, TraitRoller.roll(this.level.getRandom()));
         return result;
     }
 

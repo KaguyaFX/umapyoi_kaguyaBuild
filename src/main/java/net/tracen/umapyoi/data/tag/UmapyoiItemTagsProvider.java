@@ -79,6 +79,15 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
                 .addTag(Tags.Items.GEMS_DIAMOND);
 
         tag(UmapyoiItemTags.RACE_CHAMPIONS_MATERIAL).add(Items.ENDER_EYE);
+
+        // Spread over farming, livestock, fishing, foraging and bees (design doc 8.6).
+        tag(UmapyoiItemTags.FAVORITE_FOOD_CANDIDATES)
+                .add(Items.BREAD, Items.BAKED_POTATO, Items.COOKIE, Items.PUMPKIN_PIE, Items.MELON_SLICE,
+                        Items.BEETROOT_SOUP)
+                .add(Items.COOKED_BEEF, Items.COOKED_PORKCHOP, Items.COOKED_MUTTON, Items.COOKED_CHICKEN)
+                .add(Items.COOKED_SALMON, Items.COOKED_COD)
+                .add(Items.APPLE, Items.SWEET_BERRIES, Items.GLOW_BERRIES, Items.MUSHROOM_STEW, Items.RABBIT_STEW)
+                .add(Items.HONEY_BOTTLE);
     }
 
 }

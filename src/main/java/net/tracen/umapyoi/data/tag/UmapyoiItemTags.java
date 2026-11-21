@@ -46,4 +46,6 @@ public class UmapyoiItemTags {
     public static final TagKey<Item> RACE_CHAMPIONS_MATERIAL = TagUtils.modItemTag(Umapyoi.MODID, "race_champions_material");
 
     public static final TagKey<Item> SLOW_METABOLISM = TagUtils.modItemTag(Umapyoi.MODID, "slow_metabolism");
+    /** Foods the Three Goddesses can roll as a soul's likes and dislikes. Packs may add their own. */
+    public static final TagKey<Item> FAVORITE_FOOD_CANDIDATES = TagUtils.modItemTag(Umapyoi.MODID, "favorite_food_candidates");
 }

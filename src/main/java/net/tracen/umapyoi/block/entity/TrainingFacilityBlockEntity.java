@@ -39,6 +39,7 @@ import net.tracen.umapyoi.item.UmaSoulItem;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.training.SupportContainer;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
+import net.tracen.umapyoi.trait.UmaTraits;
 
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = Umapyoi.MODID)
 public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements MenuProvider {
@@ -162,6 +163,9 @@ public class TrainingFacilityBlockEntity extends SyncedBlockEntity implements Me
             return;
         ItemStack result = soul.copy();
         result.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.AUTO);
+        UmaTraits traits = result.get(DataComponentsTypeRegistry.UMA_TRAITS);
+        if (traits != null)
+            result.set(DataComponentsTypeRegistry.UMA_TRAITS, traits.withoutPersonality());
         this.inventory.setStackInSlot(0, result);
     }
 

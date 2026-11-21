@@ -344,13 +344,7 @@ public class SelfTrainingScreen extends AbstractContainerScreen<SelfTrainingCont
     }
 
     private static Component joined(List<Component> parts) {
-        MutableComponent out = Component.empty();
-        for (int i = 0; i < parts.size(); i++) {
-            if (i > 0)
-                out.append(Component.translatable("gui.umapyoi.self_training.separator"));
-            out.append(parts.get(i));
-        }
-        return out;
+        return UmaTraits.joined(parts);
     }
 
     /** Cuts a line that would overflow its box, with an ellipsis; the tooltip shows the full text. */

@@ -390,6 +390,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         addTooltip(".uma_soul.aptitude.medium", "Medium %s");
         addTooltip(".uma_soul.aptitude.long", "Long %s");
         addTooltip(".uma_soul.aptitude.strategy", "Strategy: %s");
+        addTooltip(".uma_soul.traits", "Traits:");
 
         addTooltip(".uma_soul.aptitude.strategy.front_runner", "Front");
         addTooltip(".uma_soul.aptitude.strategy.pace_chaser", "Pace");

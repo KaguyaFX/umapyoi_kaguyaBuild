@@ -10,6 +10,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
@@ -57,6 +59,26 @@ public record UmaTraits(List<String> uma, List<String> negative, List<String> po
 
     public UmaTraits withPositive(PersonalityTrait trait) {
         return new UmaTraits(uma, negative, List.of(trait.id()), likes, dislikes);
+    }
+
+    /** Personality traits belong to three-year careers only, so an auto-trained soul drops them. */
+    public UmaTraits withoutPersonality() {
+        return new UmaTraits(uma, List.of(), List.of(), likes, dislikes);
+    }
+
+    public boolean isEmpty() {
+        return uma.isEmpty() && negative.isEmpty() && positive.isEmpty() && likes.isEmpty() && dislikes.isEmpty();
+    }
+
+    /** "a, b, c" with the language's own list separator. */
+    public static MutableComponent joined(List<? extends Component> parts) {
+        MutableComponent out = Component.empty();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0)
+                out.append(Component.translatable("gui.umapyoi.self_training.separator"));
+            out.append(parts.get(i));
+        }
+        return out;
     }
 
     // ---------------------------------------------------------------- tolerant readers

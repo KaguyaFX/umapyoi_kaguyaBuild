@@ -1,6 +1,7 @@
 package net.tracen.umapyoi.trait;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
@@ -22,6 +23,11 @@ public enum UmaTrait {
     CURIOUS("curious", true),
     NIGHT_VISION("night_vision", true),
     HORSE_LOVER("horse_lover", true);
+
+    /** Creatures "afraid of" can target. Vanilla only, on purpose (design doc 8.4). */
+    public static final List<EntityType<?>> FEAR_TARGETS = List.of(EntityType.WOLF, EntityType.BEE,
+            EntityType.POLAR_BEAR, EntityType.SPIDER, EntityType.CREEPER, EntityType.ZOMBIE, EntityType.SKELETON,
+            EntityType.ENDERMAN);
 
     private final String id;
     private final boolean positive;

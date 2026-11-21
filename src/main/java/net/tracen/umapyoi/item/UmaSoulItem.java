@@ -1,5 +1,6 @@
 package net.tracen.umapyoi.item;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -23,6 +24,8 @@ import net.tracen.umapyoi.career.UmaCareerData;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.umadata.UmaData;
 import net.tracen.umapyoi.registry.umadata.UmaDataBasicStatus;
+import net.tracen.umapyoi.trait.PersonalityTrait;
+import net.tracen.umapyoi.trait.UmaTraits;
 import net.tracen.umapyoi.utils.*;
 
 public class UmaSoulItem extends Item{
@@ -127,11 +130,48 @@ public class UmaSoulItem extends Item{
             tooltip.add(
                     Component.translatable("tooltip.umapyoi.uma_soul.aptitude.strategy", Component.translatable("tooltip.umapyoi.uma_soul.aptitude.strategy." + UmaSoulUtils.getPosition(stack).name().toLowerCase()))
             );
+            appendTraits(UmaTraits.of(stack), tooltip);
         } else {
             tooltip.add(Component.translatable("tooltip.umapyoi.press_shift_for_details")
                     .withStyle(ChatFormatting.AQUA));
         }
       }
+
+    /** Uma traits, personality and food likes; souls without any (old or command-made) show nothing. */
+    @OnlyIn(Dist.CLIENT)
+    private static void appendTraits(UmaTraits traits, List<Component> tooltip) {
+        if (traits.isEmpty())
+            return;
+        tooltip.add(Component.literal(""));
+        tooltip.add(Component.translatable("tooltip.umapyoi.uma_soul.traits").withStyle(ChatFormatting.AQUA));
+
+        List<Component> uma = traits.umaEntries().stream()
+                .map(e -> (Component) e.displayName().copy()
+                        .withStyle(e.trait().positive() ? ChatFormatting.GREEN : ChatFormatting.RED))
+                .toList();
+        if (!uma.isEmpty())
+            tooltip.add(Component.translatable("gui.umapyoi.self_training.uma_traits").withStyle(ChatFormatting.GRAY)
+                    .append(UmaTraits.joined(uma)));
+
+        List<PersonalityTrait> personality = new ArrayList<>(traits.negatives());
+        personality.addAll(traits.positives());
+        if (!personality.isEmpty())
+            tooltip.add(Component.translatable("gui.umapyoi.self_training.personality_line")
+                    .withStyle(ChatFormatting.GRAY)
+                    .append(UmaTraits.joined(personality.stream()
+                            .map(t -> (Component) t.displayName().copy()
+                                    .withStyle(t.positive() ? ChatFormatting.GREEN : ChatFormatting.RED))
+                            .toList())));
+
+        List<Component> likes = traits.likedItems().stream().map(Item::getDescription).toList();
+        if (!likes.isEmpty())
+            tooltip.add(Component.translatable("gui.umapyoi.self_training.likes").append(UmaTraits.joined(likes))
+                    .withStyle(ChatFormatting.GRAY));
+        List<Component> dislikes = traits.dislikedItems().stream().map(Item::getDescription).toList();
+        if (!dislikes.isEmpty())
+            tooltip.add(Component.translatable("gui.umapyoi.self_training.dislikes")
+                    .append(UmaTraits.joined(dislikes)).withStyle(ChatFormatting.GRAY));
+    }
 
     private static class UmaDataComparator implements Comparator<Reference<UmaData>> {
         @Override

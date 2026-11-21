@@ -702,6 +702,7 @@
   "tooltip.umapyoi.uma_soul.speed_details": "Speed: %s / %s",
   "tooltip.umapyoi.uma_soul.stamina_details": "Stamina: %s / %s",
   "tooltip.umapyoi.uma_soul.strength_details": "Power: %s / %s",
+  "tooltip.umapyoi.uma_soul.traits": "Traits:",
   "tooltip.umapyoi.uma_soul.wisdom_details": "Wit: %s / %s",
   "tooltip.umapyoi.umadata.name": "Umamusume's Name:%s",
   "tooltip.umapyoi.umafactor.data": "Has %s and %d more factors.",
