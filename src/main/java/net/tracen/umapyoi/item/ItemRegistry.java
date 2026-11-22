@@ -30,6 +30,9 @@ public class ItemRegistry {
 
     public static final DeferredItem<Item> UMA_STATUE = register("uma_statue",
             () -> new BlockItem(BlockRegistry.UMA_STATUES.get(), Umapyoi.defaultItemProperties()));
+    /** Hidden: not in the creative menu nor recipe viewers; only given when a three-year career ends. */
+    public static final DeferredItem<Item> CAREER_KEEPSAKE = register("career_keepsake",
+            () -> new CareerKeepsakeItem(BlockRegistry.CAREER_KEEPSAKE.get()));
     
     public static final DeferredItem<Item> THREE_GODDESS = register("three_goddess",
             () -> new BlockItem(BlockRegistry.THREE_GODDESS.get(), Umapyoi.defaultItemProperties()));

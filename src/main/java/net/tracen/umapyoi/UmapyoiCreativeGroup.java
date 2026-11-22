@@ -49,6 +49,8 @@ public class UmapyoiCreativeGroup {
                                 fillFactorContainer(output);
                                 return;
                             }
+                            if (item == ItemRegistry.CAREER_KEEPSAKE) // hidden: only given at the end of a career
+                                return;
                             if (item == ItemRegistry.UMA_SOUL || item == ItemRegistry.UMA_SOUL_DISPLAY) {
 //                                fillUmaSoul(features, output);
                                 return;

@@ -35,6 +35,7 @@ import top.theillusivec4.curios.api.client.CuriosRendererRegistry;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
+import net.tracen.umapyoi.client.renderer.blockentity.CareerKeepsakeRenderer;
 
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class ClientSetupEvents {
@@ -60,6 +61,7 @@ public class ClientSetupEvents {
             		SupportAlbumPedestalBlockRender::new);
             
             BlockEntityRenderers.register(BlockEntityRegistry.UMA_STATUES.get(), UmaStatuesBlockRender::new);
+            BlockEntityRenderers.register(BlockEntityRegistry.CAREER_KEEPSAKE.get(), CareerKeepsakeRenderer::new);
             BlockEntityRenderers.register(BlockEntityRegistry.SILVER_UMA_PEDESTAL.get(), SilverUmaPedestalBlockRender::new);
             BlockEntityRenderers.register(BlockEntityRegistry.SILVER_SUPPORT_ALBUM_PEDESTAL.get(),
                     SilverSupportAlbumPedestalBlockRender::new);

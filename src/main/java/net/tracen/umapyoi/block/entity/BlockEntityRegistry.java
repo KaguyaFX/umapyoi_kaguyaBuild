@@ -40,6 +40,9 @@ public class BlockEntityRegistry {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<UmaStatueBlockEntity>> UMA_STATUES = BLOCK_ENTITIES
             .register("uma_statues", () -> BlockEntityType.Builder
                     .of(UmaStatueBlockEntity::new, BlockRegistry.UMA_STATUES.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CareerKeepsakeBlockEntity>> CAREER_KEEPSAKE = BLOCK_ENTITIES
+            .register("career_keepsake", () -> BlockEntityType.Builder
+                    .of(CareerKeepsakeBlockEntity::new, BlockRegistry.CAREER_KEEPSAKE.get()).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<RaceRegisterBlockEntity>> RACE_REGISTER_BLOCK_ENTITY =
             BLOCK_ENTITIES.register("race_register_block_entity", () -> BlockEntityType.Builder

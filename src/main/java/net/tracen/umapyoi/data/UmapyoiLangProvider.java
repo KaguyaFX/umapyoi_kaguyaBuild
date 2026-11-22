@@ -235,6 +235,10 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.career.event.notice_message", "[%s] %s");
         add("umapyoi.uma.no_riding", "An Umamusume doesn't ride horses");
         add("umapyoi.career.notebook_cap", "%s cap +%s");
+        add("item.umapyoi.career_keepsake", "Memories");
+        add("item.umapyoi.career_keepsake.named", "%s's Memories");
+        add("item.umapyoi.career_keepsake.desc", "What an unforgettable time it was.");
+        add("block.umapyoi.career_keepsake", "Memories");
         add("umapyoi.career.started", "Her three years begin. Time only passes while you wear her soul.");
         add("umapyoi.career.finished", "Three years complete! Take her soul to the Retire Register Lectern.");
         add("umapyoi.career.death", "A setback in her career: stats lowered, motivation at its lowest.");

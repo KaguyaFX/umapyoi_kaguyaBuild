@@ -106,7 +106,8 @@ public class UmapyoiItemModelProvider extends AbstractItemModelProvider {
                 return;
             }
 
-            if (item.get() instanceof BlockItem block && !(item == ItemRegistry.THREE_GODDESS || item == ItemRegistry.UMA_STATUE)){
+            if (item.get() instanceof BlockItem block && !(item == ItemRegistry.THREE_GODDESS || item == ItemRegistry.UMA_STATUE
+                    || item == ItemRegistry.CAREER_KEEPSAKE)){
                 try {
                     toBlock(block::getBlock);
                 } catch (IllegalStateException e) {

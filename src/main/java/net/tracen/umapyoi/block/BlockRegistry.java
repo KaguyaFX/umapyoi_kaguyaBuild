@@ -34,6 +34,10 @@ public class BlockRegistry {
 
 	public static final DeferredBlock<Block> UMA_STATUES = BLOCKS.register("uma_statues", UmaStatueBlock::new);
 
+	/** The keepsake of a finished three-year career (only ever given, never crafted). */
+	public static final DeferredBlock<CareerKeepsakeBlock> CAREER_KEEPSAKE = BLOCKS.register("career_keepsake",
+			CareerKeepsakeBlock::new);
+
 	public static final DeferredBlock<StatuesUpperBlock> UMA_STATUES_UPPER = BLOCKS.register("uma_statues_upper",
 			() -> new StatuesUpperBlock(UMA_STATUES, Block.box(4.0D, 0.0D, 4.0D, 12.0D, 16.0D, 12.0D), true));
 

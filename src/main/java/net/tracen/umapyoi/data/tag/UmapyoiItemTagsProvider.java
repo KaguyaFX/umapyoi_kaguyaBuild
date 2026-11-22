@@ -69,6 +69,7 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
                 .add(Items.GOLDEN_CARROT, Items.COOKIE, Items.PUMPKIN_PIE)
                 .add(ItemRegistry.CUPCAKE.get(), ItemRegistry.SWEET_CUPCAKE.get());
         tag(UmapyoiItemTags.EAR_FRIENDLY_HEADWEAR);
+        tag(Tags.Items.HIDDEN_FROM_RECIPE_VIEWERS).add(ItemRegistry.CAREER_KEEPSAKE.get());
 
         tag(UmapyoiItemTags.SLOW_METABOLISM)
                 .add(ItemRegistry.HACHIMI_BIG.get()).add(ItemRegistry.SWEET_CUPCAKE.get());

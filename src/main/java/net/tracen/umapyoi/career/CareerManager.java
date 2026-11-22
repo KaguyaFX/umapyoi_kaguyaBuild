@@ -40,6 +40,7 @@ import net.tracen.umapyoi.registry.training.RandomStatusSupport;
 import java.util.ArrayList;
 import java.util.List;
 import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
+import net.tracen.umapyoi.item.data.DataLocation;
 
 /**
  * Three-year career: soul lifecycle, career time, training points, death and the end of the career.
@@ -496,5 +497,10 @@ public final class CareerManager {
                 SoundSource.PLAYERS, 1F, 1F);
         player.sendSystemMessage(Component.translatable("umapyoi.career.finished"));
         UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.FINISH_CAREER);
+        // A keepsake of these three years: a small figure of her (design doc ch. 11).
+        ItemStack keepsake = new ItemStack(ItemRegistry.CAREER_KEEPSAKE.get());
+        keepsake.set(DataComponentsTypeRegistry.DATA_LOCATION, new DataLocation(UmaSoulUtils.getName(soul)));
+        if (!player.getInventory().add(keepsake))
+            player.drop(keepsake, false);
     }
 }
