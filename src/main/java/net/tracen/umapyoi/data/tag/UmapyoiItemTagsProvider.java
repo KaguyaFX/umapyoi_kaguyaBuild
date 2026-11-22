@@ -51,14 +51,19 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
 
         tag(UmapyoiItemTags.getMotivationFoodTag(1))
                 .add(ItemRegistry.HACHIMI_MID.get())
-                .add(ItemRegistry.CUPCAKE.get());
+                .add(ItemRegistry.CUPCAKE.get())
+                .add(Items.GOLDEN_CARROT);
 
         tag(UmapyoiItemTags.getMotivationFoodTag(2))
                 .add(ItemRegistry.HACHIMI_BIG.get())
                 .add(ItemRegistry.SWEET_CUPCAKE.get());
 
+        // Umamusume hate bitter things (design doc 12.2)
         tag(UmapyoiItemTags.getMotivationFoodTag(-1))
-                .add(ItemRegistry.ROYAL_BITTER.get());
+                .add(ItemRegistry.ROYAL_BITTER.get())
+                .add(Items.SPIDER_EYE, Items.ROTTEN_FLESH, Items.POISONOUS_POTATO);
+
+        tag(UmapyoiItemTags.CARROT_MOOD).addTag(Tags.Items.CROPS_CARROT);
 
         tag(UmapyoiItemTags.SLOW_METABOLISM)
                 .add(ItemRegistry.HACHIMI_BIG.get()).add(ItemRegistry.SWEET_CUPCAKE.get());

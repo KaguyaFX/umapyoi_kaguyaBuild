@@ -107,6 +107,12 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue EXCITABLE_COMBAT_PERMILLE;
     public static ModConfigSpec.IntValue EXCITABLE_AP_PAUSE_SECONDS;
 
+    // Food likes and the Umamusume's own food habits (design doc 8.6, 12.2).
+    public static ModConfigSpec.DoubleValue DISLIKED_FOOD_MOOD_CHANCE;
+    public static ModConfigSpec.DoubleValue CARROT_MOOD_CHANCE;
+    public static ModConfigSpec.DoubleValue RAW_MEAT_MOOD_CHANCE;
+    public static ModConfigSpec.DoubleValue SENSITIVE_STOMACH_MULTIPLIER;
+
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_Y;
@@ -308,6 +314,17 @@ public class UmapyoiConfig {
                 .defineInRange("excitable_combat_permille", 1200, 0, 10000);
         EXCITABLE_AP_PAUSE_SECONDS = COMMON_BUILDER.comment("Excitable: action points don't recover for this long after hitting or getting hurt.")
                 .defineInRange("excitable_ap_pause_seconds", 10, 0, 600);
+        COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("Food. A soul's liked food always raises motivation one step.").push("food");
+        DISLIKED_FOOD_MOOD_CHANCE = COMMON_BUILDER.comment("Chance that a disliked food lowers motivation one step. Picky eaters: always.")
+                .defineInRange("disliked_food_mood_chance", 0.5, 0.0, 1.0);
+        CARROT_MOOD_CHANCE = COMMON_BUILDER.comment("Chance that a carrot (item tag umapyoi:carrot_mood) raises motivation one step.")
+                .defineInRange("carrot_mood_chance", 0.25, 0.0, 1.0);
+        RAW_MEAT_MOOD_CHANCE = COMMON_BUILDER.comment("Chance that raw meat (item tag c:foods/raw_meat) lowers motivation one step.")
+                .defineInRange("raw_meat_mood_chance", 0.5, 0.0, 1.0);
+        SENSITIVE_STOMACH_MULTIPLIER = COMMON_BUILDER.comment("Harmful effects a food gives last this many times as long.")
+                .defineInRange("sensitive_stomach_multiplier", 2.0, 1.0, 10.0);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();
