@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:self_training",
+  "display": {
+    "icon": {
+      "id": "minecraft:creeper_head"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.fright.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.fright.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "fright"
+      }
+    }
+  }
+}

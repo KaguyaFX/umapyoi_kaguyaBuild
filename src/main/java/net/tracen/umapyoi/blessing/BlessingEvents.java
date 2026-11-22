@@ -23,6 +23,7 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
  * Behaviour of the blessings that isn't a plain attribute: removal without a soul, 幸福, 悲傷, 生存.
@@ -89,6 +90,7 @@ public class BlessingEvents {
             return;
         event.setCanceled(true);
         player.setHealth(1.0F);
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.SORROW_SAVE);
         player.removeEffect(BlessingType.SORROW.effect());
         ((ServerLevel) player.level()).sendParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(),
                 player.getY() + 1.0, player.getZ(), 60, 0.4, 0.8, 0.4, 0.5);

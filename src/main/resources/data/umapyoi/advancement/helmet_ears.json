@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:self_training",
+  "display": {
+    "icon": {
+      "id": "minecraft:iron_helmet"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.helmet_ears.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.helmet_ears.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "helmet_ears"
+      }
+    }
+  }
+}

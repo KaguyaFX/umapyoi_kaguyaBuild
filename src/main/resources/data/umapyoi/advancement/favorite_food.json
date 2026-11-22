@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:self_training",
+  "display": {
+    "icon": {
+      "id": "minecraft:cake"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.favorite_food.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.favorite_food.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "favorite_food"
+      }
+    }
+  }
+}

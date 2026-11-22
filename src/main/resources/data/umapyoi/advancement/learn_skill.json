@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:skill_table",
+  "display": {
+    "icon": {
+      "id": "umapyoi:skill_book"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.learn_skill.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.learn_skill.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "learn_skill"
+      }
+    }
+  }
+}

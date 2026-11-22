@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:wear_soul",
+  "display": {
+    "icon": {
+      "id": "minecraft:saddle"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.try_ride_horse.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.try_ride_horse.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "try_ride_horse"
+      }
+    }
+  }
+}

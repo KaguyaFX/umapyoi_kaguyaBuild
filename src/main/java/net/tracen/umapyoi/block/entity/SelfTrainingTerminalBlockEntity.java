@@ -105,6 +105,7 @@ public class SelfTrainingTerminalBlockEntity extends SyncedBlockEntity implement
         if (skill != null) {
             ItemStack started = inventory.getStackInSlot(0).copy();
             SkillOffer.grant(started, skill);
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.LEARN_SKILL);
             started.remove(DataComponentsTypeRegistry.CAREER_SKILL);
             inventory.setStackInSlot(0, started);
         }

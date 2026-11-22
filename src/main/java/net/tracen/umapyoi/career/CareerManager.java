@@ -39,6 +39,7 @@ import net.tracen.umapyoi.registry.training.BorealisSupport;
 import net.tracen.umapyoi.registry.training.RandomStatusSupport;
 import java.util.ArrayList;
 import java.util.List;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
  * Three-year career: soul lifecycle, career time, training points, death and the end of the career.
@@ -474,5 +475,6 @@ public final class CareerManager {
         player.level().playSound(null, player.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
                 SoundSource.PLAYERS, 1F, 1F);
         player.sendSystemMessage(Component.translatable("umapyoi.career.finished"));
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.FINISH_CAREER);
     }
 }

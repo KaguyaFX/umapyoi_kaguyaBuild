@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:wear_soul",
+  "display": {
+    "icon": {
+      "id": "umapyoi:summer_uniform"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.wear_costume.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.wear_costume.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "wear_costume"
+      }
+    }
+  }
+}

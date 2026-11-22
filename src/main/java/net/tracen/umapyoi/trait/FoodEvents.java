@@ -19,6 +19,9 @@ import net.tracen.umapyoi.blessing.BlessingManager;
 import net.tracen.umapyoi.blessing.BlessingType;
 import net.tracen.umapyoi.data.tag.UmapyoiItemTags;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
+import net.tracen.umapyoi.registry.umadata.Motivations;
+import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
  * What eating does to an Umamusume (design doc 8.6, 12.2): the soul's liked and disliked foods,
@@ -46,7 +49,10 @@ public class FoodEvents {
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
 
         if (traits.likes().contains(id)) {
+            Motivations before = UmaSoulUtils.getMotivation(soul);
             UmaStatusUtils.changeMotivation(player, 1);
+            if (UmaSoulUtils.getMotivation(soul).ordinal() < before.ordinal())
+                UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.FAVORITE_FOOD);
         } else if (traits.dislikes().contains(id) && !aversionsOff) {
             if (PersonalityEffects.has(soul, PersonalityTrait.PICKY_EATER)
                     || random.nextDouble() < UmapyoiConfig.DISLIKED_FOOD_MOOD_CHANCE.get())

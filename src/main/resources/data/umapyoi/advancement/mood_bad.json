@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:self_training",
+  "display": {
+    "icon": {
+      "id": "umapyoi:royal_bitter"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.mood_bad.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.mood_bad.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "mood_bad"
+      }
+    }
+  }
+}

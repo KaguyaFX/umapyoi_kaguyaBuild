@@ -49,6 +49,7 @@ import net.tracen.umapyoi.utils.UmaStatusUtils;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.SlotAttribute;
 import top.theillusivec4.curios.api.SlotContext;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
  * The 7 Uma traits (design doc 8.4) and the fright status (8.5). Everything is checked once per
@@ -89,9 +90,11 @@ public class UmaTraitEvents {
                 case HORSE_LOVER -> horseLover(player, state);
             }
         }
-        if (frightened)
+        if (frightened) {
             player.addEffect(new MobEffectInstance(MobEffectRegistry.FRIGHT,
                     UmapyoiConfig.FRIGHT_SECONDS.get() * 20, 0, false, false, true));
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.FRIGHT);
+        }
 
         frightMood(player, state);
         updateFrightModifiers(player, soul, state);

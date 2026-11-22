@@ -25,6 +25,9 @@ import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.career.CareerAttachments;
 import net.tracen.umapyoi.data.tag.UmapyoiItemTags;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
+import net.tracen.umapyoi.registry.umadata.Motivations;
+import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
  * What any player wearing a soul is like (design doc 12.2), trained or not. The base health and
@@ -54,8 +57,10 @@ public class UmaNatureEvents {
         if (!isUma(player))
             return;
         event.setCanceled(true);
-        if (player instanceof ServerPlayer serverPlayer)
+        if (player instanceof ServerPlayer serverPlayer) {
             serverPlayer.displayClientMessage(Component.translatable("umapyoi.uma.no_riding"), true);
+            UmapyoiActionTrigger.fire(serverPlayer, UmapyoiActionTrigger.TRY_RIDE_HORSE);
+        }
     }
 
     /** Carrots and sweets fill an Umamusume more. */
@@ -107,6 +112,7 @@ public class UmaNatureEvents {
         if (!(event.getEntity() instanceof ServerPlayer player) || player.tickCount % 20 != 0)
             return;
         TraitState state = player.getData(CareerAttachments.TRAIT_STATE);
+        achievements(player);
         ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
         if (head.isEmpty() || head.is(UmapyoiItemTags.EAR_FRIENDLY_HEADWEAR) || !isUma(player) || player.isSleeping()) {
             state.helmetSeconds = 0;
@@ -115,6 +121,24 @@ public class UmaNatureEvents {
         if (++state.helmetSeconds >= UmapyoiConfig.HELMET_MOOD_SECONDS.get()) {
             state.helmetSeconds = 0;
             UmaStatusUtils.changeMotivation(player, -1);
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.HELMET_EARS);
         }
+    }
+
+    /** Once a second: achievements about what an Umamusume is wearing, sitting on, and feeling. */
+    private static void achievements(ServerPlayer player) {
+        ItemStack soul = UmapyoiAPI.getUmaSoul(player);
+        if (soul.isEmpty())
+            return;
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WEAR_SOUL);
+        if (!UmapyoiAPI.getUmaSuit(player).isEmpty())
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WEAR_COSTUME);
+        if (player.getVehicle() instanceof AbstractHorse horse && !(horse instanceof Llama) && !(horse instanceof Camel))
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.RIDE_HORSE_AS_UMA);
+        Motivations motivation = UmaSoulUtils.getMotivation(soul);
+        if (motivation == Motivations.BAD)
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.MOOD_BAD);
+        else if (motivation == Motivations.PERFECT)
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.MOOD_PERFECT);
     }
 }

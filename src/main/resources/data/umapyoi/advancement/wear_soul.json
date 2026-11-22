@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:uma_soul",
+  "display": {
+    "icon": {
+      "id": "umapyoi:uma_soul"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.wear_soul.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.wear_soul.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "wear_soul"
+      }
+    }
+  }
+}

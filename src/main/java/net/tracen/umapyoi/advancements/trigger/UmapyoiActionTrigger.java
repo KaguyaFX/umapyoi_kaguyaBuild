@@ -23,6 +23,30 @@ public class UmapyoiActionTrigger extends SimpleCriterionTrigger<UmapyoiActionTr
     public static final String BLESSING = "blessing";
     /** Turned a summoning pedestal into a support one with a book. */
     public static final String SUPPORT_PEDESTAL = "support_pedestal";
+    /** Wearing any soul. */
+    public static final String WEAR_SOUL = "wear_soul";
+    /** Wearing any outfit in the outfit slot. */
+    public static final String WEAR_COSTUME = "wear_costume";
+    /** Tried to mount a horse while an Umamusume (and couldn't). */
+    public static final String TRY_RIDE_HORSE = "try_ride_horse";
+    /** Riding a horse while an Umamusume anyway: mounted first, put the soul on after. */
+    public static final String RIDE_HORSE_AS_UMA = "ride_horse_as_uma";
+    /** A helmet lowered motivation. */
+    public static final String HELMET_EARS = "helmet_ears";
+    /** A liked food raised motivation. */
+    public static final String FAVORITE_FOOD = "favorite_food";
+    /** Fright from an Uma trait. */
+    public static final String FRIGHT = "fright";
+    /** Motivation at its worst. */
+    public static final String MOOD_BAD = "mood_bad";
+    /** Motivation at its best (Hyper Mood doesn't count). */
+    public static final String MOOD_PERFECT = "mood_perfect";
+    /** Sorrow III kept a player from dying. */
+    public static final String SORROW_SAVE = "sorrow_save";
+    /** Learned a skill at the skill learning table or through a three-year career (not auto-training). */
+    public static final String LEARN_SKILL = "learn_skill";
+    /** Finished a three-year career. */
+    public static final String FINISH_CAREER = "finish_career";
 
     @Override
     public Codec<Instance> codec() {

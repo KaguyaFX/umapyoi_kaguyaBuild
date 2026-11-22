@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:self_training",
+  "display": {
+    "icon": {
+      "id": "minecraft:firework_rocket"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.finish_career.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.finish_career.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "finish_career"
+      }
+    }
+  }
+}

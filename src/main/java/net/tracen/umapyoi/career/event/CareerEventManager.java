@@ -26,6 +26,7 @@ import net.tracen.umapyoi.trait.PersonalityEffects;
 import net.tracen.umapyoi.trait.PersonalityTrait;
 import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
  * The per-turn event system (design doc ch. 9). When a career starts it gets an event table. At the
@@ -139,6 +140,7 @@ public final class CareerEventManager {
                 player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.6F, 1.4F);
         }
         for (String id : learned) {
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.LEARN_SKILL);
             player.displayClientMessage(Component.translatable("umapyoi.career.event.skill_learned",
                     CareerEventType.skillName(id)).withStyle(ChatFormatting.AQUA), true);
             player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.5F, 1.2F);

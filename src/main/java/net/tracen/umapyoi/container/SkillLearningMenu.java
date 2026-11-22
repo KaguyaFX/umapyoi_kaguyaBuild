@@ -20,6 +20,7 @@ import net.tracen.umapyoi.registry.UmaSkillRegistry;
 import net.tracen.umapyoi.registry.skills.UmaSkill;
 import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 public class SkillLearningMenu extends ItemCombinerMenu {
 
@@ -73,6 +74,7 @@ public class SkillLearningMenu extends ItemCombinerMenu {
 
     @Override
     protected void onTake(Player player, ItemStack resultStack) {
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.LEARN_SKILL);
         resultStack.onCraftedBy(player.level(), player, resultStack.getCount());
         this.resultSlots.awardUsedRecipes(player, this.getRelevantItems());
         this.shrinkStackInSlot(0);
