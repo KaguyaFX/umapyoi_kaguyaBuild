@@ -97,7 +97,7 @@ public class UmaSoulCuriosWrapper implements ICurio {
         if (!slotContext.identifier().equalsIgnoreCase("uma_soul") || !UmaSoulUtils.hasSoulData(this.getStack()))
             return atts;
         CuriosApi.addSlotModifier(atts, "uma_suit", id, 1.0, AttributeModifier.Operation.ADD_VALUE);
-        // An Umamusume's body: a little more health and speed with any soul, trained or not (design doc 12.2).
+        // An Umamusume's body: a little more health and speed with any soul, trained or not.
         ResourceLocation baseId = id.withSuffix("_uma_body");
         if (UmapyoiConfig.UMA_BASE_HEALTH.get() > 0)
             atts.put(Attributes.MAX_HEALTH, new AttributeModifier(baseId, UmapyoiConfig.UMA_BASE_HEALTH.get(),

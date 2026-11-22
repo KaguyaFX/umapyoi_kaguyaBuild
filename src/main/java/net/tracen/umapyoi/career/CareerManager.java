@@ -138,7 +138,7 @@ public final class CareerManager {
         int[] cards = new int[5];
         for (int i = 0; i < 5; i++) {
             precise[i] = (int) (start[i] * MILLION);
-            // each level of stat support on the cards: that stat grows +5% faster (design doc 7.4)
+            // each level of stat support on the cards: that stat grows +5% faster
             cards[i] = 1000 + 10 * UmapyoiConfig.CAREER_CARD_PERCENT_PER_LEVEL.get() * cardLevels[i];
         }
 
@@ -497,7 +497,7 @@ public final class CareerManager {
                 SoundSource.PLAYERS, 1F, 1F);
         player.sendSystemMessage(Component.translatable("umapyoi.career.finished"));
         UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.FINISH_CAREER);
-        // A keepsake of these three years: a small figure of her (design doc ch. 11).
+        // A keepsake of these three years: a small figure of her.
         ItemStack keepsake = new ItemStack(ItemRegistry.CAREER_KEEPSAKE.get());
         keepsake.set(DataComponentsTypeRegistry.DATA_LOCATION, new DataLocation(UmaSoulUtils.getName(soul)));
         if (!player.getInventory().add(keepsake))

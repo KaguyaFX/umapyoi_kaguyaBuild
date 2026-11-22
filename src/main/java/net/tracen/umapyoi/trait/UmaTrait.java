@@ -24,7 +24,7 @@ public enum UmaTrait {
     NIGHT_VISION("night_vision", true),
     HORSE_LOVER("horse_lover", true);
 
-    /** Creatures "afraid of" can target. Vanilla only, on purpose (design doc 8.4). */
+    /** Creatures "afraid of" can target. Vanilla only, on purpose. */
     public static final List<EntityType<?>> FEAR_TARGETS = List.of(EntityType.WOLF, EntityType.BEE,
             EntityType.POLAR_BEAR, EntityType.SPIDER, EntityType.CREEPER, EntityType.ZOMBIE, EntityType.SKELETON,
             EntityType.ENDERMAN);

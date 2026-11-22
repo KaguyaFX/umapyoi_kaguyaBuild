@@ -29,7 +29,7 @@ import net.tracen.umapyoi.utils.UmaStatusUtils;
 import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
- * The per-turn event system (design doc ch. 9). When a career starts it gets an event table. At the
+ * The per-turn event system. When a career starts it gets an event table. At the
  * start of every turn, events past their deadline are settled, then one event may come up: the one
  * fixed to this turn, otherwise a roll draws one from the table. Several can be in progress at once.
  * Support card skills are rolled every turn on their own, apart from that one event.

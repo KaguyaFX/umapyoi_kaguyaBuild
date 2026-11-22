@@ -29,7 +29,7 @@ import net.tracen.umapyoi.events.ResumeActionPointEvent;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
 
 /**
- * Personality trait effects that react to what happens (design doc 8.2, 8.3). The ones other
+ * Personality trait effects that react to what happens. The ones other
  * systems ask for are in PersonalityEffects. Not done yet, because they need whims: 懶散,
  * 急躁, 呆滯's fewer whims; 挑食's disliked food waits for the food system.
  */

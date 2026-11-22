@@ -30,7 +30,7 @@ import net.tracen.umapyoi.registry.umadata.Motivations;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
- * What any player wearing a soul is like (design doc 12.2), trained or not. The base health and
+ * What any player wearing a soul is like, trained or not. The base health and
  * speed are soul modifiers (UmaSoulCuriosWrapper) and sprint hunger is in PlayerFoodExhaustionMixin.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)

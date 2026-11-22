@@ -67,7 +67,7 @@ public class TrainingItem extends Item implements SupportContainer {
             return InteractionResultHolder.fail(tranining);
         }
         
-        // During a three-year career a notebook may also raise its stat's cap (design doc 7.5).
+        // During a three-year career a notebook may also raise its stat's cap.
         if (CareerManager.isInCareer(soul))
             raiseCapInCareer(pPlayer, soul, pLevel.getRandom());
         if (this.getSupport().applySupport(soul, pLevel.getRandom())) {

@@ -52,7 +52,7 @@ import top.theillusivec4.curios.api.SlotContext;
 import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
- * The 7 Uma traits (design doc 8.4) and the fright status (8.5). Everything is checked once per
+ * The 7 Uma traits and the fright status. Everything is checked once per
  * second on the server, only while a soul is worn.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
@@ -208,7 +208,7 @@ public class UmaTraitEvents {
         return false;
     }
 
-    /** 幽閉恐懼: cramped for long enough (design doc 8.4, last part). Not while sleeping. */
+    /** 幽閉恐懼: cramped for long enough. Not while sleeping. */
     private static boolean crampedTooLong(ServerPlayer player, TraitState state) {
         if (player.isSleeping() || !isCramped(player)) {
             state.crampedSeconds = 0;

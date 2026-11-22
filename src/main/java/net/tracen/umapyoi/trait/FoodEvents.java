@@ -24,7 +24,7 @@ import net.tracen.umapyoi.registry.umadata.Motivations;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
- * What eating does to an Umamusume (design doc 8.6, 12.2): the soul's liked and disliked foods,
+ * What eating does to an Umamusume: the soul's liked and disliked foods,
  * carrots, raw meat and a sensitive stomach. The fixed mood foods (Hachimi drinks, cupcakes, golden
  * carrots, bitter things) use the motivation tags in CommonEvents. 生存 turns food aversions off:
  * disliked foods and raw meat.

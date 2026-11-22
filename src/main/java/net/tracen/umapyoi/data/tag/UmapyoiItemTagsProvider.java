@@ -59,7 +59,7 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
                 .add(ItemRegistry.HACHIMI_BIG.get())
                 .add(ItemRegistry.SWEET_CUPCAKE.get());
 
-        // Umamusume hate bitter things (design doc 12.2)
+        // Umamusume hate bitter things
         tag(UmapyoiItemTags.getMotivationFoodTag(-1))
                 .add(ItemRegistry.ROYAL_BITTER.get())
                 .add(Items.SPIDER_EYE, Items.ROTTEN_FLESH, Items.POISONOUS_POTATO);
@@ -94,7 +94,7 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
 
         tag(UmapyoiItemTags.RACE_CHAMPIONS_MATERIAL).add(Items.ENDER_EYE);
 
-        // Spread over farming, livestock, fishing, foraging and bees (design doc 8.6).
+        // Spread over farming, livestock, fishing, foraging and bees.
         tag(UmapyoiItemTags.FAVORITE_FOOD_CANDIDATES)
                 .add(Items.BREAD, Items.BAKED_POTATO, Items.COOKIE, Items.PUMPKIN_PIE, Items.MELON_SLICE,
                         Items.BEETROOT_SOUP)

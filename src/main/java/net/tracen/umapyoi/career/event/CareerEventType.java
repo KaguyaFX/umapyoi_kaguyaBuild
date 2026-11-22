@@ -29,12 +29,12 @@ import net.tracen.umapyoi.trait.UmaTraits;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
- * Every event a career can have (design doc ch. 9). A career's event table is built from these when
+ * Every event a career can have. A career's event table is built from these when
  * it starts; each turn may draw one. General events go into every table; trait events only into
  * the tables of souls with that trait, and weigh more so a soul's character shows.
  */
 public enum CareerEventType {
-    // ---------------------------------------------------------------- general (doc 9.2)
+    // ---------------------------------------------------------------- general
     /** 想跑一跑: sprint for a while without stopping. 坐不住 makes it come up more. */
     WANT_TO_RUN("want_to_run", Kind.OPTIONAL, 3, 10),
     /** 肚子餓了: eat anything. Only appears when not full, so it can always be done. */
@@ -52,7 +52,7 @@ public enum CareerEventType {
     /** 想看夕陽: only comes up a little before dusk; gone if dusk passes. */
     WATCH_SUNSET("watch_sunset", Kind.OPTIONAL, 1, 5),
 
-    // ---------------------------------------------------------------- from traits (doc 9.3)
+    // ---------------------------------------------------------------- from traits
     /** 戀同族: stay near a horse, donkey or mule. */
     WANT_SEE_HORSE("want_see_horse", Kind.OPTIONAL, 2, 20),
     /** 膽小: get back close to the respawn point. Only comes up away from it. */
@@ -63,7 +63,7 @@ public enum CareerEventType {
     WANT_LIGHT("want_light", Kind.OPTIONAL, 2, 20),
     /** 貪吃: eat one food named when it came up. */
     WANT_FOOD("want_food", Kind.OPTIONAL, 2, 20),
-    /** 貪吃, now and then: a golden carrot, and it has to be. The "be prepared" kind (doc 9.1). */
+    /** 貪吃, now and then: a golden carrot, and it has to be. The "be prepared" kind. */
     WANT_GOLDEN_CARROT("want_golden_carrot", Kind.MANDATORY, 1, 5),
     /** 挑食: eat a soup or stew (tag c:foods/soup, so other mods' dishes count). */
     WANT_SOUP("want_soup", Kind.OPTIONAL, 2, 20),

@@ -76,7 +76,7 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue NOTEBOOK_CAP_MID;
     public static ModConfigSpec.IntValue NOTEBOOK_CAP_HIGH;
 
-    // Uma traits and fright (design doc 8.4, 8.5). Checked once per second.
+    // Uma traits and fright. Checked once per second.
     public static ModConfigSpec.DoubleValue FRIGHT_BONUS_CUT;
     public static ModConfigSpec.IntValue FRIGHT_SECONDS;
     public static ModConfigSpec.IntValue FRIGHT_MOOD_INTERVAL_SECONDS;
@@ -90,7 +90,7 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue TRAIT_HORSE_RANGE;
     public static ModConfigSpec.IntValue TRAIT_HORSE_SECONDS;
 
-    // Personality traits (design doc 8.2, 8.3). Active whenever a soul that has them is worn.
+    // Personality traits. Active whenever a soul that has them is worn.
     public static ModConfigSpec.DoubleValue TIMID_CHANCE;
     public static ModConfigSpec.IntValue TIMID_SLOWNESS_SECONDS;
     public static ModConfigSpec.IntValue COWARDLY_RANGE;
@@ -111,13 +111,13 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue EXCITABLE_COMBAT_PERMILLE;
     public static ModConfigSpec.IntValue EXCITABLE_AP_PAUSE_SECONDS;
 
-    // Food likes and the Umamusume's own food habits (design doc 8.6, 12.2).
+    // Food likes and the Umamusume's own food habits.
     public static ModConfigSpec.DoubleValue DISLIKED_FOOD_MOOD_CHANCE;
     public static ModConfigSpec.DoubleValue CARROT_MOOD_CHANCE;
     public static ModConfigSpec.DoubleValue RAW_MEAT_MOOD_CHANCE;
     public static ModConfigSpec.DoubleValue SENSITIVE_STOMACH_MULTIPLIER;
 
-    // Career events (design doc ch. 9).
+    // Career events.
     public static ModConfigSpec.DoubleValue EVENT_CHANCE_PER_TURN;
     public static ModConfigSpec.IntValue EVENT_OPTIONAL_TURNS;
     public static ModConfigSpec.IntValue EVENT_MANDATORY_TURNS;
@@ -134,7 +134,7 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue IMPATIENT_FAIL_MOOD_STEPS;
     public static ModConfigSpec.DoubleValue EVENT_SKILL_CHANCE;
 
-    // What any Umamusume player is like (design doc 12.2).
+    // What any Umamusume player is like.
     public static ModConfigSpec.DoubleValue UMA_BASE_HEALTH;
     public static ModConfigSpec.DoubleValue UMA_BASE_SPEED;
     public static ModConfigSpec.DoubleValue UMA_SPRINT_HUNGER_MULTIPLIER;
