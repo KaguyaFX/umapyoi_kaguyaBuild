@@ -2,7 +2,7 @@
   "parent": "umapyoi:root",
   "display": {
     "icon": {
-      "item": "umapyoi:three_goddess"
+      "id": "umapyoi:three_goddess"
     },
     "title": {
       "translate": "advancement.umapyoi.three_goddesses.title"
@@ -12,7 +12,7 @@
     },
     "frame": "task",
     "show_toast": true,
-    "announce_to_chat": false,
+    "announce_to_chat": true,
     "hidden": false
   },
   "criteria": {
@@ -21,17 +21,10 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "umapyoi:three_goddess"
-            ]
+            "items": "umapyoi:three_goddess"
           }
         ]
       }
     }
-  },
-  "requirements": [
-    [
-      "item"
-    ]
-  ]
+  }
 }

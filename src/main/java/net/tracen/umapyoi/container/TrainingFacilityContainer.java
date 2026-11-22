@@ -30,6 +30,7 @@ import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.registry.training.SupportContainer;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -143,7 +144,11 @@ public class TrainingFacilityContainer extends AbstractContainerMenu {
         if (!(player instanceof ServerPlayer serverPlayer))
             return false;
         switch (id) {
-            case BUTTON_AUTO_TRAINING -> this.tileEntity.chooseAutoTraining();
+            case BUTTON_AUTO_TRAINING -> {
+                if (CareerManager.isUndecided(this.inventory.getStackInSlot(0)))
+                    UmapyoiActionTrigger.fire(serverPlayer, UmapyoiActionTrigger.AUTO_TRAINING);
+                this.tileEntity.chooseAutoTraining();
+            }
             case BUTTON_AUTO_ACCEPT -> this.tileEntity.toggleAutoAccept();
             default -> {
                 return false;

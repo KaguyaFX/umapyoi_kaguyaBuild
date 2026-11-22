@@ -1,7 +1,7 @@
 {
   "display": {
     "icon": {
-      "item": "umapyoi:jewel"
+      "id": "umapyoi:uma_soul"
     },
     "title": {
       "translate": "advancement.umapyoi.root.title"
@@ -16,22 +16,13 @@
     "background": "minecraft:textures/block/granite.png"
   },
   "criteria": {
-    "item": {
-      "trigger": "minecraft:inventory_changed",
-      "conditions": {
-        "items": [
-          {
-            "items": [
-              "umapyoi:jewel"
-            ]
-          }
-        ]
-      }
+    "join": {
+      "trigger": "umapyoi:grant_book_on_first_join"
     }
   },
-  "requirements": [
-    [
-      "item"
+  "rewards": {
+    "loot": [
+      "umapyoi:grant_book_on_first_join"
     ]
-  ]
+  }
 }

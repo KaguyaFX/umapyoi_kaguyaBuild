@@ -954,47 +954,40 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         addSupportCard(SupportCardRegistry.SSR_RUDOLF_G, "[Unmistakable Emperor] Symboli Rudolf");
         addSupportCard(SupportCardRegistry.SSR_MEJIRO_RAMONU_W, "[Radiant] Mejiro Ramonu");
 
-        addAdvTitle("umapyoi.root", "Welcome to Tracen Academy!");
-        addAdvDesc("umapyoi.root", "Start your adventure with umamusume!");
-
-        addAdvTitle("umapyoi.three_goddesses", "The Three Goddesses");
-        addAdvDesc("umapyoi.three_goddesses", "Build the Three Goddesses Statue.");
-
-        addAdvTitle("umapyoi.summon_pedestal", "Scout Time!");
-        addAdvDesc("umapyoi.summon_pedestal", "Craft a new Umamusume Pedestal.");
-
-        addAdvTitle("umapyoi.gold_pedestal", "Getting an Upgrade, But Pedestal");
-        addAdvDesc("umapyoi.gold_pedestal", "Upgrade your Umamusume Pedestal.");
-
-        addAdvTitle("umapyoi.blank_uma_soul", "Starting Future");
-        addAdvDesc("umapyoi.blank_uma_soul", "Got your first Umamusume Soul.");
-
-        addAdvTitle("umapyoi.uma_soul", "Aoharu Soul");
-        addAdvDesc("umapyoi.uma_soul", "Bless your faded soul in the Three Goddesses Statue.");
-
-        addAdvTitle("umapyoi.training", "Three years between you and her have begun.");
-        addAdvDesc("umapyoi.training", "Craft the Training Terminal.");
-
-        addAdvTitle("umapyoi.support_pedestal", "Support Cards");
-        addAdvDesc("umapyoi.support_pedestal", "Use a book to Umamusume Pedestal to get Support Pedestal.");
-
-        addAdvTitle("umapyoi.skill_book", "Skill books");
-        addAdvDesc("umapyoi.skill_book", "Found Skill books in dungeon or trainer villager.");
-
-        addAdvTitle("umapyoi.register_lectern", "Three years between you and her have ended?");
-        addAdvDesc("umapyoi.register_lectern", "Craft the Register Lectern to end your training.");
-
-        addAdvTitle("umapyoi.inheritance", "Entrust");
-        addAdvDesc("umapyoi.inheritance", "Finish a Umamusume's training and got her wishes.");
-
-        addAdvTitle("umapyoi.transfer", "Special Transfer");
-        addAdvDesc("umapyoi.transfer", "Craft the Transfer Lectern.");
-
-        addAdvTitle("umapyoi.skill_learning_table", "Learning Time");
-        addAdvDesc("umapyoi.skill_learning_table", "Craft the Skill Learning Table.");
-
-        addAdvTitle("umapyoi.uma_ticket", "Wastepaper");
-        addAdvDesc("umapyoi.uma_ticket", "Got the Blank Ticket.");
+        addAdvTitle("umapyoi.root", "Welcome to... Minecraft!?");
+        addAdvDesc("umapyoi.root", "Join the game and take this book");
+        addAdvTitle("umapyoi.silver_pedestal", "Evil Summoning Altar!");
+        addAdvDesc("umapyoi.silver_pedestal", "Get a Silver Umamusume Pedestal");
+        addAdvTitle("umapyoi.gold_pedestal", "Pricier, but Better");
+        addAdvDesc("umapyoi.gold_pedestal", "Get a Golden Umamusume Pedestal");
+        addAdvTitle("umapyoi.support_pedestal", "Bookmark of Mysterious Power!");
+        addAdvDesc("umapyoi.support_pedestal", "Turn a summoning pedestal into a support one");
+        addAdvTitle("umapyoi.carrot_jewel", "A Tastier Carrot");
+        addAdvDesc("umapyoi.carrot_jewel", "Get a Carat");
+        addAdvTitle("umapyoi.blank_soul", "Power Beyond Time and Space");
+        addAdvDesc("umapyoi.blank_soul", "Get your first Faded Umamusume Soul");
+        addAdvTitle("umapyoi.uma_soul", "Could It Be a Stand?");
+        addAdvDesc("umapyoi.uma_soul", "Get your first Umamusume Soul");
+        addAdvTitle("umapyoi.three_goddesses", "A Mysterious Statue");
+        addAdvDesc("umapyoi.three_goddesses", "Get the Three Goddesses Statue");
+        addAdvTitle("umapyoi.training_terminal", "Let's Work Hard Starting Today!");
+        addAdvDesc("umapyoi.training_terminal", "Get a Training Terminal");
+        addAdvTitle("umapyoi.self_training_terminal", "This Will Be a Long Time...");
+        addAdvDesc("umapyoi.self_training_terminal", "Get a Self-Training Terminal");
+        addAdvTitle("umapyoi.auto_training", "My Phone Plays Uma Musume by Itself");
+        addAdvDesc("umapyoi.auto_training", "Send a soul to auto-training");
+        addAdvTitle("umapyoi.self_training", "Every Season of That Year");
+        addAdvDesc("umapyoi.self_training", "Start a three-year career");
+        addAdvTitle("umapyoi.inheritance", "Her Legacy, Her Thanks");
+        addAdvDesc("umapyoi.inheritance", "Get a factor");
+        addAdvTitle("umapyoi.transfer", "Off to Tracen?");
+        addAdvDesc("umapyoi.transfer", "Get a Transfer Register Lectern");
+        addAdvTitle("umapyoi.skill_table", "Great, I'm Starting to Understand Everything");
+        addAdvDesc("umapyoi.skill_table", "Get a Skill Learning Table");
+        addAdvTitle("umapyoi.skill_book", "Eat It and Get Stronger? Trainer, You're Lying!");
+        addAdvDesc("umapyoi.skill_book", "Get a Skill Book");
+        addAdvTitle("umapyoi.blessing", "Blessing");
+        addAdvDesc("umapyoi.blessing", "Receive any blessing of the Three Goddesses");
 
         addRace(RaceRegistry.MAKE_DEBUT, "Twinkle Series Debut");
         addRace(RaceRegistry.URA_FINALS, "URA Finale");

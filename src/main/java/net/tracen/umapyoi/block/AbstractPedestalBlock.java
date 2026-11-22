@@ -15,6 +15,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.tracen.umapyoi.block.entity.AbstractPedestalBlockEntity;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 public abstract class AbstractPedestalBlock extends BaseEntityBlock
 {
@@ -56,6 +57,7 @@ public abstract class AbstractPedestalBlock extends BaseEntityBlock
 
             if (checkBook && stack.is(Items.BOOK)) {
                 transformOnBook(level, pos);
+                UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.SUPPORT_PEDESTAL);
             }
             else if (blockEntity.addItem(player.getAbilities().instabuild ? stack.copy() : stack)) {
                 level.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.END_PORTAL_FRAME_FILL,

@@ -1,8 +1,8 @@
 {
-  "parent": "umapyoi:skill_learning_table",
+  "parent": "umapyoi:skill_table",
   "display": {
     "icon": {
-      "item": "umapyoi:skill_book"
+      "id": "umapyoi:skill_book"
     },
     "title": {
       "translate": "advancement.umapyoi.skill_book.title"
@@ -12,7 +12,7 @@
     },
     "frame": "task",
     "show_toast": true,
-    "announce_to_chat": false,
+    "announce_to_chat": true,
     "hidden": false
   },
   "criteria": {
@@ -21,17 +21,10 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "umapyoi:skill_book"
-            ]
+            "items": "umapyoi:skill_book"
           }
         ]
       }
     }
-  },
-  "requirements": [
-    [
-      "item"
-    ]
-  ]
+  }
 }

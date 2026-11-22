@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:training_terminal",
+  "display": {
+    "icon": {
+      "id": "umapyoi:training_facility"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.auto_training.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.auto_training.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "auto_training"
+      }
+    }
+  }
+}

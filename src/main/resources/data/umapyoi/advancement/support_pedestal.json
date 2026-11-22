@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:silver_pedestal",
+  "display": {
+    "icon": {
+      "id": "umapyoi:silver_support_album_pedestal"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.support_pedestal.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.support_pedestal.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "support_pedestal"
+      }
+    }
+  }
+}

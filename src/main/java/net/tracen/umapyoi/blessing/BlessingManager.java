@@ -16,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.ItemRegistry;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
  * Rules of the Three Goddesses blessings: offerings are worth points, points buy a random
@@ -109,6 +110,7 @@ public final class BlessingManager {
                 newLevel, false, false, true));
         if (type == BlessingType.RENEWAL)
             RenewalBlessingEffect.refill(player, newLevel);
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.BLESSING);
     }
 
     // ---------------------------------------------------------------- statue actions

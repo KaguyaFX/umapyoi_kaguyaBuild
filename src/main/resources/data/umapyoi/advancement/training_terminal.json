@@ -2,17 +2,17 @@
   "parent": "umapyoi:three_goddesses",
   "display": {
     "icon": {
-      "item": "umapyoi:uma_soul"
+      "id": "umapyoi:training_facility"
     },
     "title": {
-      "translate": "advancement.umapyoi.uma_soul.title"
+      "translate": "advancement.umapyoi.training_terminal.title"
     },
     "description": {
-      "translate": "advancement.umapyoi.uma_soul.desc"
+      "translate": "advancement.umapyoi.training_terminal.desc"
     },
     "frame": "task",
     "show_toast": true,
-    "announce_to_chat": false,
+    "announce_to_chat": true,
     "hidden": false
   },
   "criteria": {
@@ -21,17 +21,10 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "umapyoi:uma_soul"
-            ]
+            "items": "umapyoi:training_facility"
           }
         ]
       }
     }
-  },
-  "requirements": [
-    [
-      "item"
-    ]
-  ]
+  }
 }

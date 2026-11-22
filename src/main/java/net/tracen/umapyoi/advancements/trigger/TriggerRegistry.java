@@ -12,4 +12,5 @@ public class TriggerRegistry {
             DeferredRegister.create(Registries.TRIGGER_TYPE, Umapyoi.MODID);
 
     public static Supplier<GrantBookOnFirstJoin> GRANT_BOOK_ON_FIRST_JOIN = TRIGGERS.register("grant_book_on_first_join", GrantBookOnFirstJoin::new);
+    public static Supplier<UmapyoiActionTrigger> ACTION = TRIGGERS.register("action", UmapyoiActionTrigger::new);
 }

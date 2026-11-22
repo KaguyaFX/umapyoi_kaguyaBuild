@@ -1,0 +1,30 @@
+{
+  "parent": "umapyoi:three_goddesses",
+  "display": {
+    "icon": {
+      "id": "umapyoi:self_training_terminal"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.self_training_terminal.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.self_training_terminal.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "umapyoi:self_training_terminal"
+          }
+        ]
+      }
+    }
+  }
+}

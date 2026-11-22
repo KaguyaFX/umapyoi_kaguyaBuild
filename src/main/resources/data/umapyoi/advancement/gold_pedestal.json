@@ -1,8 +1,8 @@
 {
-  "parent": "umapyoi:summon_pedestal",
+  "parent": "umapyoi:silver_pedestal",
   "display": {
     "icon": {
-      "item": "umapyoi:uma_pedestal"
+      "id": "umapyoi:uma_pedestal"
     },
     "title": {
       "translate": "advancement.umapyoi.gold_pedestal.title"
@@ -12,7 +12,7 @@
     },
     "frame": "task",
     "show_toast": true,
-    "announce_to_chat": false,
+    "announce_to_chat": true,
     "hidden": false
   },
   "criteria": {
@@ -21,17 +21,10 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "umapyoi:uma_pedestal"
-            ]
+            "items": "umapyoi:uma_pedestal"
           }
         ]
       }
     }
-  },
-  "requirements": [
-    [
-      "item"
-    ]
-  ]
+  }
 }

@@ -1,8 +1,8 @@
 {
-  "parent": "umapyoi:register_lectern",
+  "parent": "umapyoi:uma_soul",
   "display": {
     "icon": {
-      "item": "umapyoi:disassembly_block"
+      "id": "umapyoi:disassembly_block"
     },
     "title": {
       "translate": "advancement.umapyoi.transfer.title"
@@ -12,7 +12,7 @@
     },
     "frame": "task",
     "show_toast": true,
-    "announce_to_chat": false,
+    "announce_to_chat": true,
     "hidden": false
   },
   "criteria": {
@@ -21,17 +21,10 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "umapyoi:disassembly_block"
-            ]
+            "items": "umapyoi:disassembly_block"
           }
         ]
       }
     }
-  },
-  "requirements": [
-    [
-      "item"
-    ]
-  ]
+  }
 }

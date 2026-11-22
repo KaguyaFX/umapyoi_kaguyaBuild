@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:three_goddesses",
+  "display": {
+    "icon": {
+      "id": "minecraft:gold_ingot"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.blessing.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.blessing.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "blessing"
+      }
+    }
+  }
+}

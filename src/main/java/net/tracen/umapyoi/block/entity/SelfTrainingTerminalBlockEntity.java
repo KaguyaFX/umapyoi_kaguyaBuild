@@ -24,6 +24,7 @@ import net.tracen.umapyoi.container.SelfTrainingContainer;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.trait.PersonalityTrait;
 import net.tracen.umapyoi.trait.UmaTraits;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 
 /**
  * Self-training terminal: slot 0 = undecided soul, 1-6 = support cards. Nothing happens until the
@@ -100,6 +101,7 @@ public class SelfTrainingTerminalBlockEntity extends SyncedBlockEntity implement
         ResourceLocation skill = soul.get(DataComponentsTypeRegistry.CAREER_SKILL);
         if (!CareerManager.startCareer(serverLevel, inventory, player))
             return;
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.SELF_TRAINING);
         if (skill != null) {
             ItemStack started = inventory.getStackInSlot(0).copy();
             SkillOffer.grant(started, skill);

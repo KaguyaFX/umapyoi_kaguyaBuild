@@ -2,17 +2,17 @@
   "parent": "umapyoi:root",
   "display": {
     "icon": {
-      "item": "umapyoi:skill_learning_table"
+      "id": "umapyoi:skill_learning_table"
     },
     "title": {
-      "translate": "advancement.umapyoi.skill_learning_table.title"
+      "translate": "advancement.umapyoi.skill_table.title"
     },
     "description": {
-      "translate": "advancement.umapyoi.skill_learning_table.desc"
+      "translate": "advancement.umapyoi.skill_table.desc"
     },
     "frame": "task",
     "show_toast": true,
-    "announce_to_chat": false,
+    "announce_to_chat": true,
     "hidden": false
   },
   "criteria": {
@@ -21,17 +21,10 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "umapyoi:skill_learning_table"
-            ]
+            "items": "umapyoi:skill_learning_table"
           }
         ]
       }
     }
-  },
-  "requirements": [
-    [
-      "item"
-    ]
-  ]
+  }
 }
