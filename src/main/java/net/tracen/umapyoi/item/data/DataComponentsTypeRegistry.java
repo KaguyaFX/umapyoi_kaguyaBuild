@@ -15,6 +15,7 @@ import net.tracen.umapyoi.trait.UmaTraits;
 import net.tracen.umapyoi.registry.factors.FactorData;
 import net.tracen.umapyoi.registry.races.UmaRaceHistory;
 import net.tracen.umapyoi.registry.umadata.*;
+import net.tracen.umapyoi.career.event.CareerEventData;
 
 public class DataComponentsTypeRegistry {
 	public static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister
@@ -121,6 +122,11 @@ public class DataComponentsTypeRegistry {
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResourceLocation>> CAREER_SKILL =
 			DATA_COMPONENTS.registerComponentType("career_skill",
 					builder -> builder.persistent(ResourceLocation.CODEC).networkSynchronized(ResourceLocation.STREAM_CODEC));
+
+	/** The career's event table and the events in progress. */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<CareerEventData>> CAREER_EVENTS =
+			DATA_COMPONENTS.registerComponentType("career_events",
+					builder -> builder.persistent(CareerEventData.CODEC).networkSynchronized(CareerEventData.STREAM));
 
 	/** Biomes this soul has already been to, for the Curious Uma trait. */
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<List<ResourceLocation>>> VISITED_BIOMES =

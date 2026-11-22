@@ -64,6 +64,7 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
                 .add(Items.SPIDER_EYE, Items.ROTTEN_FLESH, Items.POISONOUS_POTATO);
 
         tag(UmapyoiItemTags.CARROT_MOOD).addTag(Tags.Items.CROPS_CARROT);
+        tag(UmapyoiItemTags.CARROT_FOODS).addTag(Tags.Items.CROPS_CARROT).add(Items.GOLDEN_CARROT);
 
         tag(UmapyoiItemTags.SLOW_METABOLISM)
                 .add(ItemRegistry.HACHIMI_BIG.get()).add(ItemRegistry.SWEET_CUPCAKE.get());

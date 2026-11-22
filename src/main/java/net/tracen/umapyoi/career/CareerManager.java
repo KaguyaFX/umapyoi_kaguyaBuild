@@ -33,6 +33,7 @@ import net.tracen.umapyoi.utils.ResultRankingUtils;
 import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 import net.tracen.umapyoi.trait.PersonalityEffects;
+import net.tracen.umapyoi.career.event.CareerEventManager;
 
 /**
  * Three-year career: soul lifecycle, career time, training points, death and the end of the career.
@@ -140,6 +141,7 @@ public final class CareerManager {
                 UmaCareerData.toList(precise), UmaCareerData.toList(start), UmaCareerData.toList(growth),
                 UmaCareerData.toList(cards), 0));
         result.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.IN_CAREER);
+        result.set(DataComponentsTypeRegistry.CAREER_EVENTS, CareerEventManager.buildTable(result));
         result.update(DataComponentsTypeRegistry.UMADATA_TRAINING, new UmaDataTraining(1, 6, false),
                 data -> new UmaDataTraining(0, data.talent(), true));
         UmaSkillUtils.syncActionPoint(result);
@@ -220,9 +222,29 @@ public final class CareerManager {
         }
         int period = (int) (cache.elapsed * PERIODS / cache.total);
         if (period != cache.period || flooredChanged(cache) || cache.elapsed % 20 == 0) {
+            boolean newTurn = period != cache.period;
             cache.period = period;
             flush(soul, cache);
+            if (newTurn)
+                CareerEventManager.onNewTurn(player, soul, period);
         }
+    }
+
+    /**
+     * Keeps {@code keepPermille} of every precise stat (980 = lose 2%), e.g. for a failed mandatory
+     * event. Works on the worn soul's career.
+     */
+    public static void penalize(ServerPlayer player, ItemStack soul, long keepPermille) {
+        UmaCareerData data = soul.get(DataComponentsTypeRegistry.CAREER_DATA);
+        if (getState(soul) != CareerState.IN_CAREER || data == null)
+            return;
+        CareerCache cache = player.getData(CareerAttachments.CAREER_CACHE);
+        if (!belongsTo(cache, data) || !cache.isActive(player))
+            load(player, cache, soul, data);
+        flush(soul, cache);
+        for (int i = 0; i < 5; i++)
+            cache.precise[i] = cache.precise[i] * keepPermille / 1000;
+        flush(soul, cache);
     }
 
     /** The cache holds this soul's career: same career id and the progress last read or written. */
@@ -398,6 +420,7 @@ public final class CareerManager {
         soul.set(DataComponentsTypeRegistry.UMADATA_BASIC_STATUS, UmaDataBasicStatus.init(result));
         soul.set(DataComponentsTypeRegistry.CAREER_DATA, data.withProgress(data.totalTicks(), precise, result));
         soul.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.FINISHED);
+        soul.remove(DataComponentsTypeRegistry.CAREER_EVENTS);
         UmaSkillUtils.syncActionPoint(soul);
         soul.update(DataComponentsTypeRegistry.UMADATA_EXTRA_STATUS, UmaDataExtraStatus.DEFAULT,
                 extra -> new UmaDataExtraStatus(extra.actionPoint(), extra.extraActionPoint(),

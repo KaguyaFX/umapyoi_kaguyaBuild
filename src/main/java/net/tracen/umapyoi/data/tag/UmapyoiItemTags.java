@@ -50,4 +50,6 @@ public class UmapyoiItemTags {
     public static final TagKey<Item> FAVORITE_FOOD_CANDIDATES = TagUtils.modItemTag(Umapyoi.MODID, "favorite_food_candidates");
     /** Foods that sometimes raise motivation (carrots: loved, but too easy to farm to be a sure thing). */
     public static final TagKey<Item> CARROT_MOOD = TagUtils.modItemTag(Umapyoi.MODID, "carrot_mood");
+    /** What counts for the "want a carrot" event: carrots and carrot dishes. Packs may add their own dishes. */
+    public static final TagKey<Item> CARROT_FOODS = TagUtils.modItemTag(Umapyoi.MODID, "carrot_foods");
 }

@@ -16,6 +16,7 @@ import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.client.settings.KeyModifier;
 import net.tracen.umapyoi.network.SelectSkillPacket;
 import net.tracen.umapyoi.network.UseSkillPacket;
+import net.tracen.umapyoi.client.CareerEventsClient;
 
 @EventBusSubscriber(value = Dist.CLIENT)
 public class SkillKeyMapping {
@@ -27,12 +28,19 @@ public class SkillKeyMapping {
     public static final KeyMapping KEY_LATTER_SKILL = new KeyMapping("key.umapyoi.select_latter_skill",
             KeyConflictContext.IN_GAME, KeyModifier.NONE, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_DOWN,
             "key.category.umapyoi");
+    public static final KeyMapping KEY_CAREER_EVENTS = new KeyMapping("key.umapyoi.career_events",
+            KeyConflictContext.IN_GAME, KeyModifier.NONE, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_J,
+            "key.category.umapyoi");
     public static final KeyMapping KEY_CONFIGURE_GUI = new KeyMapping("key.umapyoi.configure",
             KeyConflictContext.IN_GAME, KeyModifier.NONE, InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_F10, "key.category.umapyoi");
 
     @SubscribeEvent
     public static void onKeyboardInput(InputEvent.Key event) {
+        while (KEY_CAREER_EVENTS.consumeClick()) {
+            if (CareerEventsClient.hasCareer())
+                CareerEventsClient.toggle();
+        }
         if (KEY_USE_SKILL.isDown()) {
             PacketDistributor.sendToServer(new UseSkillPacket("check check"));
             return;

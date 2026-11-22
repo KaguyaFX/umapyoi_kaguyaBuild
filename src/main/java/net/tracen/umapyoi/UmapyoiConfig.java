@@ -113,6 +113,14 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RAW_MEAT_MOOD_CHANCE;
     public static ModConfigSpec.DoubleValue SENSITIVE_STOMACH_MULTIPLIER;
 
+    // Career events (design doc ch. 9).
+    public static ModConfigSpec.DoubleValue EVENT_CHANCE_PER_TURN;
+    public static ModConfigSpec.IntValue EVENT_OPTIONAL_TURNS;
+    public static ModConfigSpec.IntValue EVENT_MANDATORY_TURNS;
+    public static ModConfigSpec.IntValue EVENT_FAIL_KEEP_PERMILLE;
+    public static ModConfigSpec.IntValue EVENT_HUNGRY_MAX_FOOD;
+    public static ModConfigSpec.IntValue EVENT_RUN_SECONDS;
+
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_MOTIVATION_Y;
@@ -325,6 +333,21 @@ public class UmapyoiConfig {
                 .defineInRange("raw_meat_mood_chance", 0.5, 0.0, 1.0);
         SENSITIVE_STOMACH_MULTIPLIER = COMMON_BUILDER.comment("Harmful effects a food gives last this many times as long.")
                 .defineInRange("sensitive_stomach_multiplier", 2.0, 1.0, 10.0);
+        COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("Career events. A career has 62 turns; at most one new event per turn.").push("events");
+        EVENT_CHANCE_PER_TURN = COMMON_BUILDER.comment("Chance that a turn without a fixed event draws one from the career's event table.")
+                .defineInRange("event_chance_per_turn", 0.15, 0.0, 1.0);
+        EVENT_OPTIONAL_TURNS = COMMON_BUILDER.comment("Turns an optional event stays before it goes away.")
+                .defineInRange("event_optional_turns", 7, 1, 62);
+        EVENT_MANDATORY_TURNS = COMMON_BUILDER.comment("Turns a mandatory event gives before it fails.")
+                .defineInRange("event_mandatory_turns", 4, 1, 62);
+        EVENT_FAIL_KEEP_PERMILLE = COMMON_BUILDER.comment("Share of every stat kept when a mandatory event fails, per mille. 980 = lose 2%.")
+                .defineInRange("event_fail_keep_permille", 980, 0, 1000);
+        EVENT_HUNGRY_MAX_FOOD = COMMON_BUILDER.comment("Hungry: only comes up at this food level or lower (full is 20).")
+                .defineInRange("event_hungry_max_food", 14, 0, 20);
+        EVENT_RUN_SECONDS = COMMON_BUILDER.comment("Want to run: seconds of sprinting in a row to complete it.")
+                .defineInRange("event_run_seconds", 30, 1, 600);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();
