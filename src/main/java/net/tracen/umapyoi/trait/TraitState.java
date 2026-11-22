@@ -15,6 +15,9 @@ public class TraitState {
     int frightSeconds;
     int curiousCooldown;
     int rainSeconds;
+    int helmetSeconds;
+    /** Sensitive ears: game time before which loud noises don't lower motivation again. */
+    long earCooldownUntil;
     /** Studious: the fraction of a bonus experience point not given yet. */
     double xpFraction;
     /** Excitable: game time of the last hit given or taken. */

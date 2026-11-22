@@ -233,6 +233,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.career.event.skill_learned", "Learned %s");
         add("umapyoi.career.event.skill_learned.hint", "A skill from a support card");
         add("umapyoi.career.event.notice_message", "[%s] %s");
+        add("umapyoi.uma.no_riding", "An Umamusume doesn't ride horses");
         add("umapyoi.career.started", "Her three years begin. Time only passes while you wear her soul.");
         add("umapyoi.career.finished", "Three years complete! Take her soul to the Retire Register Lectern.");
         add("umapyoi.career.death", "A setback in her career: stats lowered, motivation at its lowest.");

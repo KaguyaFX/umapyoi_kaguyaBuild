@@ -65,6 +65,10 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
 
         tag(UmapyoiItemTags.CARROT_MOOD).addTag(Tags.Items.CROPS_CARROT);
         tag(UmapyoiItemTags.CARROT_FOODS).addTag(Tags.Items.CROPS_CARROT).add(Items.GOLDEN_CARROT);
+        tag(UmapyoiItemTags.UMA_TREATS).addTag(Tags.Items.CROPS_CARROT)
+                .add(Items.GOLDEN_CARROT, Items.COOKIE, Items.PUMPKIN_PIE)
+                .add(ItemRegistry.CUPCAKE.get(), ItemRegistry.SWEET_CUPCAKE.get());
+        tag(UmapyoiItemTags.EAR_FRIENDLY_HEADWEAR);
 
         tag(UmapyoiItemTags.SLOW_METABOLISM)
                 .add(ItemRegistry.HACHIMI_BIG.get()).add(ItemRegistry.SWEET_CUPCAKE.get());

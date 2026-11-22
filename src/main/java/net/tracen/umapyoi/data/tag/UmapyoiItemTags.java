@@ -52,4 +52,8 @@ public class UmapyoiItemTags {
     public static final TagKey<Item> CARROT_MOOD = TagUtils.modItemTag(Umapyoi.MODID, "carrot_mood");
     /** What counts for the "want a carrot" event: carrots and carrot dishes. Packs may add their own dishes. */
     public static final TagKey<Item> CARROT_FOODS = TagUtils.modItemTag(Umapyoi.MODID, "carrot_foods");
+    /** Carrots and sweets: an Umamusume gets more out of them. */
+    public static final TagKey<Item> UMA_TREATS = TagUtils.modItemTag(Umapyoi.MODID, "uma_treats");
+    /** Headwear that leaves room for the ears (none by default; for packs and future items). */
+    public static final TagKey<Item> EAR_FRIENDLY_HEADWEAR = TagUtils.modItemTag(Umapyoi.MODID, "ear_friendly_headwear");
 }

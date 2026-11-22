@@ -129,6 +129,19 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue IMPATIENT_FEWER_TURNS;
     public static ModConfigSpec.IntValue IMPATIENT_FAIL_MOOD_STEPS;
     public static ModConfigSpec.DoubleValue EVENT_SKILL_CHANCE;
+
+    // What any Umamusume player is like (design doc 12.2).
+    public static ModConfigSpec.DoubleValue UMA_BASE_HEALTH;
+    public static ModConfigSpec.DoubleValue UMA_BASE_SPEED;
+    public static ModConfigSpec.DoubleValue UMA_SPRINT_HUNGER_MULTIPLIER;
+    public static ModConfigSpec.DoubleValue UMA_EXTRA_FALL_DISTANCE;
+    public static ModConfigSpec.IntValue UMA_TREAT_EXTRA_FOOD;
+    public static ModConfigSpec.IntValue EAR_EXPLOSION_RANGE;
+    public static ModConfigSpec.DoubleValue EAR_EXPLOSION_CHANCE;
+    public static ModConfigSpec.IntValue EAR_THUNDER_RANGE;
+    public static ModConfigSpec.DoubleValue EAR_THUNDER_CHANCE;
+    public static ModConfigSpec.IntValue EAR_COOLDOWN_SECONDS;
+    public static ModConfigSpec.IntValue HELMET_MOOD_SECONDS;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -145,7 +158,7 @@ public class UmapyoiConfig {
 
         ACUPUNCTUIST_SUPPORT_CHANCE = COMMON_BUILDER
                 .comment("Determining the success chance of acupunctuist support.",
-                        "Set to 0 will only fail in trainning.").defineInRange("umasoul_max_speed", 0.4, 0.0, 1.0);
+                        "Set to 0 will only fail in trainning.").defineInRange("acupuncturist_support_chance", 0.4, 0.0, 1.0);
         
         UMASOUL_SPEED_PRECENT_ENABLE = COMMON_BUILDER.comment("Determines whether to add speed bouns as a percentage.",
                 "If enable, the bonus will be calculated as a percentage.").define("umasoul_speed_percent_enable", true);
@@ -381,6 +394,32 @@ public class UmapyoiConfig {
                 .defineInRange("event_acupuncture_chance", 0.4, 0.0, 1.0);
         EVENT_NEW_YEAR_BUFF_SECONDS = COMMON_BUILDER.comment("New Year: seconds of Hyper Mood it gives.")
                 .defineInRange("event_new_year_buff_seconds", 180, 1, 3600);
+        COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("What any player wearing a soul is like, trained or not.").push("umamusume");
+        UMA_BASE_HEALTH = COMMON_BUILDER.comment("Extra max health from any worn soul.")
+                .defineInRange("uma_base_health", 2.0, 0.0, 100.0);
+        UMA_BASE_SPEED = COMMON_BUILDER.comment("Extra movement speed from any worn soul. 0.05 = +5%.")
+                .defineInRange("uma_base_speed", 0.05, 0.0, 10.0);
+        UMA_SPRINT_HUNGER_MULTIPLIER = COMMON_BUILDER.comment("Hunger use while sprinting is multiplied by this.")
+                .defineInRange("uma_sprint_hunger_multiplier", 1.2, 1.0, 10.0);
+        UMA_EXTRA_FALL_DISTANCE = COMMON_BUILDER.comment("Falls count as this many blocks higher (an Umamusume's legs are precious).")
+                .defineInRange("uma_extra_fall_distance", 1.0, 0.0, 64.0);
+        UMA_TREAT_EXTRA_FOOD = COMMON_BUILDER.comment("Carrots and sweets (item tag umapyoi:uma_treats) fill this much more.")
+                .defineInRange("uma_treat_extra_food", 2, 0, 20);
+        EAR_EXPLOSION_RANGE = COMMON_BUILDER.comment("Sensitive ears: an explosion this close may lower motivation.")
+                .defineInRange("ear_explosion_range", 12, 1, 128);
+        EAR_EXPLOSION_CHANCE = COMMON_BUILDER.comment("Sensitive ears: chance for that.")
+                .defineInRange("ear_explosion_chance", 0.5, 0.0, 1.0);
+        EAR_THUNDER_RANGE = COMMON_BUILDER.comment("Sensitive ears: lightning this close may lower motivation.")
+                .defineInRange("ear_thunder_range", 32, 1, 256);
+        EAR_THUNDER_CHANCE = COMMON_BUILDER.comment("Sensitive ears: chance for that.")
+                .defineInRange("ear_thunder_chance", 0.3, 0.0, 1.0);
+        EAR_COOLDOWN_SECONDS = COMMON_BUILDER.comment("Sensitive ears: at most one drop per this many seconds.")
+                .defineInRange("ear_cooldown_seconds", 30, 0, 3600);
+        HELMET_MOOD_SECONDS = COMMON_BUILDER.comment("A helmet squashes the ears: motivation drops one step per this many seconds wearing one.",
+                "Headwear in the item tag umapyoi:ear_friendly_headwear doesn't count.")
+                .defineInRange("helmet_mood_seconds", 300, 1, 36000);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

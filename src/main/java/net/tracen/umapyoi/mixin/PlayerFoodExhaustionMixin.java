@@ -35,6 +35,9 @@ public class PlayerFoodExhaustionMixin {
                         exhaustionMultipler *= 1.0D - GaleBlessingEffect.exhaustionCut(gale);
                     // 貪吃 personality trait
                     exhaustionMultipler *= PersonalityEffects.hungerMultiplier(player);
+                    // Umamusume run hard: sprinting costs more (design doc 12.2)
+                    if (player.isSprinting())
+                        exhaustionMultipler *= UmapyoiConfig.UMA_SPRINT_HUNGER_MULTIPLIER.get();
                     player.getFoodData().addExhaustion((float) (pExhaustion * exhaustionMultipler));
                 }
              }
