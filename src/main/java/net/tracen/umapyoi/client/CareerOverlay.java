@@ -169,8 +169,8 @@ public class CareerOverlay implements LayeredDraw.Layer {
             graphics.fill(lx + 4, ry + 3, lx + 4 + pillW, ry + 13, argb(alpha, kindColor(type.kind())));
             graphics.drawString(font, label, lx + 6, ry + 4, argb(alpha, 0xFFFFFF), false);
             int textX = lx + 4 + pillW + 4;
-            graphics.drawString(font, type.displayName(), textX, ry + 4, argb(alpha, NAVY), false);
-            graphics.drawString(font, trim(font, type.hint().getString(), lx + LIST_W - 4 - textX), textX, ry + 13,
+            graphics.drawString(font, type.displayName(event.data()), textX, ry + 4, argb(alpha, NAVY), false);
+            graphics.drawString(font, trim(font, type.hint(event.data()).getString(), lx + LIST_W - 4 - textX), textX, ry + 13,
                     argb(alpha, HINT), false);
 
             int left = Math.max(1, event.deadline() - turn);

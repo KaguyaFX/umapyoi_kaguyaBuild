@@ -16,6 +16,8 @@ import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.career.CareerManager;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
+import net.tracen.umapyoi.trait.PersonalityEffects;
+import net.tracen.umapyoi.trait.PersonalityTrait;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
 
 /**
@@ -43,25 +45,27 @@ public final class CareerEventManager {
         if (data == null)
             data = buildTable(soul);
 
-        // Settle what ran out. Failing a mandatory one costs motivation and stats.
+        // Settle what ran out. Failing a mandatory one costs motivation and stats; the rest just end.
         List<CareerEventData.Active> active = new ArrayList<>();
-        List<CareerEventType> failed = new ArrayList<>();
+        List<CareerEventData.Active> failed = new ArrayList<>();
         for (CareerEventData.Active event : data.active()) {
-            if (event.deadline() > turn) {
+            if (event.deadline() > turn)
                 active.add(event);
-                continue;
-            }
-            CareerEventType.byId(event.id()).filter(t -> t.kind() == CareerEventType.Kind.MANDATORY)
-                    .ifPresent(failed::add);
+            else if (CareerEventType.byId(event.id()).map(t -> t.kind() == CareerEventType.Kind.MANDATORY).orElse(false))
+                failed.add(event);
         }
 
-        // At most one new event per turn.
+        // At most one new event per turn. 呆滯 souls get them less often.
         List<CareerEventData.Entry> table = new ArrayList<>(data.table());
         CareerEventType next = scheduledFor(data, turn);
-        if (next == null && player.getRandom().nextDouble() < UmapyoiConfig.EVENT_CHANCE_PER_TURN.get())
-            next = draw(player, table, active);
+        double chance = UmapyoiConfig.EVENT_CHANCE_PER_TURN.get();
+        if (PersonalityEffects.has(soul, PersonalityTrait.DULL))
+            chance *= UmapyoiConfig.DULL_EVENT_CHANCE_MULTIPLIER.get();
+        if (next == null && player.getRandom().nextDouble() < chance)
+            next = draw(player, soul, table, active);
         if (next != null) {
-            active.add(new CareerEventData.Active(next.id(), turn, turn + next.turns(), next.noteWhenAppearing(player)));
+            active.add(new CareerEventData.Active(next.id(), turn, turn + next.turns(soul),
+                    next.noteWhenAppearing(player, soul)));
             for (int i = 0; i < table.size(); i++) {
                 if (table.get(i).id().equals(next.id()))
                     table.set(i, new CareerEventData.Entry(next.id(), Math.max(0, table.get(i).left() - 1)));
@@ -69,8 +73,8 @@ public final class CareerEventManager {
         }
         soul.set(DataComponentsTypeRegistry.CAREER_EVENTS, new CareerEventData(table, data.scheduled(), active));
 
-        for (CareerEventType type : failed)
-            fail(player, soul, type);
+        for (CareerEventData.Active event : failed)
+            fail(player, soul, event);
         if (next != null)
             player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.6F, 1.4F);
     }
@@ -86,74 +90,104 @@ public final class CareerEventManager {
 
     /** Weighted draw among events that are left, not already in progress, and doable right now. */
     @Nullable
-    private static CareerEventType draw(ServerPlayer player, List<CareerEventData.Entry> table,
+    private static CareerEventType draw(ServerPlayer player, ItemStack soul, List<CareerEventData.Entry> table,
             List<CareerEventData.Active> active) {
         List<CareerEventType> candidates = new ArrayList<>();
         int total = 0;
         for (CareerEventData.Entry entry : table) {
             Optional<CareerEventType> type = CareerEventType.byId(entry.id());
-            if (entry.left() <= 0 || type.isEmpty() || type.get().weight() <= 0)
+            if (entry.left() <= 0 || type.isEmpty() || type.get().weight(soul) <= 0)
                 continue;
-            if (active.stream().anyMatch(a -> a.id().equals(entry.id())) || !type.get().canAppear(player))
+            if (active.stream().anyMatch(a -> a.id().equals(entry.id())) || !type.get().canAppear(player, soul))
                 continue;
             candidates.add(type.get());
-            total += type.get().weight();
+            total += type.get().weight(soul);
         }
         if (total <= 0)
             return null;
         RandomSource random = player.getRandom();
         int pick = random.nextInt(total);
         for (CareerEventType type : candidates) {
-            pick -= type.weight();
+            pick -= type.weight(soul);
             if (pick < 0)
                 return type;
         }
         return null;
     }
 
-    /** Whether the worn soul has this event in progress right now. */
-    public static boolean isActive(ServerPlayer player, CareerEventType type) {
+    /** The worn soul's event of this type in progress, if any. */
+    public static Optional<CareerEventData.Active> active(ServerPlayer player, CareerEventType type) {
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);
         if (!CareerManager.isInCareer(soul))
-            return false;
+            return Optional.empty();
         CareerEventData data = soul.get(DataComponentsTypeRegistry.CAREER_EVENTS);
-        return data != null && data.active().stream().anyMatch(a -> a.id().equals(type.id()));
+        if (data == null)
+            return Optional.empty();
+        return data.active().stream().filter(a -> a.id().equals(type.id())).findFirst();
     }
 
-    /** The player did it: the event goes away and motivation rises one step. */
+    public static boolean isActive(ServerPlayer player, CareerEventType type) {
+        return active(player, type).isPresent();
+    }
+
+    /** Career points multiplier from events in progress, per mille (懶散期 halves them). */
+    public static long pointsPermille(ItemStack soul) {
+        CareerEventData data = soul.get(DataComponentsTypeRegistry.CAREER_EVENTS);
+        if (data != null && data.active().stream().anyMatch(a -> a.id().equals(CareerEventType.LAZY_PERIOD.id())))
+            return UmapyoiConfig.EVENT_LAZY_POINTS_PERMILLE.get();
+        return 1000;
+    }
+
+    /**
+     * The player did it: the event goes away and motivation rises one step. A state (the lazy
+     * period) just ends, with no reward.
+     */
     public static void complete(ServerPlayer player, CareerEventType type) {
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);
-        if (!CareerManager.isInCareer(soul) || !remove(soul, type))
+        if (!CareerManager.isInCareer(soul))
             return;
+        Optional<CareerEventData.Active> removed = remove(soul, type);
+        if (removed.isEmpty())
+            return;
+        Component name = type.displayName(removed.get().data());
+        if (type.kind() == CareerEventType.Kind.STATE) {
+            player.displayClientMessage(Component.translatable("umapyoi.career.event.ended", name), true);
+            return;
+        }
         UmaStatusUtils.changeMotivation(player, 1);
-        player.displayClientMessage(Component.translatable("umapyoi.career.event.completed", type.displayName()), true);
+        player.displayClientMessage(Component.translatable("umapyoi.career.event.completed", name), true);
         player.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.PLAYERS, 0.7F, 1.2F);
     }
 
     /** It can't be done any more (dawn has passed and the like): it goes away with no penalty. */
     public static void cancel(ServerPlayer player, CareerEventType type) {
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);
-        if (!CareerManager.isInCareer(soul) || !remove(soul, type))
+        if (!CareerManager.isInCareer(soul))
             return;
-        player.displayClientMessage(Component.translatable("umapyoi.career.event.cancelled", type.displayName()), true);
+        remove(soul, type).ifPresent(event -> player.displayClientMessage(
+                Component.translatable("umapyoi.career.event.cancelled", type.displayName(event.data())), true));
     }
 
-    private static boolean remove(ItemStack soul, CareerEventType type) {
+    private static Optional<CareerEventData.Active> remove(ItemStack soul, CareerEventType type) {
         CareerEventData data = soul.get(DataComponentsTypeRegistry.CAREER_EVENTS);
         if (data == null)
-            return false;
+            return Optional.empty();
         List<CareerEventData.Active> active = new ArrayList<>(data.active());
-        if (!active.removeIf(a -> a.id().equals(type.id())))
-            return false;
+        Optional<CareerEventData.Active> found = active.stream().filter(a -> a.id().equals(type.id())).findFirst();
+        if (found.isEmpty())
+            return found;
+        active.remove(found.get());
         soul.set(DataComponentsTypeRegistry.CAREER_EVENTS, new CareerEventData(data.table(), data.scheduled(), active));
-        return true;
+        return found;
     }
 
-    /** A mandatory event ran out: motivation down one step and every stat loses a little. */
-    private static void fail(ServerPlayer player, ItemStack soul, CareerEventType type) {
-        UmaStatusUtils.changeMotivation(player, -1);
+    /** A mandatory event ran out: motivation down (two steps for 急躁) and every stat loses a little. */
+    private static void fail(ServerPlayer player, ItemStack soul, CareerEventData.Active event) {
+        CareerEventType type = CareerEventType.byId(event.id()).orElseThrow();
+        int steps = PersonalityEffects.has(soul, PersonalityTrait.IMPATIENT) ? UmapyoiConfig.IMPATIENT_FAIL_MOOD_STEPS.get() : 1;
+        UmaStatusUtils.changeMotivation(player, -steps);
         CareerManager.penalize(player, soul, UmapyoiConfig.EVENT_FAIL_KEEP_PERMILLE.get());
-        player.displayClientMessage(Component.translatable("umapyoi.career.event.failed", type.displayName()), true);
+        player.displayClientMessage(Component.translatable("umapyoi.career.event.failed", type.displayName(event.data())), true);
         player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 0.8F, 0.8F);
     }
 }

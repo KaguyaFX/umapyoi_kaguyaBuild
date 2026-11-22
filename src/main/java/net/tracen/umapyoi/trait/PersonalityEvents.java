@@ -75,20 +75,9 @@ public class PersonalityEvents {
             player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,
                     UmapyoiConfig.TIMID_SLOWNESS_SECONDS.get() * 20, 0));
         // 懦弱: weak when nobody is around
-        if (PersonalityEffects.has(player, PersonalityTrait.COWARDLY) && !hasCompanion(player))
+        if (PersonalityEffects.has(player, PersonalityTrait.COWARDLY) && !PersonalityEffects.hasCompanion(player))
             player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,
                     UmapyoiConfig.COWARDLY_WEAKNESS_SECONDS.get() * 20, 0));
-    }
-
-    /** Another player, a tamed animal or an iron golem in range. */
-    private static boolean hasCompanion(ServerPlayer player) {
-        int range = UmapyoiConfig.COWARDLY_RANGE.get();
-        double rangeSqr = (double) range * range;
-        return !player.level().getEntities(player, player.getBoundingBox().inflate(range), e -> e.isAlive()
-                && player.distanceToSqr(e) <= rangeSqr
-                && ((e instanceof Player other && !other.isSpectator())
-                        || (e instanceof TamableAnimal pet && pet.isTame()) || e instanceof IronGolem))
-                .isEmpty();
     }
 
     /** 興奮: no action point recovery for a while after a fight. */

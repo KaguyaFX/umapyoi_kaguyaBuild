@@ -120,6 +120,14 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue EVENT_FAIL_KEEP_PERMILLE;
     public static ModConfigSpec.IntValue EVENT_HUNGRY_MAX_FOOD;
     public static ModConfigSpec.IntValue EVENT_RUN_SECONDS;
+    public static ModConfigSpec.IntValue EVENT_STAY_SECONDS;
+    public static ModConfigSpec.IntValue EVENT_HORSE_SECONDS;
+    public static ModConfigSpec.IntValue EVENT_HOME_DISTANCE;
+    public static ModConfigSpec.IntValue EVENT_BRIGHT_LIGHT;
+    public static ModConfigSpec.IntValue EVENT_LAZY_POINTS_PERMILLE;
+    public static ModConfigSpec.DoubleValue DULL_EVENT_CHANCE_MULTIPLIER;
+    public static ModConfigSpec.IntValue IMPATIENT_FEWER_TURNS;
+    public static ModConfigSpec.IntValue IMPATIENT_FAIL_MOOD_STEPS;
 
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
@@ -348,6 +356,22 @@ public class UmapyoiConfig {
                 .defineInRange("event_hungry_max_food", 14, 0, 20);
         EVENT_RUN_SECONDS = COMMON_BUILDER.comment("Want to run: seconds of sprinting in a row to complete it.")
                 .defineInRange("event_run_seconds", 30, 1, 600);
+        EVENT_STAY_SECONDS = COMMON_BUILDER.comment("Want company / somewhere bright / to stay indoors: seconds in a row to complete them.")
+                .defineInRange("event_stay_seconds", 60, 1, 600);
+        EVENT_HORSE_SECONDS = COMMON_BUILDER.comment("Want to see horses: seconds in a row near a horse, donkey or mule.")
+                .defineInRange("event_horse_seconds", 30, 1, 600);
+        EVENT_HOME_DISTANCE = COMMON_BUILDER.comment("Want to go home: how close to the respawn point counts as home.")
+                .defineInRange("event_home_distance", 10, 1, 256);
+        EVENT_BRIGHT_LIGHT = COMMON_BUILDER.comment("Want somewhere bright: the light level that counts as bright.")
+                .defineInRange("event_bright_light", 12, 0, 15);
+        EVENT_LAZY_POINTS_PERMILLE = COMMON_BUILDER.comment("Lazy period: career points during it, per mille. 500 = half.")
+                .defineInRange("event_lazy_points_permille", 500, 0, 1000);
+        DULL_EVENT_CHANCE_MULTIPLIER = COMMON_BUILDER.comment("Dull: multiplier on the chance that a turn draws an event.")
+                .defineInRange("dull_event_chance_multiplier", 0.5, 0.0, 1.0);
+        IMPATIENT_FEWER_TURNS = COMMON_BUILDER.comment("Impatient: mandatory events give this many turns fewer (at least 1 is left).")
+                .defineInRange("impatient_fewer_turns", 1, 0, 62);
+        IMPATIENT_FAIL_MOOD_STEPS = COMMON_BUILDER.comment("Impatient: motivation steps lost when a mandatory event fails (normally 1).")
+                .defineInRange("impatient_fail_mood_steps", 2, 1, 4);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

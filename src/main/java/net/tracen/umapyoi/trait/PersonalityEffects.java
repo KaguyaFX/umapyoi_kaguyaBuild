@@ -12,6 +12,9 @@ import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.umadata.Motivations;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Personality trait effects that other systems ask for (career points, hunger, Night Owl, the
@@ -72,6 +75,17 @@ public final class PersonalityEffects {
         if (!has(entity, PersonalityTrait.SLEEPY))
             return threshold;
         return Math.max(1, (long) (threshold * UmapyoiConfig.SLEEPY_NIGHT_OWL_FACTOR.get()));
+    }
+
+    /** 懦弱 and the "want company" event: another player, a tamed animal or an iron golem in range. */
+    public static boolean hasCompanion(ServerPlayer player) {
+        int range = UmapyoiConfig.COWARDLY_RANGE.get();
+        double rangeSqr = (double) range * range;
+        return !player.level().getEntities(player, player.getBoundingBox().inflate(range), e -> e.isAlive()
+                && player.distanceToSqr(e) <= rangeSqr
+                && ((e instanceof Player other && !other.isSpectator())
+                        || (e instanceof TamableAnimal pet && pet.isTame()) || e instanceof IronGolem))
+                .isEmpty();
     }
 
     /** 貪吃: more hunger. */

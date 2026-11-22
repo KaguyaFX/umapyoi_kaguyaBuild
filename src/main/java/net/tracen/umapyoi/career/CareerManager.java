@@ -270,8 +270,10 @@ public final class CareerManager {
         long mood = Math.round(UmaSoulUtils.getMotivation(soul).getMultiplier() * 1000);
         // 專注 blessing: x1.05 / 1.10 / 1.15
         long focus = 1000 + 50L * (BlessingManager.level(player, BlessingType.FOCUS) + 1);
-        // 厭光 (day/night) and 踏實 (motivation Normal or better)
-        long personality = PersonalityEffects.pointsPermille(player, soul);
+        // A single gain is capped so absurd amounts (e.g. /kill dealing near-infinite damage) can't overflow.
+        milliPoints = Math.min(milliPoints, 1_000_000_000L);
+        // 厭光 (day/night), 踏實 (motivation Normal or better), and the lazy period event
+        long personality = PersonalityEffects.pointsPermille(player, soul) * CareerEventManager.pointsPermille(soul) / 1000;
         long delta = milliPoints * mood * cache.cardMultiplier[stat] / 1000L * focus * personality
                 / (1000L * 1000L * UmapyoiConfig.CAREER_POINTS_PER_LEVEL.get());
         cache.precise[stat] = Math.min(cache.max[stat] * MILLION, cache.precise[stat] + delta);
