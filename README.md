@@ -28,6 +28,12 @@ Older versions are no longer maintained. Only the **1.21** line is maintained, p
 | [`1.20.1-outdated`](../../tree/1.20.1-outdated) | 1.20.1    | Forge 47.x      | 1.12.72-1.20.1 | ❌ No longer maintained |
 | [`1.18.2-outdated`](../../tree/1.18.2-outdated) | 1.18.2    | Forge 40.x      | 1.5.28-1.18.2  | ❌ No longer maintained |
 
+If youre interested in the latest updates
+please check out the Beta branch :P
+The 1.21 branch will only be updated when a major update is fully completed
+(Or perhaps for critical bug fixes? Anyway, I just threw this together randomly, so dont expect me to be punctual)
+
+
 ## Requirements (1.21 branch)
 
 | Mod                     | Version                |                                                              |
