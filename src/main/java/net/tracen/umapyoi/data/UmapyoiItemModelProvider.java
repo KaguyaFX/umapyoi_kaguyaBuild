@@ -40,7 +40,8 @@ public class UmapyoiItemModelProvider extends AbstractItemModelProvider {
                     item == ItemRegistry.UMA_SOUL_DISPLAY ||
                     item == ItemRegistry.HACHIMI_BIG ||
                     item == ItemRegistry.GATE_DOOR ||
-                    item == ItemRegistry.GATE
+                    item == ItemRegistry.GATE ||
+                    item == ItemRegistry.CAREER_KEEPSAKE // hand-written: drawn by CareerKeepsakeItemRenderer
             ) return;
 
             if (item.get() instanceof UmaWeaponItem)

@@ -36,6 +36,10 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import net.tracen.umapyoi.client.renderer.blockentity.CareerKeepsakeRenderer;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.tracen.umapyoi.client.renderer.CareerKeepsakeItemRenderer;
 
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class ClientSetupEvents {
@@ -115,6 +119,21 @@ public class ClientSetupEvents {
         event.registerReloadListener(new BedrockModelResourceLoader("models/umapyoi"));
     }
     
+    /** The career keepsake item draws its Umamusume's seated figure instead of a flat icon. */
+    @SubscribeEvent
+    public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+        event.registerItem(new IClientItemExtensions() {
+            private CareerKeepsakeItemRenderer renderer;
+
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                if (renderer == null)
+                    renderer = new CareerKeepsakeItemRenderer();
+                return renderer;
+            }
+        }, ItemRegistry.CAREER_KEEPSAKE.get());
+    }
+
     @SubscribeEvent
     public static void registerKeyMapping(RegisterKeyMappingsEvent event) {
         event.register(SkillKeyMapping.KEY_USE_SKILL);
