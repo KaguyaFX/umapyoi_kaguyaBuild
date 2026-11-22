@@ -2,13 +2,13 @@
   "parent": "umapyoi:skill_table",
   "display": {
     "icon": {
-      "id": "umapyoi:skill_book"
+      "id": "umapyoi:speed_low_item"
     },
     "title": {
-      "translate": "advancement.umapyoi.skill_book.title"
+      "translate": "advancement.umapyoi.notebook.title"
     },
     "description": {
-      "translate": "advancement.umapyoi.skill_book.desc"
+      "translate": "advancement.umapyoi.notebook.desc"
     },
     "frame": "task",
     "show_toast": true,
@@ -21,7 +21,7 @@
       "conditions": {
         "items": [
           {
-            "items": "umapyoi:skill_book"
+            "items": "#umapyoi:notebooks"
           }
         ]
       }

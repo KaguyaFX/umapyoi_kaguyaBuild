@@ -12,6 +12,7 @@ import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.item.ItemRegistry;
+import net.tracen.umapyoi.item.TrainingItem;
 import net.tracen.umapyoi.utils.RaceRanking;
 
 public class UmapyoiItemTagsProvider extends ItemTagsProvider {
@@ -69,6 +70,8 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
                 .add(Items.GOLDEN_CARROT, Items.COOKIE, Items.PUMPKIN_PIE)
                 .add(ItemRegistry.CUPCAKE.get(), ItemRegistry.SWEET_CUPCAKE.get());
         tag(UmapyoiItemTags.EAR_FRIENDLY_HEADWEAR);
+        ItemRegistry.ITEMS.getEntries().stream().filter(item -> item.get() instanceof TrainingItem)
+                .forEach(item -> tag(UmapyoiItemTags.NOTEBOOKS).add(item.get()));
         tag(Tags.Items.HIDDEN_FROM_RECIPE_VIEWERS).add(ItemRegistry.CAREER_KEEPSAKE.get());
 
         tag(UmapyoiItemTags.SLOW_METABOLISM)

@@ -1,0 +1,19 @@
+{
+  "values": [
+    "umapyoi:speed_low_item",
+    "umapyoi:speed_mid_item",
+    "umapyoi:speed_high_item",
+    "umapyoi:stamina_low_item",
+    "umapyoi:stamina_mid_item",
+    "umapyoi:stamina_high_item",
+    "umapyoi:strength_low_item",
+    "umapyoi:strength_mid_item",
+    "umapyoi:strength_high_item",
+    "umapyoi:mentality_low_item",
+    "umapyoi:mentality_mid_item",
+    "umapyoi:mentality_high_item",
+    "umapyoi:wisdom_low_item",
+    "umapyoi:wisdom_mid_item",
+    "umapyoi:wisdom_high_item"
+  ]
+}

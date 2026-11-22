@@ -989,8 +989,8 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         addAdvDesc("umapyoi.transfer", "Get a Transfer Register Lectern");
         addAdvTitle("umapyoi.skill_table", "Great, I'm Starting to Understand Everything");
         addAdvDesc("umapyoi.skill_table", "Get a Skill Learning Table");
-        addAdvTitle("umapyoi.skill_book", "Eat It and Get Stronger? Trainer, You're Lying!");
-        addAdvDesc("umapyoi.skill_book", "Get a Skill Book");
+        addAdvTitle("umapyoi.notebook", "Eat It and Get Stronger? Trainer, You're Lying!");
+        addAdvDesc("umapyoi.notebook", "Get any notepad, writings or scroll");
         addAdvTitle("umapyoi.blessing", "Blessing");
         addAdvDesc("umapyoi.blessing", "Receive any blessing of the Three Goddesses");
         addAdvTitle("umapyoi.wear_soul", "This Is Me?!");
