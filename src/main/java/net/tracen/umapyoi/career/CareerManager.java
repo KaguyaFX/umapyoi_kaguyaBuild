@@ -112,6 +112,7 @@ public final class CareerManager {
         ItemStack sim = simulation.result();
         int[] used = simulation.used();
         CareerEventManager.CardInfo cardInfo = cardInfo(level, inventory, used);
+        int[] cardLevels = cardStatLevels(level, inventory, used);
 
         // Same cost as auto-training: a card that would break in the simulation breaks now.
         for (int i = 1; i < 7; i++) {
@@ -136,7 +137,8 @@ public final class CareerManager {
         int[] cards = new int[5];
         for (int i = 0; i < 5; i++) {
             precise[i] = (int) (start[i] * MILLION);
-            cards[i] = 1000; // placeholder: cards don't change career growth yet
+            // each level of stat support on the cards: that stat grows +5% faster (design doc 7.4)
+            cards[i] = 1000 + 10 * UmapyoiConfig.CAREER_CARD_PERCENT_PER_LEVEL.get() * cardLevels[i];
         }
 
         ItemStack result = soul.copy();
@@ -190,6 +192,24 @@ public final class CareerManager {
         for (int i = 0; i < 5; i++)
             growth[i] = Math.max(0, simulated[i] - start[i]);
         return new Simulation(sim, used, growth);
+    }
+
+    /**
+     * Stat support levels per stat on the support cards that take part, added up across cards.
+     * Consumables (notebooks) don't count: they are used up at the start like in auto-training.
+     */
+    private static int[] cardStatLevels(Level level, IItemHandler inventory, int[] used) {
+        int[] levels = new int[5];
+        for (int i = 1; i < 7; i++) {
+            ItemStack card = inventory.getStackInSlot(i);
+            if (used[i] == 0 || !(card.getItem() instanceof SupportContainer support) || support.isConsumable(level, card))
+                continue;
+            for (SupportStack stack : support.getSupports(level, card)) {
+                if (stack.getFactor() instanceof StatusSupport status)
+                    levels[status.getStatusType().getId()] += stack.getLevel();
+            }
+        }
+        return levels;
     }
 
     /** Skills, acupuncturists and random-stat supports on the cards that take part in the career. */

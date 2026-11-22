@@ -71,6 +71,10 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue CAREER_WISDOM_PER_LEVEL_SPENT;
     public static ModConfigSpec.IntValue CAREER_WISDOM_PER_POTION;
     public static ModConfigSpec.IntValue CAREER_WISDOM_PER_XP;
+    public static ModConfigSpec.IntValue CAREER_CARD_PERCENT_PER_LEVEL;
+    public static ModConfigSpec.DoubleValue NOTEBOOK_CAP_LOW_CHANCE;
+    public static ModConfigSpec.IntValue NOTEBOOK_CAP_MID;
+    public static ModConfigSpec.IntValue NOTEBOOK_CAP_HIGH;
 
     // Uma traits and fright (design doc 8.4, 8.5). Checked once per second.
     public static ModConfigSpec.DoubleValue FRIGHT_BONUS_CUT;
@@ -276,6 +280,15 @@ public class UmapyoiConfig {
                 .defineInRange("career_wisdom_per_potion", 200, 0, 100000);
         CAREER_WISDOM_PER_XP = COMMON_BUILDER.comment("Wisdom points per experience point picked up (orbs from mobs, ores, smelting...).")
                 .defineInRange("career_wisdom_per_xp", 8, 0, 100000);
+        CAREER_CARD_PERCENT_PER_LEVEL = COMMON_BUILDER.comment("Career growth bonus per level of stat support on the cards, in percent, added up across cards.",
+                "5 = a card with Speed 3 makes speed grow 15% faster. Only for careers started after the change.")
+                .defineInRange("career_card_percent_per_level", 5, 0, 1000);
+        NOTEBOOK_CAP_LOW_CHANCE = COMMON_BUILDER.comment("During a career, chance that a low notebook also raises its stat's cap by 1.")
+                .defineInRange("notebook_cap_low_chance", 0.3, 0.0, 1.0);
+        NOTEBOOK_CAP_MID = COMMON_BUILDER.comment("During a career, how much a mid notebook raises its stat's cap.")
+                .defineInRange("notebook_cap_mid", 1, 0, 39);
+        NOTEBOOK_CAP_HIGH = COMMON_BUILDER.comment("During a career, how much a high notebook raises its stat's cap.")
+                .defineInRange("notebook_cap_high", 2, 0, 39);
         COMMON_BUILDER.pop();
 
         COMMON_BUILDER.comment("Uma traits and the fright status. Checked once per second.").push("traits");

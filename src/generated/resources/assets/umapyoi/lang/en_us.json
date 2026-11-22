@@ -1054,6 +1054,7 @@
   "umapyoi.career.events.header": "Events (%s)",
   "umapyoi.career.events.turns": "%s turns",
   "umapyoi.career.finished": "Three years complete! Take her soul to the Retire Register Lectern.",
+  "umapyoi.career.notebook_cap": "%s cap +%s",
   "umapyoi.career.started": "Her three years begin. Time only passes while you wear her soul.",
   "umapyoi.command.give.success": "Successfully give %2$s to %1$s",
   "umapyoi.command.modify.emptyequipment": "Player does not have any uma soul equipped.",

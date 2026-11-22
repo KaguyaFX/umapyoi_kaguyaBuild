@@ -15,6 +15,11 @@ public class StatusSupport extends TrainingSupport {
 		this.statusType = status;
 	}
 
+	/** Which stat this support trains. */
+	public StatusType getStatusType() {
+		return statusType;
+	}
+
 	@Override
 	public boolean applySupport(ItemStack soul, RandomSource rand, SupportStack stack) {
 		switch (statusType) {

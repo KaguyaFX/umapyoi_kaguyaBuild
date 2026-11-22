@@ -1034,6 +1034,7 @@
   "umapyoi.career.event.skill_learned.hint": "支援卡带来的技能",
   "umapyoi.career.event.notice_message": "【%s】%s",
   "umapyoi.uma.no_riding": "马娘可不会骑马",
+  "umapyoi.career.notebook_cap": "%s上限 +%s",
   "umapyoi.career.started": "她的三年开始了。只有穿着这只魂时，时间才会前进。",
   "umapyoi.career.finished": "三年结束了！带着她的魂去育成登记台吧。",
   "umapyoi.career.death": "生涯受挫：属性下降，心情跌到极差。",

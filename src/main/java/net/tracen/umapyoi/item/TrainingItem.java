@@ -28,6 +28,11 @@ import net.tracen.umapyoi.utils.GachaRanking;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import net.tracen.umapyoi.career.CareerManager;
+import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.registry.umadata.UmaDataBasicStatus;
+import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
+import net.minecraft.util.RandomSource;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -62,6 +67,9 @@ public class TrainingItem extends Item implements SupportContainer {
             return InteractionResultHolder.fail(tranining);
         }
         
+        // During a three-year career a notebook may also raise its stat's cap (design doc 7.5).
+        if (CareerManager.isInCareer(soul))
+            raiseCapInCareer(pPlayer, soul, pLevel.getRandom());
         if (this.getSupport().applySupport(soul, pLevel.getRandom())) {
             UmaSoulUtils.downLearningTimes(soul);
             pPlayer.getCooldowns().addCooldown(tranining.getItem(), 30);
@@ -72,6 +80,28 @@ public class TrainingItem extends Item implements SupportContainer {
             return InteractionResultHolder.fail(tranining);
         }
     }
+
+    /** Low: a chance of +1; mid: +1; high: +2 (all configurable), up to the absolute max of 39. */
+    private void raiseCapInCareer(Player player, ItemStack soul, RandomSource random) {
+        int amount = switch (this.level) {
+            case 1 -> random.nextDouble() < UmapyoiConfig.NOTEBOOK_CAP_LOW_CHANCE.get() ? 1 : 0;
+            case 2 -> UmapyoiConfig.NOTEBOOK_CAP_MID.get();
+            default -> UmapyoiConfig.NOTEBOOK_CAP_HIGH.get();
+        };
+        int stat = this.type.ordinal(); // SPEED..WISDOM in the stat order
+        if (amount <= 0 || stat > 4)
+            return;
+        int[] max = UmaSoulUtils.getMaxProperty(soul).toArray();
+        int raised = Math.min(39, max[stat] + amount) - max[stat];
+        if (raised <= 0)
+            return;
+        max[stat] += raised;
+        soul.set(DataComponentsTypeRegistry.UMADATA_MAX_BASIC_STATUS, UmaDataBasicStatus.init(max));
+        player.displayClientMessage(Component.translatable("umapyoi.career.notebook_cap",
+                Component.translatable("gui.umapyoi.self_training." + STAT_KEYS[stat]), raised), true);
+    }
+
+    private static final String[] STAT_KEYS = { "speed", "stamina", "strength", "guts", "wisdom" };
 
     @Override
     public boolean overrideStackedOnOther(ItemStack pStack, Slot pSlot, ClickAction pAction, Player pPlayer) {
