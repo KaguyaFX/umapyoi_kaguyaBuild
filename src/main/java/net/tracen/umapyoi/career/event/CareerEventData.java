@@ -14,10 +14,11 @@ import net.minecraft.network.codec.StreamCodec;
  * Turns are career periods counted from 0 (the first half of Junior June).
  *
  * @param table     what can still come up, with how many times each is left
- * @param scheduled events fixed to a turn (filled in a later step: New Year and the like)
+ * @param scheduled events fixed to a turn (New Year)
  * @param active    events the player has right now
+ * @param skills    skills from support cards still to be learned; each turn rolls for each
  */
-public record CareerEventData(List<Entry> table, List<Scheduled> scheduled, List<Active> active) {
+public record CareerEventData(List<Entry> table, List<Scheduled> scheduled, List<Active> active, List<String> skills) {
 
     public record Entry(String id, int left) {
         public static final Codec<Entry> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -43,12 +44,13 @@ public record CareerEventData(List<Entry> table, List<Scheduled> scheduled, List
                 Codec.STRING.optionalFieldOf("data", "").forGetter(Active::data)).apply(i, Active::new));
     }
 
-    public static final CareerEventData EMPTY = new CareerEventData(List.of(), List.of(), List.of());
+    public static final CareerEventData EMPTY = new CareerEventData(List.of(), List.of(), List.of(), List.of());
 
     public static final Codec<CareerEventData> CODEC = RecordCodecBuilder.create(i -> i.group(
             Entry.CODEC.listOf().optionalFieldOf("table", List.of()).forGetter(CareerEventData::table),
             Scheduled.CODEC.listOf().optionalFieldOf("scheduled", List.of()).forGetter(CareerEventData::scheduled),
-            Active.CODEC.listOf().optionalFieldOf("active", List.of()).forGetter(CareerEventData::active))
+            Active.CODEC.listOf().optionalFieldOf("active", List.of()).forGetter(CareerEventData::active),
+            Codec.STRING.listOf().optionalFieldOf("skills", List.of()).forGetter(CareerEventData::skills))
             .apply(i, CareerEventData::new));
 
     public static final StreamCodec<ByteBuf, CareerEventData> STREAM = ByteBufCodecs.fromCodec(CODEC);
@@ -57,5 +59,10 @@ public record CareerEventData(List<Entry> table, List<Scheduled> scheduled, List
         table = List.copyOf(table);
         scheduled = List.copyOf(scheduled);
         active = List.copyOf(active);
+        skills = List.copyOf(skills);
+    }
+
+    public CareerEventData withActive(List<Active> newActive) {
+        return new CareerEventData(table, scheduled, newActive, skills);
     }
 }

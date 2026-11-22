@@ -6,37 +6,71 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.career.CareerManager;
+import net.tracen.umapyoi.effect.MobEffectRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
+import net.tracen.umapyoi.registry.UmaSkillRegistry;
+import net.tracen.umapyoi.registry.umadata.UmaDataBasicStatus;
 import net.tracen.umapyoi.trait.PersonalityEffects;
 import net.tracen.umapyoi.trait.PersonalityTrait;
+import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaStatusUtils;
 
 /**
  * The per-turn event system (design doc ch. 9). When a career starts it gets an event table. At the
  * start of every turn, events past their deadline are settled, then one event may come up: the one
  * fixed to this turn, otherwise a roll draws one from the table. Several can be in progress at once.
+ * Support card skills are rolled every turn on their own, apart from that one event.
  */
 public final class CareerEventManager {
+    /** Turns of the two New Years: Classic and Senior year, first half of January. */
+    public static final int NEW_YEAR_FIRST_TURN = 14;
+    public static final int NEW_YEAR_LAST_TURN = 38;
+
     private CareerEventManager() {
     }
 
-    /** Everything this career can meet, for a new career (or one started before events existed). */
+    /** What the support cards bring to a career, noted when it starts (cards go back after). */
+    public record CardInfo(List<String> skills, int acupuncture, int randomStat) {
+        public static final CardInfo NONE = new CardInfo(List.of(), 0, 0);
+    }
+
+    /** For a career started before events existed: no card events. */
     public static CareerEventData buildTable(ItemStack soul) {
+        return buildTable(soul, CardInfo.NONE);
+    }
+
+    /** Everything this career can meet: general and trait events, card events, the New Years. */
+    public static CareerEventData buildTable(ItemStack soul, CardInfo cards) {
         List<CareerEventData.Entry> table = new ArrayList<>();
         for (CareerEventType type : CareerEventType.values()) {
             if (type.belongsIn(soul))
                 table.add(new CareerEventData.Entry(type.id(), type.maxCount()));
         }
-        return new CareerEventData(table, List.of(), List.of());
+        // card events are one-time: one per card
+        if (cards.acupuncture() > 0)
+            table.add(new CareerEventData.Entry(CareerEventType.ACUPUNCTURE.id(), cards.acupuncture()));
+        if (cards.randomStat() > 0)
+            table.add(new CareerEventData.Entry(CareerEventType.RANDOM_STAT.id(), cards.randomStat()));
+        List<CareerEventData.Scheduled> scheduled = List.of(
+                new CareerEventData.Scheduled(NEW_YEAR_FIRST_TURN, CareerEventType.NEW_YEAR_FIRST.id()),
+                new CareerEventData.Scheduled(NEW_YEAR_LAST_TURN, CareerEventType.NEW_YEAR_LAST.id()));
+        List<String> skills = cards.skills().stream().filter(id -> {
+            ResourceLocation skill = ResourceLocation.tryParse(id);
+            return skill != null && !UmaSkillUtils.hasLearnedSkill(soul, skill);
+        }).distinct().toList();
+        return new CareerEventData(table, scheduled, List.of(), skills);
     }
 
     /** Called by CareerManager when the worn soul's career reaches a new turn. */
@@ -44,6 +78,7 @@ public final class CareerEventManager {
         CareerEventData data = soul.get(DataComponentsTypeRegistry.CAREER_EVENTS);
         if (data == null)
             data = buildTable(soul);
+        RandomSource random = player.getRandom();
 
         // Settle what ran out. Failing a mandatory one costs motivation and stats; the rest just end.
         List<CareerEventData.Active> active = new ArrayList<>();
@@ -55,28 +90,59 @@ public final class CareerEventManager {
                 failed.add(event);
         }
 
-        // At most one new event per turn. 呆滯 souls get them less often.
+        // At most one new event per turn: the one fixed to it, or a draw. 呆滯 souls draw less often.
         List<CareerEventData.Entry> table = new ArrayList<>(data.table());
         CareerEventType next = scheduledFor(data, turn);
         double chance = UmapyoiConfig.EVENT_CHANCE_PER_TURN.get();
         if (PersonalityEffects.has(soul, PersonalityTrait.DULL))
             chance *= UmapyoiConfig.DULL_EVENT_CHANCE_MULTIPLIER.get();
-        if (next == null && player.getRandom().nextDouble() < chance)
+        if (next == null && random.nextDouble() < chance)
             next = draw(player, soul, table, active);
+        CareerEventData.Active nextActive = null;
         if (next != null) {
-            active.add(new CareerEventData.Active(next.id(), turn, turn + next.turns(soul),
-                    next.noteWhenAppearing(player, soul)));
+            String note = next.kind() == CareerEventType.Kind.NOTICE ? rollNotice(next, random)
+                    : next.noteWhenAppearing(player, soul);
+            nextActive = new CareerEventData.Active(next.id(), turn, turn + next.turns(soul), note);
+            active.add(nextActive);
             for (int i = 0; i < table.size(); i++) {
                 if (table.get(i).id().equals(next.id()))
                     table.set(i, new CareerEventData.Entry(next.id(), Math.max(0, table.get(i).left() - 1)));
             }
         }
-        soul.set(DataComponentsTypeRegistry.CAREER_EVENTS, new CareerEventData(table, data.scheduled(), active));
+
+        // Support card skills: each still to learn gets its own roll; together about 90% per career.
+        List<String> skills = new ArrayList<>();
+        List<String> learned = new ArrayList<>();
+        double skillChance = 1.0 - Math.pow(1.0 - UmapyoiConfig.EVENT_SKILL_CHANCE.get(), 1.0 / CareerManager.PERIODS);
+        for (String id : data.skills()) {
+            ResourceLocation skill = ResourceLocation.tryParse(id);
+            if (skill == null || !UmaSkillRegistry.REGISTRY.containsKey(skill) || UmaSkillUtils.hasLearnedSkill(soul, skill))
+                continue;
+            if (random.nextDouble() < skillChance) {
+                UmaSkillUtils.learnSkill(soul, skill);
+                if (UmaSkillUtils.hasLearnedSkill(soul, skill)) {
+                    learned.add(id);
+                    active.add(new CareerEventData.Active(CareerEventType.SKILL_LEARNED.id(), turn, turn + 1, id));
+                    continue;
+                }
+            }
+            skills.add(id); // not this time (or no free skill slot): roll again next turn
+        }
+        soul.set(DataComponentsTypeRegistry.CAREER_EVENTS, new CareerEventData(table, data.scheduled(), active, skills));
 
         for (CareerEventData.Active event : failed)
             fail(player, soul, event);
-        if (next != null)
-            player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.6F, 1.4F);
+        if (nextActive != null) {
+            if (next.kind() == CareerEventType.Kind.NOTICE)
+                applyNotice(player, soul, next, nextActive.data());
+            else
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.6F, 1.4F);
+        }
+        for (String id : learned) {
+            player.displayClientMessage(Component.translatable("umapyoi.career.event.skill_learned",
+                    CareerEventType.skillName(id)).withStyle(ChatFormatting.AQUA), true);
+            player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.5F, 1.2F);
+        }
     }
 
     @Nullable
@@ -105,8 +171,7 @@ public final class CareerEventManager {
         }
         if (total <= 0)
             return null;
-        RandomSource random = player.getRandom();
-        int pick = random.nextInt(total);
+        int pick = player.getRandom().nextInt(total);
         for (CareerEventType type : candidates) {
             pick -= type.weight(soul);
             if (pick < 0)
@@ -114,6 +179,60 @@ public final class CareerEventManager {
         }
         return null;
     }
+
+    // ---------------------------------------------------------------- notices
+
+    /** Decides how a notice turns out, before anything happens: noted on the event for the list. */
+    private static String rollNotice(CareerEventType type, RandomSource random) {
+        return switch (type) {
+            case ACUPUNCTURE -> random.nextDouble() < UmapyoiConfig.EVENT_ACUPUNCTURE_CHANCE.get() ? "success" : "fail";
+            case RANDOM_STAT -> String.valueOf(random.nextInt(5));
+            default -> "";
+        };
+    }
+
+    private static void applyNotice(ServerPlayer player, ItemStack soul, CareerEventType type, String note) {
+        switch (type) {
+            case NEW_YEAR_FIRST, NEW_YEAR_LAST -> {
+                // 超絕好調 for a while, whatever the motivation; a stronger one already running is kept.
+                MobEffectInstance current = player.getEffect(MobEffectRegistry.MOOD_BONUS);
+                int ticks = UmapyoiConfig.EVENT_NEW_YEAR_BUFF_SECONDS.get() * 20;
+                int amplifier = current == null ? 0 : current.getAmplifier();
+                if (current == null || current.getDuration() < ticks)
+                    player.addEffect(new MobEffectInstance(MobEffectRegistry.MOOD_BONUS, ticks, amplifier));
+                player.sendSystemMessage(Component.translatable("umapyoi.career.event.notice_message",
+                        type.displayName(note), type.hint(note)).withStyle(ChatFormatting.GOLD));
+                player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.6F, 1.0F);
+                return;
+            }
+            case ACUPUNCTURE -> {
+                if ("success".equals(note)) {
+                    soul.update(DataComponentsTypeRegistry.UMADATA_MAX_BASIC_STATUS, UmaDataBasicStatus.DEFAULT_MAX_STATUS,
+                            max -> new UmaDataBasicStatus(Math.min(39, max.speed() + 1), Math.min(39, max.stamina() + 1),
+                                    Math.min(39, max.strength() + 1), Math.min(39, max.guts() + 1),
+                                    Math.min(39, max.wisdom() + 1)));
+                } else {
+                    UmaStatusUtils.changeMotivation(player, -1);
+                }
+            }
+            case RANDOM_STAT -> {
+                int stat;
+                try {
+                    stat = Integer.parseInt(note);
+                } catch (NumberFormatException e) {
+                    stat = 0;
+                }
+                CareerManager.addStatLevels(player, soul, Math.floorMod(stat, 5), 1);
+            }
+            default -> {
+            }
+        }
+        player.displayClientMessage(Component.translatable("umapyoi.career.event.notice_message",
+                type.displayName(note), type.hint(note)), true);
+        player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.6F, 1.4F);
+    }
+
+    // ---------------------------------------------------------------- queries and results
 
     /** The worn soul's event of this type in progress, if any. */
     public static Optional<CareerEventData.Active> active(ServerPlayer player, CareerEventType type) {
@@ -177,7 +296,7 @@ public final class CareerEventManager {
         if (found.isEmpty())
             return found;
         active.remove(found.get());
-        soul.set(DataComponentsTypeRegistry.CAREER_EVENTS, new CareerEventData(data.table(), data.scheduled(), active));
+        soul.set(DataComponentsTypeRegistry.CAREER_EVENTS, data.withActive(active));
         return found;
     }
 

@@ -128,6 +128,9 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue DULL_EVENT_CHANCE_MULTIPLIER;
     public static ModConfigSpec.IntValue IMPATIENT_FEWER_TURNS;
     public static ModConfigSpec.IntValue IMPATIENT_FAIL_MOOD_STEPS;
+    public static ModConfigSpec.DoubleValue EVENT_SKILL_CHANCE;
+    public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
+    public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_X;
     public static ModConfigSpec.IntValue TOPLEFT_COORD_SKILL_Y;
@@ -372,6 +375,12 @@ public class UmapyoiConfig {
                 .defineInRange("impatient_fewer_turns", 1, 0, 62);
         IMPATIENT_FAIL_MOOD_STEPS = COMMON_BUILDER.comment("Impatient: motivation steps lost when a mandatory event fails (normally 1).")
                 .defineInRange("impatient_fail_mood_steps", 2, 1, 4);
+        EVENT_SKILL_CHANCE = COMMON_BUILDER.comment("Chance to learn each support card skill over a whole career; rolled every turn.")
+                .defineInRange("event_skill_chance", 0.9, 0.0, 1.0);
+        EVENT_ACUPUNCTURE_CHANCE = COMMON_BUILDER.comment("Acupuncturist card event: chance that every stat cap goes up by 1 (otherwise motivation drops).")
+                .defineInRange("event_acupuncture_chance", 0.4, 0.0, 1.0);
+        EVENT_NEW_YEAR_BUFF_SECONDS = COMMON_BUILDER.comment("New Year: seconds of Hyper Mood it gives.")
+                .defineInRange("event_new_year_buff_seconds", 180, 1, 3600);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

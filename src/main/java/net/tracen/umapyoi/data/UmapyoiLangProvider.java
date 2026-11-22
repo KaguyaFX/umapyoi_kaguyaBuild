@@ -221,6 +221,18 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.career.event.want_learn", "Want to learn something");
         add("umapyoi.career.event.want_learn.hint", "Enchant, use an anvil, or learn a skill");
         add("umapyoi.career.event.ended", "\"%s\" is over");
+        add("umapyoi.career.event.new_year_first", "A New Year Begins");
+        add("umapyoi.career.event.new_year_first.hint", "Seems like a very special day in a career, doesn't it? Relax and enjoy the feeling.");
+        add("umapyoi.career.event.new_year_last", "New Year... Once More");
+        add("umapyoi.career.event.new_year_last.hint", "In the blink of an eye, it's already the last one... Hard to let go.");
+        add("umapyoi.career.event.acupuncture", "Acupuncturist's visit");
+        add("umapyoi.career.event.acupuncture.hint.success", "Every stat cap +1");
+        add("umapyoi.career.event.acupuncture.hint.fail", "Didn't seem to help... motivation dropped");
+        add("umapyoi.career.event.random_stat", "A lucky find");
+        add("umapyoi.career.event.random_stat.hint", "%s +1");
+        add("umapyoi.career.event.skill_learned", "Learned %s");
+        add("umapyoi.career.event.skill_learned.hint", "A skill from a support card");
+        add("umapyoi.career.event.notice_message", "[%s] %s");
         add("umapyoi.career.started", "Her three years begin. Time only passes while you wear her soul.");
         add("umapyoi.career.finished", "Three years complete! Take her soul to the Retire Register Lectern.");
         add("umapyoi.career.death", "A setback in her career: stats lowered, motivation at its lowest.");

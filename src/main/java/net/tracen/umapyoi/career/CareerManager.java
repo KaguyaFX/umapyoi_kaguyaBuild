@@ -34,6 +34,11 @@ import net.tracen.umapyoi.utils.UmaSkillUtils;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 import net.tracen.umapyoi.trait.PersonalityEffects;
 import net.tracen.umapyoi.career.event.CareerEventManager;
+import net.tracen.umapyoi.registry.training.SkillSupport;
+import net.tracen.umapyoi.registry.training.BorealisSupport;
+import net.tracen.umapyoi.registry.training.RandomStatusSupport;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Three-year career: soul lifecycle, career time, training points, death and the end of the career.
@@ -105,6 +110,7 @@ public final class CareerManager {
         Simulation simulation = simulateWorstCase(level, inventory, soul);
         ItemStack sim = simulation.result();
         int[] used = simulation.used();
+        CareerEventManager.CardInfo cardInfo = cardInfo(level, inventory, used);
 
         // Same cost as auto-training: a card that would break in the simulation breaks now.
         for (int i = 1; i < 7; i++) {
@@ -141,7 +147,7 @@ public final class CareerManager {
                 UmaCareerData.toList(precise), UmaCareerData.toList(start), UmaCareerData.toList(growth),
                 UmaCareerData.toList(cards), 0));
         result.set(DataComponentsTypeRegistry.CAREER_STATE, CareerState.IN_CAREER);
-        result.set(DataComponentsTypeRegistry.CAREER_EVENTS, CareerEventManager.buildTable(result));
+        result.set(DataComponentsTypeRegistry.CAREER_EVENTS, CareerEventManager.buildTable(result, cardInfo));
         result.update(DataComponentsTypeRegistry.UMADATA_TRAINING, new UmaDataTraining(1, 6, false),
                 data -> new UmaDataTraining(0, data.talent(), true));
         UmaSkillUtils.syncActionPoint(result);
@@ -183,6 +189,30 @@ public final class CareerManager {
         for (int i = 0; i < 5; i++)
             growth[i] = Math.max(0, simulated[i] - start[i]);
         return new Simulation(sim, used, growth);
+    }
+
+    /** Skills, acupuncturists and random-stat supports on the cards that take part in the career. */
+    private static CareerEventManager.CardInfo cardInfo(Level level, IItemHandler inventory, int[] used) {
+        List<String> skills = new ArrayList<>();
+        int acupuncture = 0;
+        int randomStat = 0;
+        for (int i = 1; i < 7; i++) {
+            ItemStack card = inventory.getStackInSlot(i);
+            if (used[i] == 0 || !(card.getItem() instanceof SupportContainer support))
+                continue;
+            for (SupportStack stack : support.getSupports(level, card)) {
+                if (stack.getFactor() instanceof SkillSupport) {
+                    String skill = stack.getOrCreateTag().getString("skill");
+                    if (!skill.isEmpty())
+                        skills.add(skill);
+                } else if (stack.getFactor() instanceof BorealisSupport) {
+                    acupuncture++;
+                } else if (stack.getFactor() instanceof RandomStatusSupport) {
+                    randomStat++;
+                }
+            }
+        }
+        return new CareerEventManager.CardInfo(skills, acupuncture, randomStat);
     }
 
     /** Base reward for one stat: ceil(growth x percent), in integers. */
@@ -228,6 +258,19 @@ public final class CareerManager {
             if (newTurn)
                 CareerEventManager.onNewTurn(player, soul, period);
         }
+    }
+
+    /** Adds whole levels to one stat of the worn soul's career (a random-stat card event). */
+    public static void addStatLevels(ServerPlayer player, ItemStack soul, int stat, int levels) {
+        UmaCareerData data = soul.get(DataComponentsTypeRegistry.CAREER_DATA);
+        if (getState(soul) != CareerState.IN_CAREER || data == null)
+            return;
+        CareerCache cache = player.getData(CareerAttachments.CAREER_CACHE);
+        if (!belongsTo(cache, data) || !cache.isActive(player))
+            load(player, cache, soul, data);
+        flush(soul, cache);
+        cache.precise[stat] += levels * (long) MILLION;
+        flush(soul, cache); // clamps to the stat's cap
     }
 
     /**

@@ -79,7 +79,20 @@ public enum CareerEventType {
     /** 興奮: defeat a hostile mob. */
     WANT_FIGHT("want_fight", Kind.OPTIONAL, 2, 20),
     /** 好學: spend experience levels (enchanting, anvil) or learn a new skill. */
-    WANT_LEARN("want_learn", Kind.OPTIONAL, 2, 20);
+    WANT_LEARN("want_learn", Kind.OPTIONAL, 2, 20),
+
+    // ---------------------------------------------------------------- career, card and skill notices
+    // Notices take effect the moment they come up and stay in the list for one turn.
+    /** Every career: Classic year, first half of January. Hyper Mood for a while. */
+    NEW_YEAR_FIRST("new_year_first", Kind.NOTICE, 0, 0),
+    /** Every career: Senior year, first half of January. The last one. */
+    NEW_YEAR_LAST("new_year_last", Kind.NOTICE, 0, 0),
+    /** Acupuncturist card, once per card: may raise every stat cap by 1, or lower motivation. */
+    ACUPUNCTURE("acupuncture", Kind.NOTICE, 1, 10),
+    /** Random-stat card, once per card: one random stat +1. */
+    RANDOM_STAT("random_stat", Kind.NOTICE, 1, 10),
+    /** A support card's skill was learned (rolled every turn, not drawn). */
+    SKILL_LEARNED("skill_learned", Kind.NOTICE, 0, 0);
 
     public enum Kind {
         OPTIONAL("optional"), MANDATORY("mandatory"), STATE("state"), NOTICE("notice");
@@ -172,6 +185,8 @@ public enum CareerEventType {
 
     /** Turns the player has to do it (急躁 has fewer for mandatory events). */
     public int turns(ItemStack soul) {
+        if (kind == Kind.NOTICE)
+            return 1;
         if (kind != Kind.MANDATORY)
             return UmapyoiConfig.EVENT_OPTIONAL_TURNS.get();
         int turns = UmapyoiConfig.EVENT_MANDATORY_TURNS.get();
@@ -193,6 +208,8 @@ public enum CareerEventType {
             case WANT_INDOORS -> PersonalityEffects.has(soul, PersonalityTrait.HATES_RAIN);
             case WANT_FIGHT -> PersonalityEffects.has(soul, PersonalityTrait.EXCITABLE);
             case WANT_LEARN -> PersonalityEffects.has(soul, PersonalityTrait.STUDIOUS);
+            // scheduled, from cards (added by the card list at the start), or never drawn
+            case NEW_YEAR_FIRST, NEW_YEAR_LAST, ACUPUNCTURE, RANDOM_STAT, SKILL_LEARNED -> false;
             default -> true; // general events, and the lazy period (bad motivation can bring it to anyone)
         };
     }
@@ -301,17 +318,43 @@ public enum CareerEventType {
 
     // ---------------------------------------------------------------- text
 
-    /** The title; some events put what they noted into it (the food a glutton wants). */
+    /** The title; some events put what they noted into it (the food a glutton wants, the skill learned). */
     public Component displayName(String data) {
-        if (this == WANT_FOOD)
-            return Component.translatable("umapyoi.career.event." + id, foodOf(data).getDescription());
-        return Component.translatable("umapyoi.career.event." + id);
+        return switch (this) {
+            case WANT_FOOD -> Component.translatable("umapyoi.career.event." + id, foodOf(data).getDescription());
+            case SKILL_LEARNED -> Component.translatable("umapyoi.career.event." + id, skillName(data));
+            default -> Component.translatable("umapyoi.career.event." + id);
+        };
     }
 
     public Component hint(String data) {
-        if (this == WANT_FOOD)
-            return Component.translatable("umapyoi.career.event." + id + ".hint", foodOf(data).getDescription());
-        return Component.translatable("umapyoi.career.event." + id + ".hint");
+        return switch (this) {
+            case WANT_FOOD -> Component.translatable("umapyoi.career.event." + id + ".hint", foodOf(data).getDescription());
+            // "success" / "fail"
+            case ACUPUNCTURE -> Component.translatable("umapyoi.career.event." + id + ".hint." + data);
+            // the stat's index
+            case RANDOM_STAT -> Component.translatable("umapyoi.career.event." + id + ".hint", statName(data));
+            default -> Component.translatable("umapyoi.career.event." + id + ".hint");
+        };
+    }
+
+    private static final String[] STAT_KEYS = { "speed", "stamina", "strength", "guts", "wisdom" };
+
+    static Component statName(String data) {
+        int index;
+        try {
+            index = Integer.parseInt(data);
+        } catch (NumberFormatException e) {
+            index = 0;
+        }
+        return Component.translatable("gui.umapyoi.self_training." + STAT_KEYS[Math.floorMod(index, 5)]);
+    }
+
+    static Component skillName(String data) {
+        ResourceLocation id = ResourceLocation.tryParse(data);
+        if (id != null && net.tracen.umapyoi.registry.UmaSkillRegistry.REGISTRY.containsKey(id))
+            return net.tracen.umapyoi.registry.UmaSkillRegistry.REGISTRY.get(id).getDescription();
+        return Component.literal(data);
     }
 
     public static Optional<CareerEventType> byId(String id) {
