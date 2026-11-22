@@ -206,8 +206,8 @@ public final class CareerManager {
             cache.clear();
             return;
         }
-        // Read-only check every tick: a different soul, or this one taken off and put back.
-        if (!data.careerId().equals(cache.careerId) || !cache.isActive(player))
+        // Read-only check every tick: a different soul (or a copy of this one), or this one taken off and put back.
+        if (!belongsTo(cache, data) || !cache.isActive(player))
             load(player, cache, soul, data);
         cache.lastActiveTick = player.tickCount;
 
@@ -219,10 +219,15 @@ public final class CareerManager {
             return;
         }
         int period = (int) (cache.elapsed * PERIODS / cache.total);
-        if (period != cache.period || flooredChanged(cache)) {
+        if (period != cache.period || flooredChanged(cache) || cache.elapsed % 20 == 0) {
             cache.period = period;
             flush(soul, cache);
         }
+    }
+
+    /** The cache holds this soul's career: same career id and the progress last read or written. */
+    private static boolean belongsTo(CareerCache cache, UmaCareerData data) {
+        return data.careerId().equals(cache.careerId) && data.elapsedTicks() == cache.writtenElapsed;
     }
 
     /** Adds training points (in thousandths of a point) to the worn soul's career, if it has one. */
@@ -234,7 +239,7 @@ public final class CareerManager {
             return;
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);
         UmaCareerData data = soul.get(DataComponentsTypeRegistry.CAREER_DATA);
-        if (data == null || !data.careerId().equals(cache.careerId))
+        if (data == null || !belongsTo(cache, data))
             return;
         addPoints(player, cache, soul, stat, milliPoints);
     }
@@ -287,6 +292,7 @@ public final class CareerManager {
     private static void load(ServerPlayer player, CareerCache cache, ItemStack soul, UmaCareerData data) {
         cache.careerId = data.careerId();
         cache.elapsed = data.elapsedTicks();
+        cache.writtenElapsed = data.elapsedTicks();
         cache.total = Math.max(1, data.totalTicks());
         cache.period = (int) (Math.min(cache.elapsed, cache.total) * PERIODS / cache.total);
         int[] precise = UmaCareerData.toArray(data.precise());
@@ -333,6 +339,7 @@ public final class CareerManager {
         if (!Arrays.equals(ints, current))
             soul.set(DataComponentsTypeRegistry.UMADATA_BASIC_STATUS, UmaDataBasicStatus.init(ints));
         soul.set(DataComponentsTypeRegistry.CAREER_DATA, data.withProgress(cache.elapsed, precise, ints));
+        cache.writtenElapsed = cache.elapsed;
     }
 
     /** Death during the career: all stats x0.9 (inherited values included), mood to the lowest. */
@@ -342,7 +349,7 @@ public final class CareerManager {
         if (getState(soul) != CareerState.IN_CAREER || data == null)
             return;
         CareerCache cache = player.getData(CareerAttachments.CAREER_CACHE);
-        if (!data.careerId().equals(cache.careerId) || !cache.isActive(player))
+        if (!belongsTo(cache, data) || !cache.isActive(player))
             load(player, cache, soul, data);
         flush(soul, cache);
         // 悲傷 blessing: level I or higher keeps the stats, level II or higher also the motivation
@@ -368,7 +375,7 @@ public final class CareerManager {
             return;
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);
         UmaCareerData data = soul.get(DataComponentsTypeRegistry.CAREER_DATA);
-        if (data != null && data.careerId().equals(cache.careerId) && getState(soul) == CareerState.IN_CAREER)
+        if (data != null && belongsTo(cache, data) && getState(soul) == CareerState.IN_CAREER)
             flush(soul, cache);
         cache.clear();
     }

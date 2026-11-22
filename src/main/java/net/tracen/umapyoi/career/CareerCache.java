@@ -6,14 +6,20 @@ import net.minecraft.world.entity.player.Player;
 
 /**
  * Server-side, per-player cache of the worn soul's career.
- * Training points go here every tick and are only written back to the soul when an
+ * Training points go here every tick and are written back to the soul every second, when an
  * integer stat changes, at each career period, on death, at the end and on logout.
- * Not saved: anything not yet written back is at most one period of progress.
+ * Not saved: taking the soul off loses at most the last second.
  */
 public class CareerCache {
     /** Career of the soul this cache belongs to; null = no career cached. */
     UUID careerId;
     long elapsed;
+    /**
+     * The elapsed time this cache last read from or wrote to the soul. A worn soul with the same
+     * career id but another elapsed time is a different stack (a copy, or edited by a command),
+     * so the cache reloads instead of writing its own progress over it.
+     */
+    long writtenElapsed;
     long total;
     int period;
     /** Precise stats in millionths. */
