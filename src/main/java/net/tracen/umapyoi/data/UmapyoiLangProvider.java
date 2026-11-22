@@ -185,6 +185,17 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.career.event.want_carrot.hint", "Eat a carrot or a carrot dish");
         add("umapyoi.career.event.completed", "Done: %s");
         add("umapyoi.career.event.failed", "Couldn't do \"%s\"... motivation and stats dropped");
+        add("umapyoi.career.event.want_hachimi", "Want a Hachimi drink");
+        add("umapyoi.career.event.want_hachimi.hint", "Drink a Hachimi Drink or Hachimi Extreme");
+        add("umapyoi.career.event.change_outfit", "Want to change clothes");
+        add("umapyoi.career.event.change_outfit.hint", "Put on a different outfit in the outfit slot");
+        add("umapyoi.career.event.other_biome", "Want to see somewhere else");
+        add("umapyoi.career.event.other_biome.hint", "Walk into another biome");
+        add("umapyoi.career.event.watch_sunrise", "Want to see the sunrise");
+        add("umapyoi.career.event.watch_sunrise.hint", "Be under the open sky at dawn");
+        add("umapyoi.career.event.watch_sunset", "Want to see the sunset");
+        add("umapyoi.career.event.watch_sunset.hint", "Be under the open sky at dusk");
+        add("umapyoi.career.event.cancelled", "Too late for \"%s\" now");
         add("umapyoi.career.started", "Her three years begin. Time only passes while you wear her soul.");
         add("umapyoi.career.finished", "Three years complete! Take her soul to the Retire Register Lectern.");
         add("umapyoi.career.death", "A setback in her career: stats lowered, motivation at its lowest.");

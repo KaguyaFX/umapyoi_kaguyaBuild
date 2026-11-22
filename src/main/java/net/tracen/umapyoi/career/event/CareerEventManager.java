@@ -61,7 +61,7 @@ public final class CareerEventManager {
         if (next == null && player.getRandom().nextDouble() < UmapyoiConfig.EVENT_CHANCE_PER_TURN.get())
             next = draw(player, table, active);
         if (next != null) {
-            active.add(new CareerEventData.Active(next.id(), turn, turn + next.turns()));
+            active.add(new CareerEventData.Active(next.id(), turn, turn + next.turns(), next.noteWhenAppearing(player)));
             for (int i = 0; i < table.size(); i++) {
                 if (table.get(i).id().equals(next.id()))
                     table.set(i, new CareerEventData.Entry(next.id(), Math.max(0, table.get(i).left() - 1)));
@@ -128,6 +128,14 @@ public final class CareerEventManager {
         UmaStatusUtils.changeMotivation(player, 1);
         player.displayClientMessage(Component.translatable("umapyoi.career.event.completed", type.displayName()), true);
         player.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.PLAYERS, 0.7F, 1.2F);
+    }
+
+    /** It can't be done any more (dawn has passed and the like): it goes away with no penalty. */
+    public static void cancel(ServerPlayer player, CareerEventType type) {
+        ItemStack soul = UmapyoiAPI.getUmaSoul(player);
+        if (!CareerManager.isInCareer(soul) || !remove(soul, type))
+            return;
+        player.displayClientMessage(Component.translatable("umapyoi.career.event.cancelled", type.displayName()), true);
     }
 
     private static boolean remove(ItemStack soul, CareerEventType type) {

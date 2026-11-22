@@ -31,12 +31,16 @@ public record CareerEventData(List<Entry> table, List<Scheduled> scheduled, List
                 Codec.STRING.fieldOf("id").forGetter(Scheduled::id)).apply(i, Scheduled::new));
     }
 
-    /** An event in progress: it came up at {@code start} and is settled at {@code deadline}. */
-    public record Active(String id, int start, int deadline) {
+    /**
+     * An event in progress: it came up at {@code start} and is settled at {@code deadline}.
+     * {@code data} is what the event noted when it came up (the biome, the outfit...), or empty.
+     */
+    public record Active(String id, int start, int deadline, String data) {
         public static final Codec<Active> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.STRING.fieldOf("id").forGetter(Active::id),
                 Codec.INT.fieldOf("start").forGetter(Active::start),
-                Codec.INT.fieldOf("deadline").forGetter(Active::deadline)).apply(i, Active::new));
+                Codec.INT.fieldOf("deadline").forGetter(Active::deadline),
+                Codec.STRING.optionalFieldOf("data", "").forGetter(Active::data)).apply(i, Active::new));
     }
 
     public static final CareerEventData EMPTY = new CareerEventData(List.of(), List.of(), List.of());
