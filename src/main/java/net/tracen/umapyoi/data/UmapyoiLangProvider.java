@@ -261,6 +261,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.section.back_straight", "Backstretch");
         add("umapyoi.race.section.final_straight", "Final straight");
         add("umapyoi.race.section.home_straight", "Homestretch");
+        add("umapyoi.race.speed", "%s blocks/s");
         add("umapyoi.race.section.turn_1", "Turn 1");
         add("umapyoi.race.section.turn_2", "Turn 2");
         add("umapyoi.race.section.turn_3", "Turn 3");

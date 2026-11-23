@@ -1111,6 +1111,7 @@
   "umapyoi.race.section.turn_2": "Turn 2",
   "umapyoi.race.section.turn_3": "Turn 3",
   "umapyoi.race.section.turn_4": "Turn 4",
+  "umapyoi.race.speed": "%s blocks/s",
   "umapyoi.race.trial.cancelled": "Time trial cancelled.",
   "umapyoi.race.trial.finish_subtitle": "%s m time trial",
   "umapyoi.race.trial.go": "Go!",

@@ -1,7 +1,6 @@
 package net.tracen.umapyoi.race;
 
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -13,16 +12,15 @@ import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
 
 /**
- * Sets a runner's movement speed during a race from their {@link RaceMotion}: the attribute lands on
- * the plain player's sprint times the motion's speed. One modifier is kept so the final value lands
- * there whatever else is on the attribute (the survival soul bonus, vanilla's sprint boost, the
- * Speed effect).
+ * Sets the local player's movement speed during a race from their {@link RaceMotion}: the attribute
+ * lands on the plain player's sprint times the motion's speed, whatever else is on it (the survival
+ * soul bonus, vanilla's sprint boost, the Speed effect). Players move on their own client, so this
+ * only runs there.
  * <p>
- * It runs on both sides. Players move on their own client, which steps its own motion here; the
- * server steps its copy in the time trial and keeps the same modifier, because whenever it re-sends
- * the player's attributes the client replaces its own modifiers with the server's (a client-only
- * modifier would vanish until the next tick and the view would twitch). The modifier is only
- * touched when its amount changes.
+ * Whenever the server re-sends the player's attributes (it does every time the soul's action points
+ * change, for one), the client replaces its modifiers with the server's, which would drop this one
+ * until the next tick and make the view twitch. ClientPacketListenerMixin calls
+ * {@link #reapply} right after such a packet. The modifier is only touched when its amount changes.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class RaceSpeed {
@@ -39,28 +37,32 @@ public final class RaceSpeed {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         Player player = event.getEntity();
-        double speed;
-        if (player.level().isClientSide()) {
-            if (!player.isLocalPlayer())
-                return;
-            RaceStatePayload state = RaceClientState.current();
-            RaceMotion motion = RaceClientState.motion();
-            if (state == null || motion == null) {
-                apply(player, Double.NaN);
-                return;
-            }
-            AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
-            double plain = attribute == null ? 0.13 : attribute.getBaseValue() * SPRINT;
-            double moved = Math.hypot(player.getX() - player.xo, player.getZ() - player.zo);
-            double actual = plain <= 0 ? -1 : moved / (plain * BLOCKS_PER_SECOND / 20);
-            motion.step(state, player.isSprinting(), actual, UmapyoiConfig.RACE_MOMENTUM_MARGIN.get());
-            speed = motion.speed();
-        } else {
-            if (!(player instanceof ServerPlayer serverPlayer))
-                return;
-            speed = TimeTrial.speed(serverPlayer);
+        if (!player.level().isClientSide() || !player.isLocalPlayer())
+            return;
+        RaceStatePayload state = RaceClientState.current();
+        RaceMotion motion = RaceClientState.motion();
+        if (state == null || motion == null) {
+            apply(player, Double.NaN);
+            return;
         }
-        apply(player, speed);
+        double moved = RaceClientState.movedSinceLastTick(player);
+        double plain = plainSprint(player);
+        double actual = moved < 0 || plain <= 0 ? -1 : moved / (plain * BLOCKS_PER_SECOND / 20);
+        motion.step(state, player.isSprinting(), actual, UmapyoiConfig.RACE_MOMENTUM_MARGIN.get());
+        apply(player, motion.speed());
+    }
+
+    /** Puts the local player's race speed back after the server replaced their attribute modifiers. */
+    public static void reapply(Player player) {
+        RaceMotion motion = RaceClientState.motion();
+        if (motion != null)
+            apply(player, motion.speed());
+    }
+
+    /** The plain player's sprint as an attribute value (without race speed or the Umamusume bonus). */
+    private static double plainSprint(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        return attribute == null ? 0 : attribute.getBaseValue() * SPRINT;
     }
 
     /** @param speed a fraction of the plain sprint, or NaN when not racing */
@@ -78,8 +80,7 @@ public final class RaceSpeed {
         double withoutOurs = old == null ? attribute.getValue() : attribute.getValue() / (1 + old.amount());
         if (withoutOurs <= 0)
             return;
-        double target = attribute.getBaseValue() * SPRINT * speed;
-        double amount = target / withoutOurs - 1;
+        double amount = plainSprint(player) * speed / withoutOurs - 1;
         if (old != null && Math.abs(old.amount() - amount) < EPSILON)
             return;
         if (old != null)

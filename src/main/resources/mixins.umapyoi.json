@@ -10,7 +10,8 @@
   "client": [
     "client.ElytraLayerMixin",
     "client.HumanoidArmorLayerMixin",
-    "client.ItemInHandLayerMixin"
+    "client.ItemInHandLayerMixin",
+    "client.ClientPacketListenerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

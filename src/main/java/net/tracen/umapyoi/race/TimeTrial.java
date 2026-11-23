@@ -94,11 +94,6 @@ public final class TimeTrial {
         return current != null;
     }
 
-    /** A runner's race speed (a fraction of the plain sprint) once the gates are open, or NaN if they aren't running. */
-    public static double speed(ServerPlayer player) {
-        return current != null && current.player == player && current.motion != null ? current.motion.speed() : Double.NaN;
-    }
-
     /** @return false if this player has no trial running */
     public static boolean cancel(ServerPlayer player) {
         if (current == null || current.player != player)
@@ -387,14 +382,14 @@ public final class TimeTrial {
             String motionKey = motion.accelerating(state, sprinting) ? "umapyoi.race.motion.accelerating"
                     : motion.decelerating(state, sprinting) ? "umapyoi.race.motion.decelerating"
                     : sprinting ? "umapyoi.race.motion.full" : "umapyoi.race.motion.cruising";
-            double target = (sprinting ? state.sprintSpeed() : state.cruiseSpeed()) * plainSprint * metersPerBlock * 3.6;
+            double target = (sprinting ? state.sprintSpeed() : state.cruiseSpeed()) * plainSprint;
             double remaining = Math.max(0, distance - progress) * metersPerBlock;
             player.displayClientMessage(Component.translatable(phase.key())
                     .append(" · ").append(Component.translatable(layout.sectionKey(progress)))
                     .append(" | ").append(Component.translatable(RaceStyle.key(stats.style())))
                     .append(String.format(" ×%.3f", RaceStyle.speed(stats.style(), phase)))
                     .append(" | ").append(Component.translatable(motionKey))
-                    .append(String.format(" → %.0f km/h", target))
+                    .append(" → ").append(Component.translatable("umapyoi.race.speed", String.format("%.2f", target)))
                     .append(" | ").append(Component.translatable("umapyoi.race.trial.hud",
                             String.format("%.0f", remaining), formatTime(sinceOpen / 20.0))), true);
         }

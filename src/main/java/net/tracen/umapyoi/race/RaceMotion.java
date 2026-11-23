@@ -8,13 +8,17 @@ package net.tracen.umapyoi.race;
  * <li>Below the target it accelerates (power); out of the gates there's an extra start dash until
  * cruising speed is first reached.</li>
  * <li>Above the target it slows at a fixed rate.</li>
- * <li>Starting to sprint puts the speed at once a little way above the cruise (a floor, so tapping
- * sprint again and again doesn't stack).</li>
+ * <li>Starting to sprint while already about at cruising speed puts the speed at once a little way
+ * above the cruise (a floor, so tapping sprint again and again doesn't stack). Not from a
+ * standstill: there the start dash and the power acceleration do the work.</li>
  * </ul>
  * The server and the client each keep one and step it with the same numbers, so pressing sprint
  * responds at once on the client; the server's copy decides stamina.
  */
 public final class RaceMotion {
+    /** Sprinting has to start from at least this much of the cruising speed for the instant bump. */
+    private static final double KICK_FROM = 0.9;
+
     private double speed;
     private boolean wasSprinting;
     private boolean dashing = true;
@@ -50,7 +54,7 @@ public final class RaceMotion {
     public void step(RaceStatePayload state, boolean sprinting, double actual, double margin) {
         double cruise = state.cruiseSpeed();
         double sprint = state.sprintSpeed();
-        if (sprinting && !wasSprinting && sprint > cruise)
+        if (sprinting && !wasSprinting && sprint > cruise && speed >= cruise * KICK_FROM)
             speed = Math.max(speed, cruise + state.kick() * (sprint - cruise));
         wasSprinting = sprinting;
 
