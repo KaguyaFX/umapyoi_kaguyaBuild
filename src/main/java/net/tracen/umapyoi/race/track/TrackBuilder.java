@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -25,14 +27,14 @@ import net.tracen.umapyoi.UmapyoiConfig;
  * rails on both sides, a hedge behind the outer rail (flowers by the finish), the apron and the
  * two-tier {@link Grandstand} along the home straight, and a pond in the infield. Then
  * {@link TrackScenery} adds poles, lamps and trees, and a last pass joins fences and panes.
- * It overwrites whatever is there; meant for test worlds for now.
+ * It overwrites whatever is there, so it only runs in the race world.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class TrackBuilder {
     /** Ground kept around the outer rail, room for the trees. */
     private static final int MARGIN = 12;
-    /** Blocks cleared above the ground away from the stand. */
-    private static final int CLEAR_HEIGHT = 12;
+    /** Blocks cleared above the ground: enough to clear a stand left by an earlier, differently sized course. */
+    private static final int CLEAR_HEIGHT = Grandstand.HEIGHT + 2;
     /** Length of each turf stripe along the course. */
     private static final double STRIPE = 4;
     /** Flowers replace the hedge this far either side of the finish line. */
@@ -72,13 +74,25 @@ public final class TrackBuilder {
 
     /**
      * @param origin      the infield's middle, at ground height
+     * @param previous    a course built at the same origin before, whose area is cleared too; or null
      * @param poleSpacing blocks between distance poles, counted back from the finish
      * @param onProgress  told every 10% of the ground pass
      * @param onDone      told when everything is placed
      */
-    public static void start(ServerLevel level, BlockPos origin, TrackGeometry track, double poleSpacing,
-            IntConsumer onProgress, Consumer<Result> onDone) {
-        JOBS.add(new Job(level, new CourseLayout(track, origin), poleSpacing, onProgress, onDone));
+    public static void start(ServerLevel level, BlockPos origin, TrackGeometry track, @Nullable TrackGeometry previous,
+            double poleSpacing, IntConsumer onProgress, Consumer<Result> onDone) {
+        JOBS.add(new Job(level, new CourseLayout(track, origin), previous, poleSpacing, onProgress, onDone));
+    }
+
+    /** The area a course covers, in blocks around its origin: min X, max X (exclusive), min Z, max Z (exclusive). */
+    private static int[] bounds(TrackGeometry track) {
+        CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
+        return new int[] {
+                Mth.floor(-track.halfLengthX(MARGIN)),
+                Mth.ceil(track.halfLengthX(MARGIN)),
+                Mth.floor(-track.halfLengthZ(MARGIN)),
+                Math.max(Mth.ceil(track.halfLengthZ(MARGIN)),
+                        Mth.ceil(track.radius() + layout.standStart() + Grandstand.DEPTH + 3)) };
     }
 
     @SubscribeEvent
@@ -111,6 +125,9 @@ public final class TrackBuilder {
         private final IntConsumer onProgress;
         private final Consumer<Result> onDone;
         private final double halfWidth;
+        /** The new course's area, for the result. */
+        private final int[] own;
+        /** The area to go over: the new course's plus the old one's. */
         private final int minX;
         private final int maxX;
         private final int minZ;
@@ -123,7 +140,8 @@ public final class TrackBuilder {
         private int phase;
         private int lastTenth;
 
-        Job(ServerLevel level, CourseLayout layout, double poleSpacing, IntConsumer onProgress, Consumer<Result> onDone) {
+        Job(ServerLevel level, CourseLayout layout, @Nullable TrackGeometry previous, double poleSpacing,
+                IntConsumer onProgress, Consumer<Result> onDone) {
             this.level = level;
             this.layout = layout;
             this.track = layout.track();
@@ -131,11 +149,12 @@ public final class TrackBuilder {
             this.onProgress = onProgress;
             this.onDone = onDone;
             this.halfWidth = layout.halfWidth();
-            this.minX = Mth.floor(-track.halfLengthX(MARGIN));
-            this.maxX = Mth.ceil(track.halfLengthX(MARGIN));
-            this.minZ = Mth.floor(-track.halfLengthZ(MARGIN));
-            this.maxZ = Math.max(Mth.ceil(track.halfLengthZ(MARGIN)),
-                    Mth.ceil(track.radius() + layout.standStart() + Grandstand.DEPTH + 3));
+            this.own = bounds(track);
+            int[] old = previous == null ? own : bounds(previous);
+            this.minX = Math.min(own[0], old[0]);
+            this.maxX = Math.max(own[1], old[1]);
+            this.minZ = Math.min(own[2], old[2]);
+            this.maxZ = Math.max(own[3], old[3]);
             this.i = minX;
             this.k = minZ;
         }
@@ -169,7 +188,7 @@ public final class TrackBuilder {
                     for (BlockPos pos : connect)
                         level.setBlock(pos, Block.updateFromNeighbourShapes(level.getBlockState(pos), level, pos), FLAGS);
                     TrackGeometry.Point view = track.pointAt(track.homeStraightStart() + 2, 0);
-                    onDone.accept(new Result(maxX - minX, maxZ - minZ, view, (System.nanoTime() - startNanos) / 1_000_000));
+                    onDone.accept(new Result(own[1] - own[0], own[3] - own[2], view, (System.nanoTime() - startNanos) / 1_000_000));
                     return true;
                 }
             }
@@ -219,8 +238,7 @@ public final class TrackBuilder {
 
             place(level, layout.world(i, -1, k), SUBSOIL);
             place(level, layout.world(i, 0, k), surface);
-            int clear = byStand ? Grandstand.HEIGHT + 2 : CLEAR_HEIGHT;
-            for (int h = 1; h <= clear; h++)
+            for (int h = 1; h <= CLEAR_HEIGHT; h++)
                 place(level, layout.world(i, h, k), h == 1 && above != null ? above : AIR);
             if (above == RAIL)
                 connect.add(layout.world(i, 1, k));

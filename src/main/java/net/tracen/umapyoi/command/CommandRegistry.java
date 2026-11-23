@@ -15,7 +15,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.command.commands.GiveUmaSoul;
 import net.tracen.umapyoi.command.commands.ModifyUmaSoul;
-import net.tracen.umapyoi.command.commands.RaceTrackCommand;
+import net.tracen.umapyoi.command.commands.RaceCommand;
 import net.tracen.umapyoi.command.utils.IntWithDefault;
 
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME, modid = Umapyoi.MODID)
@@ -32,7 +32,7 @@ public class CommandRegistry {
 
         rootBuilder = GiveUmaSoul.registry(rootBuilder);
         ModifyUmaSoul.registry(rootBuilder);
-        RaceTrackCommand.registry(rootBuilder);
+        RaceCommand.registry(rootBuilder);
 
         dispatcher.register(rootBuilder);
     }

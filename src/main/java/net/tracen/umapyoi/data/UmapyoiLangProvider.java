@@ -238,6 +238,10 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.command.racetrack.built", "Racecourse built: one lap is %s blocks (%s m), %s × %s blocks in all, took %s ms.");
         add("umapyoi.command.racetrack.busy", "A racecourse is already being built.");
         add("umapyoi.command.racetrack.progress", "Building the racecourse... %s%%");
+        add("umapyoi.command.race.already_there", "You're already at the racecourse.");
+        add("umapyoi.command.race.missing", "The racecourse world isn't loaded.");
+        add("umapyoi.command.race.not_there", "You're not at the racecourse.");
+        add("umapyoi.command.race.preparing", "Building the racecourse; you'll be taken there when it's ready.");
         add("item.umapyoi.career_keepsake", "Memories");
         add("item.umapyoi.career_keepsake.named", "%s's Memories");
         add("item.umapyoi.career_keepsake.desc", "What an unforgettable time it was.");
