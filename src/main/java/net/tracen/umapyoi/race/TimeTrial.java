@@ -2,6 +2,7 @@ package net.tracen.umapyoi.race;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -40,15 +41,13 @@ import net.tracen.umapyoi.block.Gate;
 import net.tracen.umapyoi.block.GateDoor;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
-import net.tracen.umapyoi.utils.Distance;
-import net.tracen.umapyoi.utils.Surface;
 import net.tracen.umapyoi.utils.ThreeBlockPart;
 
 /**
- * A solo time trial on the race world's course. The fixed start is the finish line in front of
- * the stand, so a race as long as the lap starts and ends there. The runner waits in a starting
- * stall while a countdown runs, the gates open, and they are taken off the course a few seconds
- * later.
+ * A solo time trial on the race world's course, which is repainted first if the race's surface or
+ * handedness isn't what is there. The fixed start is the finish line in front of the stand, so a race
+ * as long as the lap starts and ends there. The runner waits in a starting stall while a countdown
+ * runs, the gates open, and they are taken off the course a few seconds later.
  * <p>
  * Distance is counted, not inferred from where the runner stands: every tick adds how far they
  * moved along the course, and a jump of more than {@link #MAX_STEP} blocks (a teleport, a cut
@@ -69,17 +68,22 @@ public final class TimeTrial {
     private static final int TIME_LIMIT_TICKS = 20 * 60 * 10;
 
     public enum Start {
-        STARTED, BUSY, NOT_THERE, NO_COURSE
+        STARTED, PREPARING, BUSY, NOT_THERE, NO_COURSE
     }
 
     @Nullable
     private static Run current;
+    /** The race the course is being repainted for, and who will run it; null when there's none. */
+    @Nullable
+    private static RaceSetup preparing;
+    @Nullable
+    private static ServerPlayer waiting;
 
     private TimeTrial() {
     }
 
-    /** @param surface what the race is run on; the course is turf for now, so it only matters for the aptitude */
-    public static Start start(ServerPlayer player, double distanceMeters, Surface surface) {
+    /** Starts a trial, repainting the course first if it isn't laid out for this race. */
+    public static Start start(ServerPlayer player, RaceSetup setup) {
         if (current != null || TrackBuilder.busy())
             return Start.BUSY;
         if (!RaceWorld.isRaceWorld(player.level()))
@@ -89,7 +93,25 @@ public final class TimeTrial {
         TrackGeometry track = data.track();
         if (!data.built() || track == null)
             return Start.NO_COURSE;
-        current = new Run(player, level, track, data.origin(), distanceMeters, surface);
+        boolean dressing = RaceWorld.dress(level, setup,
+                percent -> {
+                    if (!player.hasDisconnected())
+                        player.displayClientMessage(Component.translatable("umapyoi.race.trial.preparing", percent), true);
+                },
+                () -> {
+                    if (waiting != player)
+                        return; // cancelled in the meantime
+                    preparing = null;
+                    waiting = null;
+                    if (current == null && !player.hasDisconnected() && player.level() == level)
+                        current = new Run(player, level, data.track(), data.origin(), setup);
+                });
+        if (dressing) {
+            preparing = setup;
+            waiting = player;
+            return Start.PREPARING;
+        }
+        current = new Run(player, level, track, data.origin(), setup);
         return Start.STARTED;
     }
 
@@ -97,8 +119,20 @@ public final class TimeTrial {
         return current != null;
     }
 
-    /** @return false if this player has no trial running */
+    /** The weather of the race being run or prepared; sunny otherwise. */
+    public static RaceWeather weather() {
+        return current != null ? current.setup.weather() : preparing != null ? preparing.weather() : RaceWeather.SUNNY;
+    }
+
+    /** @return false if this player has no trial running or being prepared */
     public static boolean cancel(ServerPlayer player) {
+        if (waiting == player) {
+            preparing = null;
+            waiting = null;
+            if (!player.hasDisconnected())
+                player.sendSystemMessage(Component.translatable("umapyoi.race.trial.cancelled"));
+            return true;
+        }
         if (current == null || current.player != player)
             return false;
         current.cancel();
@@ -138,6 +172,8 @@ public final class TimeTrial {
 
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
+        preparing = null;
+        waiting = null;
         if (current != null) {
             current.cleanUp();
             current = null;
@@ -154,9 +190,9 @@ public final class TimeTrial {
         private final ServerLevel level;
         private final TrackGeometry track;
         private final BlockPos origin;
+        private final RaceSetup setup;
         private final double distance;
         private final double metersPerBlock;
-        private final double distanceMeters;
         private final GameType previousMode;
         private final List<BlockPos> gateBlocks = new ArrayList<>();
         private final List<BlockPos> doors = new ArrayList<>();
@@ -181,18 +217,18 @@ public final class TimeTrial {
         private double progress;
         private double lastSpot;
 
-        Run(ServerPlayer player, ServerLevel level, TrackGeometry track, BlockPos origin, double distanceMeters, Surface surface) {
+        Run(ServerPlayer player, ServerLevel level, TrackGeometry track, BlockPos origin, RaceSetup setup) {
             this.player = player;
             this.level = level;
             this.track = track;
             this.origin = origin;
             this.metersPerBlock = UmapyoiConfig.RACE_METERS_PER_BLOCK.get();
-            this.distanceMeters = distanceMeters;
-            this.distance = distanceMeters / metersPerBlock;
+            this.setup = setup;
+            this.distance = setup.distanceMeters() / metersPerBlock;
             this.previousMode = player.gameMode.getGameModeForPlayer();
             this.countdownTicks = UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get() * 20;
             ItemStack soul = UmapyoiAPI.getUmaSoul(player);
-            this.stats = RaceStats.of(soul, RaceStyle.of(soul, level), surface, Distance.match((int) Math.round(distanceMeters)));
+            this.stats = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category());
             var attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
             this.plainSprint = (attribute == null ? 0.1 : attribute.getBaseValue()) * 1.3 * RaceSpeed.BLOCKS_PER_SECOND;
             this.layout = new RaceLayout(track, distance);
@@ -219,20 +255,34 @@ public final class TimeTrial {
                 player.setGameMode(GameType.ADVENTURE);
             player.teleportTo(level, stallX, origin.getY() + 1, stallZ, yaw, 0);
             player.connection.send(new ClientboundSetTitlesAnimationPacket(0, 25, 5));
-            sendStats(surface);
+            sendStats();
         }
 
-        /** What the race makes of this soul: shown once at the start, for testing. */
-        private void sendStats(Surface surface) {
+        /** The race, and what it makes of this soul: shown once at the start, for testing. */
+        private void sendStats() {
+            RaceGround ground = setup.ground();
+            player.sendSystemMessage(Component.translatable("umapyoi.race.trial.setup",
+                    String.format("%.0f", setup.distanceMeters()),
+                    Component.translatable("tooltip.umapyoi.race.distance." + setup.category().name().toLowerCase(Locale.ROOT)),
+                    Component.translatable(surfaceKey()),
+                    Component.translatable(setup.leftHanded() ? "umapyoi.race.direction.left" : "umapyoi.race.direction.right"),
+                    Component.translatable(setup.weather().key()),
+                    Component.translatable(ground.key()),
+                    String.format("%.2f", ground.accel()),
+                    String.format("%.2f", ground.drain())));
             player.sendSystemMessage(Component.translatable("umapyoi.race.trial.stats",
                     String.format("%.1f", stats.bonusRatio() * 100),
-                    String.format("%.2f", stats.accel()),
+                    String.format("%.2f", stats.accel() * ground.accel()),
                     String.format("%.0f", stats.stamina()),
                     String.format("%.0f", stats.emptyFloor() * 100),
                     String.format("%.2f", stats.mood()),
-                    Component.translatable("umapyoi.race.surface." + surface.name().toLowerCase(java.util.Locale.ROOT)),
+                    Component.translatable(surfaceKey()),
                     String.format("%.2f", stats.surfaceFactor()),
                     String.format("%.2f", stats.distanceFactor())));
+        }
+
+        private String surfaceKey() {
+            return "umapyoi.race.surface." + setup.surface().name().toLowerCase(Locale.ROOT);
         }
 
         private BlockPos cell(TrackGeometry.Point point) {
@@ -337,8 +387,8 @@ public final class TimeTrial {
 
         /**
          * Speed above cruising costs stamina: one point per block at full speed, less while still
-         * accelerating, and a little while slowing back down. Running wide costs more (more blocks).
-         * Resting brings a little back.
+         * accelerating, and a little while slowing back down. Running wide costs more (more blocks), and
+         * so does soft ground. Resting brings a little back.
          */
         private void useStamina(RaceStatePayload state) {
             double moved = Math.hypot(player.getX() - lastX, player.getZ() - lastZ);
@@ -347,7 +397,7 @@ public final class TimeTrial {
             double span = state.sprintSpeed() - state.cruiseSpeed();
             double effort = span <= 0 ? 0 : Math.max(0, Math.min(1, (motion.speed() - state.cruiseSpeed()) / span));
             if (moved <= MAX_STEP)
-                stamina -= moved * effort;
+                stamina -= moved * effort * setup.ground().drain();
             stillTicks = moved < 0.01 ? stillTicks + 1 : 0;
             if (stillTicks >= UmapyoiConfig.RACE_REST_SECONDS.get() * 20)
                 stamina += stats.stamina() * UmapyoiConfig.RACE_STAMINA_REGEN_PERCENT.get() / 100 / 20;
@@ -377,7 +427,7 @@ public final class TimeTrial {
             double cruise = sprint * UmapyoiConfig.RACE_CRUISE_RATIO.get();
             double perTick = 1 / (plainSprint * 20);
             return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(), (float) sprint, (float) cruise,
-                    (float) (stats.accel() * RaceStyle.accel(stats.style(), phase) * perTick),
+                    (float) (stats.accel() * RaceStyle.accel(stats.style(), phase) * setup.ground().accel() * perTick),
                     (float) (UmapyoiConfig.RACE_DECEL.get() * perTick),
                     (float) (UmapyoiConfig.RACE_START_DASH.get() * perTick),
                     UmapyoiConfig.RACE_SPRINT_KICK.get().floatValue(),
@@ -429,7 +479,7 @@ public final class TimeTrial {
 
         private void finish(double seconds) {
             String time = formatTime(seconds);
-            String meters = String.format("%.0f", distanceMeters);
+            String meters = String.format("%.0f", setup.distanceMeters());
             title(Component.literal(time), Component.translatable("umapyoi.race.trial.finish_subtitle", meters));
             player.sendSystemMessage(Component.translatable("umapyoi.race.trial.result", meters, time));
             player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.0F);

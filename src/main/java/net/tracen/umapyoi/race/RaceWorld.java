@@ -15,6 +15,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
@@ -28,6 +29,9 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  */
 public final class RaceWorld {
     public static final ResourceKey<Level> RACECOURSE = ResourceKey.create(Registries.DIMENSION,
+            ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "racecourse"));
+    /** The race world's only biome: plain, nothing spawns, and it can rain. */
+    public static final ResourceKey<Biome> BIOME = ResourceKey.create(Registries.BIOME,
             ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "racecourse"));
     private static final String RETURN_TAG = "umapyoi_race_return";
     /** Distance poles stand every this many race meters before the finish. */
@@ -90,14 +94,37 @@ public final class RaceWorld {
      */
     public static void build(ServerLevel race, TrackGeometry track, IntConsumer onProgress, Consumer<TrackBuilder.Result> onDone) {
         RacecourseData data = RacecourseData.get(race);
-        TrackGeometry previous = data.track();
+        TrackGeometry previous = data.baseTrack();
         BlockPos origin = previous != null ? data.origin() : groundAtCentre(race);
         data.startBuilding(origin);
-        double poleSpacing = POLE_METERS / UmapyoiConfig.RACE_METERS_PER_BLOCK.get();
-        TrackBuilder.start(race, origin, track, previous, poleSpacing, onProgress, result -> {
+        TrackBuilder.start(race, origin, track, previous, poleSpacing(), onProgress, result -> {
             data.markBuilt(track);
             onDone.accept(result);
         });
+    }
+
+    /**
+     * Repaints the course for a race, if it isn't already laid out that way. The caller checks
+     * {@link TrackBuilder#busy()} first and that there is a course.
+     *
+     * @return false if nothing needed doing (onDone isn't called then)
+     */
+    public static boolean dress(ServerLevel race, RaceSetup setup, IntConsumer onProgress, Runnable onDone) {
+        RacecourseData data = RacecourseData.get(race);
+        TrackGeometry track = data.baseTrack();
+        if (track == null || !data.needsDressing(setup.surface(), setup.leftHanded()))
+            return false;
+        data.startDressing();
+        TrackBuilder.dress(race, data.origin(), track.withMirrored(setup.leftHanded()), setup.surface(), poleSpacing(),
+                onProgress, () -> {
+                    data.markDressed(setup.surface(), setup.leftHanded());
+                    onDone.run();
+                });
+        return true;
+    }
+
+    private static double poleSpacing() {
+        return POLE_METERS / UmapyoiConfig.RACE_METERS_PER_BLOCK.get();
     }
 
     /** Puts a player at the start of the home straight, looking down it. */

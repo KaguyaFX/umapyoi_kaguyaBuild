@@ -1,8 +1,11 @@
 package net.tracen.umapyoi.command.commands;
 
+import java.util.Locale;
+
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.commands.CommandSourceStack;
@@ -11,6 +14,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.race.RaceSetup;
+import net.tracen.umapyoi.race.RaceWeather;
 import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.race.RacecourseData;
 import net.tracen.umapyoi.race.TimeTrial;
@@ -23,7 +28,8 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  * <ul>
  * <li>/umapyoi race enter: go to the course (built the first time) and remember where you were.</li>
  * <li>/umapyoi race leave: go back.</li>
- * <li>/umapyoi race trial [distance_m]: a solo time trial from the stalls on the finish line (2000 m by default).</li>
+ * <li>/umapyoi race trial [distance_m] [turf|dirt|synthetic] [right|left] [sunny|rain|thunder]: a solo
+ * time trial from the stalls on the finish line (2000 m on turf, right-handed, sunny, by default).</li>
  * <li>/umapyoi race cancel: stop your time trial.</li>
  * <li>/umapyoi racetrack rebuild [lap_m straight_m width]: rebuild the course from the config or
  * the given sizes, clearing the old one.</li>
@@ -35,10 +41,7 @@ public class RaceCommand {
         builder.then(Commands.literal("race").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("enter").executes(ctx -> enter(ctx.getSource())))
                 .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource())))
-                .then(Commands.literal("trial")
-                        .executes(ctx -> trial(ctx.getSource(), 2000))
-                        .then(Commands.argument("distance_m", DoubleArgumentType.doubleArg(200, 10000))
-                                .executes(ctx -> trial(ctx.getSource(), DoubleArgumentType.getDouble(ctx, "distance_m")))))
+                .then(trialArguments())
                 .then(Commands.literal("cancel").executes(ctx -> cancel(ctx.getSource()))));
         return builder.then(Commands.literal("racetrack").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("rebuild")
@@ -50,6 +53,42 @@ public class RaceCommand {
                                                         DoubleArgumentType.getDouble(ctx, "lap_m"),
                                                         DoubleArgumentType.getDouble(ctx, "straight_m"),
                                                         IntegerArgumentType.getInteger(ctx, "width")))))))));
+    }
+
+    /** Each argument may be left off, from the right. */
+    private static LiteralArgumentBuilder<CommandSourceStack> trialArguments() {
+        RaceSetup standard = RaceSetup.DEFAULT;
+        var distance = Commands.argument("distance_m", DoubleArgumentType.doubleArg(200, 10000))
+                .executes(ctx -> trial(ctx, distance(ctx), standard.surface(), standard.leftHanded(), standard.weather()));
+        for (Surface surface : Surface.values()) {
+            if (surface == Surface.ADAPTIVE)
+                continue;
+            var surfaceNode = Commands.literal(lower(surface))
+                    .executes(ctx -> trial(ctx, distance(ctx), surface, standard.leftHanded(), standard.weather()));
+            for (boolean left : new boolean[] { false, true }) {
+                var direction = Commands.literal(left ? "left" : "right")
+                        .executes(ctx -> trial(ctx, distance(ctx), surface, left, standard.weather()));
+                for (RaceWeather weather : RaceWeather.values())
+                    direction.then(Commands.literal(lower(weather))
+                            .executes(ctx -> trial(ctx, distance(ctx), surface, left, weather)));
+                surfaceNode.then(direction);
+            }
+            distance.then(surfaceNode);
+        }
+        return Commands.literal("trial").executes(ctx -> trial(ctx.getSource(), standard)).then(distance);
+    }
+
+    private static double distance(CommandContext<CommandSourceStack> ctx) {
+        return DoubleArgumentType.getDouble(ctx, "distance_m");
+    }
+
+    private static String lower(Enum<?> value) {
+        return value.name().toLowerCase(Locale.ROOT);
+    }
+
+    private static int trial(CommandContext<CommandSourceStack> ctx, double distance, Surface surface, boolean left,
+            RaceWeather weather) throws CommandSyntaxException {
+        return trial(ctx.getSource(), new RaceSetup(distance, surface, left, weather));
     }
 
     private static int enter(CommandSourceStack source) throws CommandSyntaxException {
@@ -74,9 +113,9 @@ public class RaceCommand {
         return 1;
     }
 
-    private static int trial(CommandSourceStack source, double distanceMeters) throws CommandSyntaxException {
-        String key = switch (TimeTrial.start(source.getPlayerOrException(), distanceMeters, Surface.TURF)) {
-            case STARTED -> null;
+    private static int trial(CommandSourceStack source, RaceSetup setup) throws CommandSyntaxException {
+        String key = switch (TimeTrial.start(source.getPlayerOrException(), setup)) {
+            case STARTED, PREPARING -> null;
             case BUSY -> "umapyoi.command.race.trial_busy";
             case NOT_THERE -> "umapyoi.command.race.not_there";
             case NO_COURSE -> "umapyoi.command.race.no_course";

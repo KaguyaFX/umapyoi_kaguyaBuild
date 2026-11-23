@@ -254,6 +254,17 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.surface.synthetic", "synthetic");
         add("umapyoi.race.surface.turf", "turf");
         add("umapyoi.race.trial.stats", "Uma speed bonus +%s%%, acceleration %s blocks/s², stamina %s blocks, bonus kept at empty %s%%, mood ×%s, %s aptitude ×%s, distance aptitude ×%s");
+        add("biome.umapyoi.racecourse", "Racecourse");
+        add("umapyoi.race.direction.left", "left-handed");
+        add("umapyoi.race.direction.right", "right-handed");
+        add("umapyoi.race.ground.firm", "firm");
+        add("umapyoi.race.ground.heavy", "heavy");
+        add("umapyoi.race.ground.yielding", "yielding");
+        add("umapyoi.race.trial.preparing", "Preparing the course... %s%%");
+        add("umapyoi.race.trial.setup", "%s m (%s), %s, %s; %s, %s ground (acceleration ×%s, stamina drain ×%s)");
+        add("umapyoi.race.weather.rain", "rain");
+        add("umapyoi.race.weather.sunny", "sunny");
+        add("umapyoi.race.weather.thunder", "thunderstorm");
         add("umapyoi.race.motion.accelerating", "Accelerating");
         add("umapyoi.race.motion.cruising", "Cruising");
         add("umapyoi.race.motion.decelerating", "Slowing");

@@ -183,6 +183,8 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_STYLE_STRENGTH;
     public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_MOOD_MULTIPLIERS;
     public static ModConfigSpec.DoubleValue RACE_GUTS_FLOOR_MAX;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_GROUND_ACCEL;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_GROUND_DRAIN;
     public static ModConfigSpec.DoubleValue RACE_ACTION_POINT_REGEN_MAX;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
@@ -558,6 +560,12 @@ public class UmapyoiConfig {
                         value -> value instanceof Number number && number.doubleValue() >= 0 && number.doubleValue() <= 10);
         RACE_GUTS_FLOOR_MAX = COMMON_BUILDER.comment("Race stamina: how much of the Umamusume speed bonus is still there at empty for the highest guts (lowest guts: race_low_bonus_end).")
                 .defineInRange("race_guts_floor_max", 0.4, 0.0, 1.0);
+        RACE_GROUND_ACCEL = COMMON_BUILDER.comment("Race ground: what acceleration is multiplied by on firm, yielding and heavy ground (from the weather: sunny, rain, thunderstorm).")
+                .defineList("race_ground_accel", java.util.List.of(1.0, 0.95, 0.88), () -> 1.0,
+                        value -> value instanceof Number number && number.doubleValue() >= 0 && number.doubleValue() <= 10);
+        RACE_GROUND_DRAIN = COMMON_BUILDER.comment("Race ground: what the stamina drain is multiplied by on firm, yielding and heavy ground.")
+                .defineList("race_ground_drain", java.util.List.of(1.0, 1.03, 1.08), () -> 1.0,
+                        value -> value instanceof Number number && number.doubleValue() >= 0 && number.doubleValue() <= 10);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

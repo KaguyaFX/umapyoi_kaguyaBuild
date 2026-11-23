@@ -18,8 +18,10 @@ package net.tracen.umapyoi.race.track;
  * @param radius   radius of the reference line in the curves
  * @param width    width of the running surface
  * @param finish   how far before the end of the home straight the finish line is (0 to straight)
+ * @param mirrored true for a left-handed course: the same course turned left to right, run
+ *                 anticlockwise (the home straight is still in front of the stand)
  */
-public record TrackGeometry(double straight, double radius, double width, double finish) {
+public record TrackGeometry(double straight, double radius, double width, double finish, boolean mirrored) {
     /** The reference line is this far outside the surface's inner edge. */
     public static final double MEASURE_FROM_INNER = 1;
     /** The curves never get tighter than this, whatever lap length is asked for. */
@@ -50,13 +52,18 @@ public record TrackGeometry(double straight, double radius, double width, double
     public record Point(double x, double z, float yaw) {
     }
 
-    /** A course whose reference line is {@code lapMeters} round; the curves take what the straights leave. */
+    /** The same course, right- or left-handed. */
+    public TrackGeometry withMirrored(boolean left) {
+        return mirrored == left ? this : new TrackGeometry(straight, radius, width, finish, left);
+    }
+
+    /** A right-handed course whose reference line is {@code lapMeters} round; the curves take what the straights leave. */
     public static TrackGeometry fromMeters(double lapMeters, double straightMeters, double widthBlocks,
             double finishMeters, double metersPerBlock) {
         double straight = straightMeters / metersPerBlock;
         double radius = Math.max((lapMeters / metersPerBlock - 2 * straight) / (2 * Math.PI), MIN_RADIUS);
         double finish = Math.min(Math.max(finishMeters / metersPerBlock, 0), straight);
-        return new TrackGeometry(straight, radius, widthBlocks, finish);
+        return new TrackGeometry(straight, radius, widthBlocks, finish, false);
     }
 
     public double lap() {
@@ -151,6 +158,8 @@ public record TrackGeometry(double straight, double radius, double width, double
     }
 
     public Spot locate(double x, double z) {
+        if (mirrored)
+            x = -x;
         double half = straight / 2;
         double raw;
         double offset;
@@ -179,6 +188,11 @@ public record TrackGeometry(double straight, double radius, double width, double
     }
 
     public Point pointAt(double progress, double offset) {
+        Point point = rightHandedPoint(progress, offset);
+        return mirrored ? new Point(-point.x(), point.z(), -point.yaw()) : point;
+    }
+
+    private Point rightHandedPoint(double progress, double offset) {
         double p = wrap(progress - finish);
         double half = straight / 2;
         double r = radius + offset;

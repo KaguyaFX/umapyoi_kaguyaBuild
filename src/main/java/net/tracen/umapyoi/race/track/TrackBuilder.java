@@ -21,6 +21,7 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.utils.Surface;
 
 /**
  * Builds a racecourse into a level with vanilla blocks, a slice of columns per tick: striped turf,
@@ -28,6 +29,11 @@ import net.tracen.umapyoi.UmapyoiConfig;
  * two-tier {@link Grandstand} along the home straight, and a pond in the infield. Then
  * {@link TrackScenery} adds poles, lamps and trees, and a last pass joins fences and panes.
  * It overwrites whatever is there, so it only runs in the race world.
+ * <p>
+ * {@link #dress} repaints an already built course for one race: the running surface (turf, dirt or
+ * synthetic), the finish line, the goal post and distance poles, and the flowers by the finish. It
+ * also turns a right-handed course into a left-handed one and back, because the course is symmetric;
+ * only those things move. The stand, pond and trees stay.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class TrackBuilder {
@@ -44,8 +50,10 @@ public final class TrackBuilder {
     public static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
-    private static final BlockState TURF = Blocks.GRASS_BLOCK.defaultBlockState();
-    private static final BlockState TURF_STRIPE = Blocks.MOSS_BLOCK.defaultBlockState();
+    /** The two stripes of each surface. */
+    private static final BlockState[] TURF = { Blocks.GRASS_BLOCK.defaultBlockState(), Blocks.MOSS_BLOCK.defaultBlockState() };
+    private static final BlockState[] DIRT = { Blocks.COARSE_DIRT.defaultBlockState(), Blocks.ROOTED_DIRT.defaultBlockState() };
+    private static final BlockState[] SYNTHETIC = { Blocks.BROWN_TERRACOTTA.defaultBlockState(), Blocks.BLACK_TERRACOTTA.defaultBlockState() };
     private static final BlockState GROUND = Blocks.GRASS_BLOCK.defaultBlockState();
     private static final BlockState SUBSOIL = Blocks.DIRT.defaultBlockState();
     private static final BlockState RAIL = Blocks.BIRCH_FENCE.defaultBlockState();
@@ -60,7 +68,13 @@ public final class TrackBuilder {
             Blocks.OXEYE_DAISY.defaultBlockState(), Blocks.RED_TULIP.defaultBlockState(),
             Blocks.ALLIUM.defaultBlockState(), Blocks.ORANGE_TULIP.defaultBlockState() };
 
-    private static final List<Job> JOBS = new ArrayList<>();
+    /** Work spread over ticks; each gets a budget of columns per tick. */
+    private interface Work {
+        /** @return true when finished */
+        boolean step(int budget);
+    }
+
+    private static final List<Work> JOBS = new ArrayList<>();
 
     /** @param sizeX blocks along X @param sizeZ blocks along Z @param view where to stand to see the home straight */
     public record Result(int sizeX, int sizeZ, TrackGeometry.Point view, long millis) {
@@ -85,6 +99,21 @@ public final class TrackBuilder {
         JOBS.add(new Job(level, new CourseLayout(track, origin), previous, poleSpacing, onProgress, onDone));
     }
 
+    /**
+     * Repaints the running surface, hedge flowers, finish line, goal post and distance poles of the
+     * course already there (right- or left-handed as {@code track} says) for a race.
+     *
+     * @param track       the course, as it should be after dressing
+     * @param surface     what it is run on
+     * @param poleSpacing blocks between distance poles, counted back from the finish
+     * @param onProgress  told every 10%
+     * @param onDone      told when the course is ready
+     */
+    public static void dress(ServerLevel level, BlockPos origin, TrackGeometry track, Surface surface, double poleSpacing,
+            IntConsumer onProgress, Runnable onDone) {
+        JOBS.add(new DressJob(level, new CourseLayout(track, origin), surface, poleSpacing, onProgress, onDone));
+    }
+
     /** The area a course covers, in blocks around its origin: min X, max X (exclusive), min Z, max Z (exclusive). */
     private static int[] bounds(TrackGeometry track) {
         CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
@@ -101,7 +130,7 @@ public final class TrackBuilder {
         if (JOBS.isEmpty())
             return;
         int budget = UmapyoiConfig.TRACK_BUILD_COLUMNS_PER_TICK.get();
-        Iterator<Job> it = JOBS.iterator();
+        Iterator<Work> it = JOBS.iterator();
         while (it.hasNext())
             if (it.next().step(budget))
                 it.remove();
@@ -118,7 +147,7 @@ public final class TrackBuilder {
             level.setBlock(pos, state, FLAGS);
     }
 
-    private static final class Job {
+    private static final class Job implements Work {
         private final ServerLevel level;
         private final CourseLayout layout;
         private final TrackGeometry track;
@@ -158,8 +187,8 @@ public final class TrackBuilder {
             this.k = minZ;
         }
 
-        /** @return true when finished */
-        boolean step(int budget) {
+        @Override
+        public boolean step(int budget) {
             switch (phase) {
                 case 0 -> {
                     for (int done = 0; done < budget && i < maxX; done++) {
@@ -211,18 +240,11 @@ public final class TrackBuilder {
             BlockState surface = GROUND;
             BlockState above = null;
             if (track.onSurface(d)) {
-                double lap = track.lap();
-                if (spot.progress() >= lap - 1)
-                    surface = FINISH;
-                else
-                    surface = ((int) (spot.progress() / STRIPE)) % 2 == 0 ? TURF : TURF_STRIPE;
-            } else if (isRail(i, k, d)) {
+                surface = surfaceBlock(track, spot, Surface.TURF);
+            } else if (isRail(track, i, k, d)) {
                 above = RAIL;
-            } else if (isHedge(i, k, d)) {
-                double p = spot.progress();
-                above = p < FLOWER_SPAN || p > track.lap() - FLOWER_SPAN
-                        ? FLOWERS[Math.floorMod(i * 7 + k * 3, FLOWERS.length)]
-                        : HEDGE;
+            } else if (isHedge(track, i, k, d)) {
+                above = hedgeBlock(track, spot, i, k);
             } else if (byStand && d >= track.outer()) {
                 surface = APRON;
             } else if (d < track.inner() - 3) {
@@ -262,36 +284,121 @@ public final class TrackBuilder {
             for (int h = 1; h <= CLEAR_HEIGHT; h++)
                 place(level, layout.world(i, h, k), AIR);
         }
+    }
 
-        private boolean onTrack(int i, int k) {
-            return track.onSurface(track.locate(i + 0.5, k + 0.5).offset());
-        }
+    private static boolean onTrack(TrackGeometry track, int i, int k) {
+        return track.onSurface(track.locate(i + 0.5, k + 0.5).offset());
+    }
 
-        /** Off the surface with surface among its 8 neighbours: using all 8 keeps the rail 4-connected, no diagonal gaps. */
-        private boolean isRail(int i, int k, double d) {
-            double beyond = track.beyondSurface(d);
-            if (beyond <= 0 || beyond >= 2)
-                return false;
-            for (int di = -1; di <= 1; di++)
-                for (int dk = -1; dk <= 1; dk++)
-                    if ((di != 0 || dk != 0) && onTrack(i + di, k + dk))
-                        return true;
+    /** Off the surface with surface among its 8 neighbours: using all 8 keeps the rail 4-connected, no diagonal gaps. */
+    private static boolean isRail(TrackGeometry track, int i, int k, double d) {
+        double beyond = track.beyondSurface(d);
+        if (beyond <= 0 || beyond >= 2)
             return false;
+        for (int di = -1; di <= 1; di++)
+            for (int dk = -1; dk <= 1; dk++)
+                if ((di != 0 || dk != 0) && onTrack(track, i + di, k + dk))
+                    return true;
+        return false;
+    }
+
+    /** The ring just outside the outer rail, built the same way. */
+    private static boolean isHedge(TrackGeometry track, int i, int k, double d) {
+        if (d < track.outer() || d >= track.outer() + 4)
+            return false;
+        for (int di = -1; di <= 1; di++)
+            for (int dk = -1; dk <= 1; dk++) {
+                if (di == 0 && dk == 0)
+                    continue;
+                double nd = track.locate(i + di + 0.5, k + dk + 0.5).offset();
+                if (nd >= track.outer() && isRail(track, i + di, k + dk, nd))
+                    return true;
+            }
+        return false;
+    }
+
+    /** The running surface: two alternating stripes of the race's surface, and the finish line across it. */
+    private static BlockState surfaceBlock(TrackGeometry track, TrackGeometry.Spot spot, Surface surface) {
+        if (spot.progress() >= track.lap() - 1)
+            return FINISH;
+        BlockState[] stripes = switch (surface) {
+            case DIRT -> DIRT;
+            case SYNTHETIC -> SYNTHETIC;
+            default -> TURF;
+        };
+        return stripes[((int) (spot.progress() / STRIPE)) % 2];
+    }
+
+    /** The hedge behind the outer rail, with flowers by the finish. */
+    private static BlockState hedgeBlock(TrackGeometry track, TrackGeometry.Spot spot, int i, int k) {
+        double p = spot.progress();
+        return p < FLOWER_SPAN || p > track.lap() - FLOWER_SPAN ? FLOWERS[Math.floorMod(i * 7 + k * 3, FLOWERS.length)] : HEDGE;
+    }
+
+    /** Repaints the running surface, hedge, finish line, goal post and poles of a course for one race. */
+    private static final class DressJob implements Work {
+        private final ServerLevel level;
+        private final CourseLayout layout;
+        private final TrackGeometry track;
+        private final Surface surface;
+        private final double poleSpacing;
+        private final IntConsumer onProgress;
+        private final Runnable onDone;
+        private final int minX;
+        private final int maxX;
+        private final int minZ;
+        private final int maxZ;
+        private int i;
+        private int k;
+        private int lastTenth;
+
+        DressJob(ServerLevel level, CourseLayout layout, Surface surface, double poleSpacing, IntConsumer onProgress, Runnable onDone) {
+            this.level = level;
+            this.layout = layout;
+            this.track = layout.track();
+            this.surface = surface;
+            this.poleSpacing = poleSpacing;
+            this.onProgress = onProgress;
+            this.onDone = onDone;
+            int[] own = bounds(track);
+            this.minX = own[0];
+            this.maxX = own[1];
+            this.minZ = own[2];
+            this.maxZ = own[3];
+            this.i = minX;
+            this.k = minZ;
         }
 
-        /** The ring just outside the outer rail, built the same way. */
-        private boolean isHedge(int i, int k, double d) {
-            if (d < track.outer() || d >= track.outer() + 4)
-                return false;
-            for (int di = -1; di <= 1; di++)
-                for (int dk = -1; dk <= 1; dk++) {
-                    if (di == 0 && dk == 0)
-                        continue;
-                    double nd = track.locate(i + di + 0.5, k + dk + 0.5).offset();
-                    if (nd >= track.outer() && isRail(i + di, k + dk, nd))
-                        return true;
+        @Override
+        public boolean step(int budget) {
+            for (int done = 0; done < budget && i < maxX; done++) {
+                column(i, k);
+                if (++k >= maxZ) {
+                    k = minZ;
+                    i++;
                 }
-            return false;
+            }
+            int tenth = 10 * (i - minX) / Math.max(1, maxX - minX);
+            if (tenth != lastTenth) {
+                lastTenth = tenth;
+                onProgress.accept(tenth * 10);
+            }
+            if (i < maxX)
+                return false;
+            TrackScenery.clearPoles(level, new CourseLayout(track.withMirrored(false), layout.origin()), poleSpacing);
+            TrackScenery.clearPoles(level, new CourseLayout(track.withMirrored(true), layout.origin()), poleSpacing);
+            TrackScenery.poles(level, layout, poleSpacing);
+            onDone.run();
+            return true;
+        }
+
+        private void column(int i, int k) {
+            TrackGeometry.Spot spot = track.locate(i + 0.5, k + 0.5);
+            double d = spot.offset();
+            if (track.onSurface(d))
+                place(level, layout.world(i, 0, k), surfaceBlock(track, spot, surface));
+            else if (!isRail(track, i, k, d) && isHedge(track, i, k, d))
+                place(level, layout.world(i, 1, k), hedgeBlock(track, spot, i, k));
         }
     }
 }

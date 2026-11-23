@@ -5,6 +5,7 @@
   "refmap": "mixins.umapyoi.refmap.json",
   "mixins": [
     "PlayerFoodExhaustionMixin",
+    "ServerLevelMixin",
     "ServerPlayerBackportMixin"
   ],
   "client": [

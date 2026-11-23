@@ -49,12 +49,33 @@ final class TrackScenery {
         infieldTrees(level, layout, random);
     }
 
-    private static void poles(ServerLevel level, CourseLayout layout, double poleSpacing) {
+    /** The goal post and the distance poles, counted back from the finish. */
+    static void poles(ServerLevel level, CourseLayout layout, double poleSpacing) {
         TrackGeometry track = layout.track();
         double offset = layout.track().inner() - POLE_INSET;
         pole(level, layout, track.pointAt(0, offset), true);
         for (double p = track.lap() - poleSpacing; p > poleSpacing / 2; p -= poleSpacing)
             pole(level, layout, track.pointAt(p, offset), false);
+    }
+
+    /** Takes away the poles a course of this shape would have (only blocks that are ours: concrete). */
+    static void clearPoles(ServerLevel level, CourseLayout layout, double poleSpacing) {
+        TrackGeometry track = layout.track();
+        double offset = track.inner() - POLE_INSET;
+        clearPole(level, layout, track.pointAt(0, offset));
+        for (double p = track.lap() - poleSpacing; p > poleSpacing / 2; p -= poleSpacing)
+            clearPole(level, layout, track.pointAt(p, offset));
+    }
+
+    private static void clearPole(ServerLevel level, CourseLayout layout, TrackGeometry.Point point) {
+        int i = Mth.floor(point.x());
+        int k = Mth.floor(point.z());
+        for (int h = 1; h <= 5; h++) {
+            BlockPos pos = layout.world(i, h, k);
+            BlockState state = level.getBlockState(pos);
+            if (state.is(Blocks.WHITE_CONCRETE) || state.is(Blocks.RED_CONCRETE))
+                TrackBuilder.place(level, pos, Blocks.AIR.defaultBlockState());
+        }
     }
 
     private static void pole(ServerLevel level, CourseLayout layout, TrackGeometry.Point point, boolean goal) {
