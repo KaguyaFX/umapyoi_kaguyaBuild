@@ -166,6 +166,10 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue RACE_REST_SECONDS;
     public static ModConfigSpec.DoubleValue RACE_STAMINA_REGEN_PERCENT;
     public static ModConfigSpec.DoubleValue RACE_ACTION_POINT_REGEN;
+    public static ModConfigSpec.DoubleValue RACE_SKILL_SPEED_PER_LEVEL;
+    public static ModConfigSpec.DoubleValue RACE_PHASE_MIDDLE_FROM;
+    public static ModConfigSpec.DoubleValue RACE_PHASE_FINAL_FROM;
+    public static ModConfigSpec.DoubleValue RACE_PHASE_SPURT_FROM;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -497,6 +501,15 @@ public class UmapyoiConfig {
                 .defineInRange("race_stamina_regen_percent", 0.5, 0.0, 100.0);
         RACE_ACTION_POINT_REGEN = COMMON_BUILDER.comment("Skill action points recover at this fraction of the usual rate in the race world.")
                 .defineInRange("race_action_point_regen", 0.5, 0.0, 1.0);
+        RACE_SKILL_SPEED_PER_LEVEL = COMMON_BUILDER.comment("Race speed: each level of the Speed effect (what speed skills give) multiplies the Umamusume bonus by 1 + this.",
+                "It only touches the bonus, never the plain player's speed; vanilla Speed is 0.2 per level of the whole speed.")
+                .defineInRange("race_skill_speed_per_level", 0.2, 0.0, 10.0);
+        RACE_PHASE_MIDDLE_FROM = COMMON_BUILDER.comment("Race phases: the middle part starts at this fraction of the distance (the opening is before it).")
+                .defineInRange("race_phase_middle_from", 1.0 / 6, 0.0, 1.0);
+        RACE_PHASE_FINAL_FROM = COMMON_BUILDER.comment("Race phases: the late part (final leg) starts at this fraction of the distance.")
+                .defineInRange("race_phase_final_from", 2.0 / 3, 0.0, 1.0);
+        RACE_PHASE_SPURT_FROM = COMMON_BUILDER.comment("Race phases: the last spurt starts at this fraction of the distance (the original game splits a race in sixths: 1, 3, 1, 1).")
+                .defineInRange("race_phase_spurt_from", 5.0 / 6, 0.0, 1.0);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

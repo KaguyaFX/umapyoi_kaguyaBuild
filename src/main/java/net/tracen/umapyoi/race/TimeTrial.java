@@ -16,6 +16,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -164,6 +166,8 @@ public final class TimeTrial {
         private final float yaw;
         private final int countdownTicks;
         private final RaceStats stats;
+        /** Names the parts of this race (phases, corners, final straight). */
+        private final RaceLayout layout;
         private double stamina;
         private double lastX;
         private double lastZ;
@@ -184,6 +188,7 @@ public final class TimeTrial {
             this.previousMode = player.gameMode.getGameModeForPlayer();
             this.countdownTicks = UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get() * 20;
             this.stats = RaceStats.of(UmapyoiAPI.getUmaSoul(player));
+            this.layout = new RaceLayout(track, distance);
             this.stamina = stats.stamina();
 
             // A row of stalls standing on the finish line, doors just past it, innermost stall first.
@@ -270,8 +275,10 @@ public final class TimeTrial {
                 return true;
             }
             double remaining = Math.max(0, distance - progress) * metersPerBlock;
-            player.displayClientMessage(Component.translatable("umapyoi.race.trial.hud",
-                    String.format("%.0f", remaining), formatTime(sinceOpen / 20.0)), true);
+            player.displayClientMessage(Component.translatable(layout.phase(progress).key())
+                    .append(" · ").append(Component.translatable(layout.sectionKey(progress))).append("   ")
+                    .append(Component.translatable("umapyoi.race.trial.hud",
+                            String.format("%.0f", remaining), formatTime(sinceOpen / 20.0))), true);
             return false;
         }
 
@@ -330,8 +337,13 @@ public final class TimeTrial {
 
         RaceStatePayload state() {
             double left = RaceStats.bonusLeft(stamina / stats.stamina());
+            // Speed skills give the Speed effect; in a race it multiplies only the Umamusume bonus.
+            double skill = 1;
+            MobEffectInstance speedEffect = player.getEffect(MobEffects.MOVEMENT_SPEED);
+            if (speedEffect != null)
+                skill += UmapyoiConfig.RACE_SKILL_SPEED_PER_LEVEL.get() * (speedEffect.getAmplifier() + 1);
             return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(),
-                    (float) (stats.bonusRatio() * left), UmapyoiConfig.RACE_CRUISE_RATIO.get().floatValue());
+                    (float) (stats.bonusRatio() * left * skill), UmapyoiConfig.RACE_CRUISE_RATIO.get().floatValue());
         }
 
         private void sendState() {

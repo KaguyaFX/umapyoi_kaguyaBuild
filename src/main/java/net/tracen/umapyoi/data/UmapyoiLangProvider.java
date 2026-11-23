@@ -250,6 +250,17 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.trial.go", "Go!");
         add("umapyoi.race.trial.hud", "%s m to go   %s");
         add("umapyoi.race.trial.result", "Time trial, %s m: %s");
+        add("umapyoi.race.phase.final", "Final leg");
+        add("umapyoi.race.phase.last_spurt", "Last spurt");
+        add("umapyoi.race.phase.middle", "Middle leg");
+        add("umapyoi.race.phase.opening", "Opening leg");
+        add("umapyoi.race.section.back_straight", "Backstretch");
+        add("umapyoi.race.section.final_straight", "Final straight");
+        add("umapyoi.race.section.home_straight", "Homestretch");
+        add("umapyoi.race.section.turn_1", "Turn 1");
+        add("umapyoi.race.section.turn_2", "Turn 2");
+        add("umapyoi.race.section.turn_3", "Turn 3");
+        add("umapyoi.race.section.turn_4", "Turn 4");
         add("item.umapyoi.career_keepsake", "Memories");
         add("item.umapyoi.career_keepsake.named", "%s's Memories");
         add("item.umapyoi.career_keepsake.desc", "What an unforgettable time it was.");

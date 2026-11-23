@@ -25,6 +25,23 @@ public record TrackGeometry(double straight, double radius, double width, double
     /** The curves never get tighter than this, whatever lap length is asked for. */
     private static final double MIN_RADIUS = 15;
 
+    /**
+     * The parts of the course in running order from the finish line: the first curve is turns 1 and
+     * 2, then the back straight, the second curve is turns 3 and 4, then the home straight in front
+     * of the stand. Each curve is split in half, as real courses number their turns.
+     */
+    public enum Section {
+        TURN_1, TURN_2, BACK_STRAIGHT, TURN_3, TURN_4, HOME_STRAIGHT;
+
+        public boolean straight() {
+            return this == BACK_STRAIGHT || this == HOME_STRAIGHT;
+        }
+
+        public String key() {
+            return "umapyoi.race.section." + name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+
     /** Where a spot is: how far along the reference line (0 to lap) and how far off it (positive is outside). */
     public record Spot(double progress, double offset) {
     }
@@ -72,6 +89,51 @@ public record TrackGeometry(double straight, double radius, double width, double
     /** How far outside the surface an offset is (0 on it). */
     public double beyondSurface(double offset) {
         return offset < inner() ? inner() - offset : offset >= outer() ? offset - outer() : 0;
+    }
+
+    /** The section a progress (0 to lap) falls in. */
+    public Section section(double progress) {
+        double p = wrap(progress - finish);
+        double c = curve();
+        if (p < c / 2)
+            return Section.TURN_1;
+        if (p < c)
+            return Section.TURN_2;
+        if (p < c + straight)
+            return Section.BACK_STRAIGHT;
+        if (p < c + straight + c / 2)
+            return Section.TURN_3;
+        if (p < 2 * c + straight)
+            return Section.TURN_4;
+        return Section.HOME_STRAIGHT;
+    }
+
+    /** How far into its section a progress is. */
+    public double intoSection(double progress) {
+        return wrap(progress - finish) - rawStart(section(progress));
+    }
+
+    /** Progress (0 to lap) where a section begins. */
+    public double sectionStart(Section section) {
+        return wrap(rawStart(section) + finish);
+    }
+
+    /** Length of a section along the reference line. */
+    public double sectionLength(Section section) {
+        return section.straight() ? straight : curve() / 2;
+    }
+
+    /** Where a section starts, counted from the end of the home straight (where "raw" progress is 0). */
+    private double rawStart(Section section) {
+        double c = curve();
+        return switch (section) {
+            case TURN_1 -> 0;
+            case TURN_2 -> c / 2;
+            case BACK_STRAIGHT -> c;
+            case TURN_3 -> c + straight;
+            case TURN_4 -> c + straight + c / 2;
+            case HOME_STRAIGHT -> 2 * c + straight;
+        };
     }
 
     /** Progress where the home straight begins (the end of the last curve). */
