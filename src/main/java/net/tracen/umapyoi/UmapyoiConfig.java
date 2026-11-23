@@ -146,6 +146,11 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue EAR_THUNDER_CHANCE;
     public static ModConfigSpec.IntValue EAR_COOLDOWN_SECONDS;
     public static ModConfigSpec.IntValue HELMET_MOOD_SECONDS;
+
+    public static ModConfigSpec.DoubleValue RACE_METERS_PER_BLOCK;
+    public static ModConfigSpec.DoubleValue TRACK_STRAIGHT_METERS;
+    public static ModConfigSpec.DoubleValue TRACK_CURVE_RADIUS_METERS;
+    public static ModConfigSpec.IntValue TRACK_WIDTH;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -433,6 +438,18 @@ public class UmapyoiConfig {
         HELMET_MOOD_SECONDS = COMMON_BUILDER.comment("A helmet squashes the ears: motivation drops one step per this many seconds wearing one.",
                 "Headwear in the item tag umapyoi:ear_friendly_headwear doesn't count.")
                 .defineInRange("helmet_mood_seconds", 300, 1, 36000);
+        COMMON_BUILDER.pop();
+
+        COMMON_BUILDER.comment("Races run in person (prototype).").push("race");
+        RACE_METERS_PER_BLOCK = COMMON_BUILDER.comment("How many race meters one block stands for.")
+                .defineInRange("race_meters_per_block", 3.2, 0.5, 20.0);
+        TRACK_STRAIGHT_METERS = COMMON_BUILDER.comment("Racecourse: length of each straight, in meters.")
+                .defineInRange("track_straight_meters", 480.0, 0.0, 5000.0);
+        TRACK_CURVE_RADIUS_METERS = COMMON_BUILDER.comment("Racecourse: radius of the curves at the middle of the running surface, in meters.",
+                "With the defaults one lap is about 2000 m.")
+                .defineInRange("track_curve_radius_meters", 165.0, 10.0, 5000.0);
+        TRACK_WIDTH = COMMON_BUILDER.comment("Racecourse: width of the running surface, in blocks (one starting stall is one block).")
+                .defineInRange("track_width", 20, 4, 64);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

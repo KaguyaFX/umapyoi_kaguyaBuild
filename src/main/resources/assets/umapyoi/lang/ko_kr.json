@@ -1155,6 +1155,7 @@
   "umapyoi.career.event.notice_message": "【%s】%s",
   "umapyoi.uma.no_riding": "우마무스메는 말을 타지 않는다",
   "umapyoi.career.notebook_cap": "%s 상한 +%s",
+  "umapyoi.command.racetrack.built": "경기장을 만들었습니다: 한 바퀴 %s 블록(%s m), 전체 %s × %s 블록, %s ms 걸림.",
   "item.umapyoi.career_keepsake": "추억",
   "item.umapyoi.career_keepsake.named": "%s의 추억",
   "item.umapyoi.career_keepsake.desc": "정말 잊을 수 없는 시간이었어.",

@@ -1073,6 +1073,7 @@
   "umapyoi.command.parse.unknown.umadata": "Unknown UmaData: %s",
   "umapyoi.command.part.equipped": "equipping",
   "umapyoi.command.part.hand": "holding",
+  "umapyoi.command.racetrack.built": "Racecourse built: one lap is %s blocks (%s m), %s × %s blocks in all, took %s ms.",
   "umapyoi.command.skill.remove.notexist": "The skill %s does not exists on the target Uma Soul",
   "umapyoi.jei.disassembly": "Transfer Register",
   "umapyoi.jei.gacha": "Pedestal Summon",

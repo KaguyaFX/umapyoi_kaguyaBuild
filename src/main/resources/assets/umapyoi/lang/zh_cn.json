@@ -1035,6 +1035,7 @@
   "umapyoi.career.event.notice_message": "【%s】%s",
   "umapyoi.uma.no_riding": "马娘可不会骑马",
   "umapyoi.career.notebook_cap": "%s上限 +%s",
+  "umapyoi.command.racetrack.built": "赛道已生成：一圈 %s 格（%s 米），占地 %s × %s 格，用时 %s 毫秒。",
   "item.umapyoi.career_keepsake": "回忆",
   "item.umapyoi.career_keepsake.named": "%s的回忆",
   "item.umapyoi.career_keepsake.desc": "真是一段难忘的时光啊。",

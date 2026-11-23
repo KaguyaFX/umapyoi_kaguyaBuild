@@ -235,6 +235,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.career.event.notice_message", "[%s] %s");
         add("umapyoi.uma.no_riding", "An Umamusume doesn't ride horses");
         add("umapyoi.career.notebook_cap", "%s cap +%s");
+        add("umapyoi.command.racetrack.built", "Racecourse built: one lap is %s blocks (%s m), %s × %s blocks in all, took %s ms.");
         add("item.umapyoi.career_keepsake", "Memories");
         add("item.umapyoi.career_keepsake.named", "%s's Memories");
         add("item.umapyoi.career_keepsake.desc", "What an unforgettable time it was.");
