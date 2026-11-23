@@ -17,6 +17,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.NeoForgeMod;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.career.CareerManager;
+import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.effect.MobEffectRegistry;
 import net.tracen.umapyoi.events.ApplyUmasoulAttributeEvent;
 import net.tracen.umapyoi.events.ResumeActionPointEvent;
@@ -43,13 +44,24 @@ public class UmaSoulCuriosWrapper implements ICurio {
     public boolean canEquip(SlotContext slotContext) {
         // A soul whose training route is not chosen yet can't be worn (three-year career).
         return slotContext.identifier().equals("uma_soul") && UmaSoulUtils.hasSoulData(this.getStack())
-                && !CareerManager.isUndecided(this.getStack());
+                && !CareerManager.isUndecided(this.getStack()) && !inRaceWorld(slotContext);
     }
 
     @Override
     public boolean canEquipFromUse(SlotContext slotContext) {
         return slotContext.identifier().equals("uma_soul") && UmaSoulUtils.hasSoulData(this.getStack())
-                && !CareerManager.isUndecided(this.getStack());
+                && !CareerManager.isUndecided(this.getStack()) && !inRaceWorld(slotContext);
+    }
+
+    /** In the race world the soul stays as it is: no putting one on, taking it off or swapping. */
+    @Override
+    public boolean canUnequip(SlotContext slotContext) {
+        return !inRaceWorld(slotContext);
+    }
+
+    private static boolean inRaceWorld(SlotContext slotContext) {
+        LivingEntity entity = slotContext.entity();
+        return entity != null && RaceWorld.isRaceWorld(entity.level());
     }
 
     @Override
