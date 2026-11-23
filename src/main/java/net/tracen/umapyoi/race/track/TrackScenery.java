@@ -25,11 +25,11 @@ final class TrackScenery {
     private static final int LAMP_SPACING = 12;
     /** Rows in front of the stand's front wall. */
     private static final double LAMP_FROM_STAND = 2;
-    private static final double TREE_SPACING = 11;
+    private static final double TREE_SPACING = 8;
     /** Outside trees stand this far beyond the running surface's outer edge, plus up to 3. */
     private static final double TREE_RING = 7;
-    private static final int INFIELD_TREES = 16;
-    private static final double INFIELD_TREE_GAP = 8;
+    private static final int INFIELD_TREES = 26;
+    private static final double INFIELD_TREE_GAP = 7;
 
     private static final BlockState POLE_WHITE = Blocks.WHITE_CONCRETE.defaultBlockState();
     private static final BlockState POLE_RED = Blocks.RED_CONCRETE.defaultBlockState();
@@ -116,7 +116,7 @@ final class TrackScenery {
         double halfZ = track.radius();
         double inside = -(layout.halfWidth() + TREE_RING);
         List<double[]> placed = new ArrayList<>();
-        for (int attempt = 0; attempt < 300 && placed.size() < INFIELD_TREES; attempt++) {
+        for (int attempt = 0; attempt < 600 && placed.size() < INFIELD_TREES; attempt++) {
             double x = (random.nextDouble() * 2 - 1) * halfX;
             double z = (random.nextDouble() * 2 - 1) * halfZ;
             if (track.locate(x, z).offset() > inside || layout.pondNorm(x, z) < 1.5)

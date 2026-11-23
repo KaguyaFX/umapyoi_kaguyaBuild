@@ -14,12 +14,14 @@ import net.minecraft.world.level.block.state.properties.SlabType;
  * <pre>
  *  h20  ====================== roof (lights in it), front edge hangs one lower
  *                     |back   |
- *            upper    |rooms  |   upper tier: one block up per row (stairs)
- *         ___/        |       |
+ *            upper  _/|rooms  |   upper tier: three seat rows up one block each, then a flat landing
+ *          ___/     _/|       |
  *   __concourse       |       |   concourse: a walkway between the tiers
  *  /lower tier        |       |   lower tier: one block up per two rows (seat + floor)
  * |front wall ... tunnels under everything at ground level, every 36 blocks
  * </pre>
+ * Seats are coloured; every 12 blocks along the stand (and beside each end wall) a white aisle
+ * runs from front to back, like a cinema.
  */
 final class Grandstand {
     /** Rows from the front wall to the back of the building. */
@@ -32,21 +34,27 @@ final class Grandstand {
     private static final int LOWER_LAST = 10;
     private static final int CONCOURSE_LAST = 13;
     private static final int UPPER_LAST = 23;
-    private static final int UPPER_TOP = 7 + (UPPER_LAST - CONCOURSE_LAST - 1);
+    /** In the upper tier, every this many rows the last one is a flat landing. */
+    private static final int UPPER_CYCLE = 4;
     private static final int TUNNEL_SPACING = 36;
+    private static final int AISLE_SPACING = 12;
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final BlockState WALL = Blocks.WHITE_CONCRETE.defaultBlockState();
     private static final BlockState RAILING = Blocks.GLASS_PANE.defaultBlockState();
-    private static final BlockState SEAT = Blocks.QUARTZ_STAIRS.defaultBlockState()
+    private static final BlockState SEAT = Blocks.MANGROVE_STAIRS.defaultBlockState()
             .setValue(StairBlock.FACING, Direction.SOUTH);
-    private static final BlockState SEAT_FLOOR = Blocks.SMOOTH_QUARTZ.defaultBlockState();
+    private static final BlockState AISLE_STEP = Blocks.QUARTZ_STAIRS.defaultBlockState()
+            .setValue(StairBlock.FACING, Direction.SOUTH);
+    private static final BlockState FLOOR = Blocks.SMOOTH_QUARTZ.defaultBlockState();
     private static final BlockState CONCOURSE = Blocks.POLISHED_ANDESITE.defaultBlockState();
     private static final BlockState WINDOW = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
     private static final BlockState ROOF_SLAB = Blocks.SMOOTH_QUARTZ_SLAB.defaultBlockState()
             .setValue(SlabBlock.TYPE, SlabType.BOTTOM);
     private static final BlockState ROOF_EDGE = Blocks.SMOOTH_QUARTZ.defaultBlockState();
     private static final BlockState LIGHT = Blocks.SEA_LANTERN.defaultBlockState();
+
+    private static final int UPPER_TOP = seatHeight(UPPER_LAST);
 
     private Grandstand() {
     }
@@ -92,10 +100,14 @@ final class Grandstand {
         if (h > seat)
             return AIR;
         if (row <= LOWER_LAST)
-            return row % 2 == 1 ? SEAT : SEAT_FLOOR;
+            return row % 2 == 0 ? FLOOR : seatOrAisle(along, length);
         if (row <= CONCOURSE_LAST)
             return CONCOURSE;
-        return SEAT;
+        return landing(row) ? FLOOR : seatOrAisle(along, length);
+    }
+
+    private static BlockState seatOrAisle(int along, int length) {
+        return aisle(along, length) ? AISLE_STEP : SEAT;
     }
 
     /** The height of the seat or floor block in a row. */
@@ -104,7 +116,20 @@ final class Grandstand {
             return 1 + (row - 1) / 2;
         if (row <= CONCOURSE_LAST)
             return 1 + (LOWER_LAST - 1) / 2 + 1;
-        return 7 + (row - CONCOURSE_LAST - 1);
+        int u = row - CONCOURSE_LAST - 1;
+        // Up one per row, except that each landing stays level with the seat row before it.
+        return 7 + u - (u + 1) / UPPER_CYCLE;
+    }
+
+    private static boolean landing(int row) {
+        return (row - CONCOURSE_LAST) % UPPER_CYCLE == 0;
+    }
+
+    /** One-block aisles from front to back: beside each end wall and every 12 blocks, halfway between tunnels. */
+    private static boolean aisle(int along, int length) {
+        if (along == 1 || along == length - 2)
+            return true;
+        return Math.floorMod(along - length / 2, AISLE_SPACING) == AISLE_SPACING / 2;
     }
 
     /** Three-wide passages through the stand at ground level, spaced out from the middle. */
