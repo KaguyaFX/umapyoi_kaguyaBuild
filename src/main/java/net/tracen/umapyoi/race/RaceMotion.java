@@ -44,6 +44,13 @@ public final class RaceMotion {
         return sprinting ? state.sprintSpeed() : state.cruiseSpeed();
     }
 
+    /** One tick of slowing down without any target: rolling to a stop, or braking. */
+    public void slow(double decelPerTick) {
+        speed = Math.max(0, speed - decelPerTick);
+        // Pressing sprint again counts as a new press.
+        wasSprinting = false;
+    }
+
     /**
      * One tick.
      *

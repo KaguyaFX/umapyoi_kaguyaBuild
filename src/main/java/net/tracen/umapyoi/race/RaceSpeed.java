@@ -47,6 +47,15 @@ public final class RaceSpeed {
         }
         double moved = RaceClientState.movedSinceLastTick(player);
         double plain = plainSprint(player);
+        double perTick = plain <= 0 ? 0 : 1 / (plain * BLOCKS_PER_SECOND * 20);
+        if (RaceClientState.idle()) {
+            // Nothing pressed: rolling for a moment, then braking.
+            boolean coasting = RaceClientState.coasting();
+            motion.slow((coasting ? UmapyoiConfig.RACE_COAST_DECEL.get() : UmapyoiConfig.RACE_STOP_DECEL.get()) * perTick);
+            // While rolling, the input the client makes up is under the full push, so the attribute makes up for it.
+            apply(player, coasting ? motion.speed() / RaceClientState.COAST_INPUT : motion.speed());
+            return;
+        }
         double actual = moved < 0 || plain <= 0 ? -1 : moved / (plain * BLOCKS_PER_SECOND / 20);
         motion.step(state, player.isSprinting(), actual, UmapyoiConfig.RACE_MOMENTUM_MARGIN.get());
         apply(player, motion.speed());
@@ -56,7 +65,7 @@ public final class RaceSpeed {
     public static void reapply(Player player) {
         RaceMotion motion = RaceClientState.motion();
         if (motion != null)
-            apply(player, motion.speed());
+            apply(player, RaceClientState.coasting() ? motion.speed() / RaceClientState.COAST_INPUT : motion.speed());
     }
 
     /** The plain player's sprint as an attribute value (without race speed or the Umamusume bonus). */
