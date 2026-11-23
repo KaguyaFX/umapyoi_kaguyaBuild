@@ -18,6 +18,7 @@ import net.minecraft.world.level.Level;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.blessing.BlessingManager;
+import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.blessing.BlessingType;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
@@ -264,6 +265,9 @@ public final class CareerManager {
         if (!belongsTo(cache, data) || !cache.isActive(player))
             load(player, cache, soul, data);
         cache.lastActiveTick = player.tickCount;
+        // The career clock stops in the race world: racing doesn't use up career time or earn activity points.
+        if (RaceWorld.isRaceWorld(player.level()))
+            return;
 
         trackActivity(player, cache, soul);
 

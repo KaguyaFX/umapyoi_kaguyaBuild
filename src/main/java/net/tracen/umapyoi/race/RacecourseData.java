@@ -17,6 +17,8 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  */
 public class RacecourseData extends SavedData {
     private static final String NAME = "umapyoi_racecourse";
+    /** Bumped when the course's shape is read differently; an older course counts as unbuilt and gets rebuilt. */
+    private static final int VERSION = 2;
 
     private boolean built;
     private BlockPos origin = BlockPos.ZERO;
@@ -29,7 +31,7 @@ public class RacecourseData extends SavedData {
 
     private static RacecourseData load(CompoundTag tag, HolderLookup.Provider registries) {
         RacecourseData data = new RacecourseData();
-        data.built = tag.getBoolean("built");
+        data.built = tag.getBoolean("built") && tag.getInt("version") >= VERSION;
         data.origin = NbtUtils.readBlockPos(tag, "origin").orElse(BlockPos.ZERO);
         if (tag.contains("track")) {
             CompoundTag t = tag.getCompound("track");
@@ -40,6 +42,7 @@ public class RacecourseData extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.putInt("version", VERSION);
         tag.putBoolean("built", built);
         tag.put("origin", NbtUtils.writeBlockPos(origin));
         if (track != null) {

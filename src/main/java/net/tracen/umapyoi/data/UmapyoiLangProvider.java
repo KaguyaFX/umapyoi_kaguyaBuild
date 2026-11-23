@@ -242,6 +242,14 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.command.race.missing", "The racecourse world isn't loaded.");
         add("umapyoi.command.race.not_there", "You're not at the racecourse.");
         add("umapyoi.command.race.preparing", "Building the racecourse; you'll be taken there when it's ready.");
+        add("umapyoi.command.race.no_course", "The racecourse isn't built yet; use /umapyoi race enter first.");
+        add("umapyoi.command.race.no_trial", "You have no time trial running.");
+        add("umapyoi.command.race.trial_busy", "A time trial is already running.");
+        add("umapyoi.race.trial.cancelled", "Time trial cancelled.");
+        add("umapyoi.race.trial.finish_subtitle", "%s m time trial");
+        add("umapyoi.race.trial.go", "Go!");
+        add("umapyoi.race.trial.hud", "%s m to go   %s");
+        add("umapyoi.race.trial.result", "Time trial, %s m: %s");
         add("item.umapyoi.career_keepsake", "Memories");
         add("item.umapyoi.career_keepsake.named", "%s's Memories");
         add("item.umapyoi.career_keepsake.desc", "What an unforgettable time it was.");

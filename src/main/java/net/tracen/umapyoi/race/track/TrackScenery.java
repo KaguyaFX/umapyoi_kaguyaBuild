@@ -20,13 +20,13 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
  * are seeded from the position, so the same spot always gets the same course.
  */
 final class TrackScenery {
-    /** Poles stand this far inside the running surface's inner edge. */
+    /** Poles stand this far inside the surface's inner edge. */
     private static final double POLE_INSET = 2.5;
     private static final int LAMP_SPACING = 12;
     /** Rows in front of the stand's front wall. */
     private static final double LAMP_FROM_STAND = 2;
     private static final double TREE_SPACING = 8;
-    /** Outside trees stand this far beyond the running surface's outer edge, plus up to 3. */
+    /** Outside trees stand this far beyond the surface's outer edge, plus up to 3; infield trees at least this far inside. */
     private static final double TREE_RING = 7;
     private static final int INFIELD_TREES = 26;
     private static final double INFIELD_TREE_GAP = 7;
@@ -51,7 +51,7 @@ final class TrackScenery {
 
     private static void poles(ServerLevel level, CourseLayout layout, double poleSpacing) {
         TrackGeometry track = layout.track();
-        double offset = -(layout.halfWidth() + POLE_INSET);
+        double offset = layout.track().inner() - POLE_INSET;
         pole(level, layout, track.pointAt(0, offset), true);
         for (double p = track.lap() - poleSpacing; p > poleSpacing / 2; p -= poleSpacing)
             pole(level, layout, track.pointAt(p, offset), false);
@@ -101,7 +101,7 @@ final class TrackScenery {
         TrackGeometry track = layout.track();
         for (double p = 0; p < track.lap(); p += TREE_SPACING) {
             double along = p + (random.nextDouble() * 2 - 1) * 3;
-            double offset = layout.halfWidth() + TREE_RING + random.nextDouble() * 3;
+            double offset = track.outer() + TREE_RING + random.nextDouble() * 3;
             TrackGeometry.Point point = track.pointAt(along, offset);
             if (point.z() > 0 && Math.abs(point.x()) <= track.straight() / 2 + 4)
                 continue;
@@ -114,7 +114,7 @@ final class TrackScenery {
         TrackGeometry track = layout.track();
         double halfX = track.straight() / 2 + track.radius();
         double halfZ = track.radius();
-        double inside = -(layout.halfWidth() + TREE_RING);
+        double inside = track.inner() - TREE_RING;
         List<double[]> placed = new ArrayList<>();
         for (int attempt = 0; attempt < 600 && placed.size() < INFIELD_TREES; attempt++) {
             double x = (random.nextDouble() * 2 - 1) * halfX;

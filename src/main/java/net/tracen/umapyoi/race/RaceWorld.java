@@ -51,24 +51,24 @@ public final class RaceWorld {
 
     /** The course the config describes. */
     public static TrackGeometry configuredTrack() {
-        return track(UmapyoiConfig.TRACK_STRAIGHT_METERS.get(), UmapyoiConfig.TRACK_CURVE_RADIUS_METERS.get(),
+        return track(UmapyoiConfig.TRACK_LAP_METERS.get(), UmapyoiConfig.TRACK_STRAIGHT_METERS.get(),
                 UmapyoiConfig.TRACK_WIDTH.get());
     }
 
-    public static TrackGeometry track(double straightMeters, double radiusMeters, int width) {
-        return TrackGeometry.fromMeters(straightMeters, radiusMeters, width, UmapyoiConfig.TRACK_FINISH_METERS.get(),
+    public static TrackGeometry track(double lapMeters, double straightMeters, int width) {
+        return TrackGeometry.fromMeters(lapMeters, straightMeters, width, UmapyoiConfig.TRACK_FINISH_METERS.get(),
                 UmapyoiConfig.RACE_METERS_PER_BLOCK.get());
     }
 
     /** Sends a player to the course, building it first if it doesn't exist yet. */
     public static Entry enter(ServerPlayer player) {
-        if (isRaceWorld(player.level()))
-            return Entry.ALREADY_THERE;
         ServerLevel race = level(player.server);
         if (race == null)
             return Entry.MISSING;
         RacecourseData data = RacecourseData.get(race);
         if (data.built()) {
+            if (isRaceWorld(player.level()))
+                return Entry.ALREADY_THERE;
             sendToCourse(player, race, data);
             return Entry.SENT;
         }
@@ -78,7 +78,7 @@ public final class RaceWorld {
                 percent -> player.displayClientMessage(
                         Component.translatable("umapyoi.command.racetrack.progress", percent), true),
                 result -> {
-                    if (!player.hasDisconnected() && !isRaceWorld(player.level()))
+                    if (!player.hasDisconnected())
                         sendToCourse(player, race, data);
                 });
         return Entry.PREPARING;
@@ -107,7 +107,7 @@ public final class RaceWorld {
             return;
         if (!isRaceWorld(player.level()))
             saveReturnPoint(player);
-        TrackGeometry.Point view = track.pointAt(track.homeStraightStart() + 2, 0);
+        TrackGeometry.Point view = track.pointAt(track.homeStraightStart() + 2, track.middle());
         BlockPos origin = data.origin();
         player.teleportTo(race, origin.getX() + view.x(), origin.getY() + 1, origin.getZ() + view.z(), view.yaw(), 0);
     }

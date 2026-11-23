@@ -25,6 +25,7 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.career.CareerAttachments;
 import net.tracen.umapyoi.career.CareerManager;
 import net.tracen.umapyoi.data.tag.UmapyoiItemTags;
@@ -87,6 +88,9 @@ public class CareerEventHooks {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || player.tickCount % 20 != 0)
+            return;
+        // Events wait while the player is in the race world, like the career clock.
+        if (RaceWorld.isRaceWorld(player.level()))
             return;
         EventProgress progress = player.getData(CareerAttachments.EVENT_PROGRESS);
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);

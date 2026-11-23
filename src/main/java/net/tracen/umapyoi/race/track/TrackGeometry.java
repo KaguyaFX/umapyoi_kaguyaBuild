@@ -2,7 +2,12 @@ package net.tracen.umapyoi.race.track;
 
 /**
  * A racecourse shaped like a running track: two straights joined by two half circles. Everything
- * else (progress, placing, checkpoints, where to put a pole) is worked out from this centre line.
+ * else (progress, placing, finishing, where to put a pole) is worked out from one reference line.
+ * <p>
+ * The reference line is where race distance is measured, as on real courses: one block outside
+ * the inner edge of the running surface. A runner hugging the inner rail runs about the race's
+ * distance; one running wide runs more. Offsets are measured from this line, positive outward;
+ * the surface spans {@link #inner()} to {@link #outer()}.
  * <p>
  * Units are blocks. The origin is the middle of the infield and the straights run along X.
  * Runners go clockwise seen from above (north up): east along the north straight, west along the
@@ -10,13 +15,17 @@ package net.tracen.umapyoi.race.track;
  * blocks before the home straight runs into the curve.
  *
  * @param straight length of each straight
- * @param radius   radius of the centre line in the curves
+ * @param radius   radius of the reference line in the curves
  * @param width    width of the running surface
  * @param finish   how far before the end of the home straight the finish line is (0 to straight)
  */
 public record TrackGeometry(double straight, double radius, double width, double finish) {
+    /** The reference line is this far outside the surface's inner edge. */
+    public static final double MEASURE_FROM_INNER = 1;
+    /** The curves never get tighter than this, whatever lap length is asked for. */
+    private static final double MIN_RADIUS = 15;
 
-    /** Where a spot is: how far along the centre line (0 to lap) and how far off it (positive is outside). */
+    /** Where a spot is: how far along the reference line (0 to lap) and how far off it (positive is outside). */
     public record Spot(double progress, double offset) {
     }
 
@@ -24,11 +33,13 @@ public record TrackGeometry(double straight, double radius, double width, double
     public record Point(double x, double z, float yaw) {
     }
 
-    public static TrackGeometry fromMeters(double straightMeters, double radiusMeters, double widthBlocks,
+    /** A course whose reference line is {@code lapMeters} round; the curves take what the straights leave. */
+    public static TrackGeometry fromMeters(double lapMeters, double straightMeters, double widthBlocks,
             double finishMeters, double metersPerBlock) {
         double straight = straightMeters / metersPerBlock;
+        double radius = Math.max((lapMeters / metersPerBlock - 2 * straight) / (2 * Math.PI), MIN_RADIUS);
         double finish = Math.min(Math.max(finishMeters / metersPerBlock, 0), straight);
-        return new TrackGeometry(straight, radiusMeters / metersPerBlock, widthBlocks, finish);
+        return new TrackGeometry(straight, radius, widthBlocks, finish);
     }
 
     public double lap() {
@@ -39,18 +50,42 @@ public record TrackGeometry(double straight, double radius, double width, double
         return Math.PI * radius;
     }
 
+    /** The surface's inner edge, as an offset from the reference line. */
+    public double inner() {
+        return -MEASURE_FROM_INNER;
+    }
+
+    /** The surface's outer edge, as an offset from the reference line. */
+    public double outer() {
+        return width - MEASURE_FROM_INNER;
+    }
+
+    /** The middle of the surface, as an offset from the reference line. */
+    public double middle() {
+        return (inner() + outer()) / 2;
+    }
+
+    public boolean onSurface(double offset) {
+        return offset >= inner() && offset < outer();
+    }
+
+    /** How far outside the surface an offset is (0 on it). */
+    public double beyondSurface(double offset) {
+        return offset < inner() ? inner() - offset : offset >= outer() ? offset - outer() : 0;
+    }
+
     /** Progress where the home straight begins (the end of the last curve). */
     public double homeStraightStart() {
         return wrap(lap() - straight + finish);
     }
 
-    /** Half the extent along X and Z of everything up to {@code beyond} blocks outside the running surface. */
+    /** Half the extent along X and Z of everything up to {@code beyond} blocks outside the surface. */
     public double halfLengthX(double beyond) {
-        return straight / 2 + radius + width / 2 + beyond;
+        return straight / 2 + radius + outer() + beyond;
     }
 
     public double halfLengthZ(double beyond) {
-        return radius + width / 2 + beyond;
+        return radius + outer() + beyond;
     }
 
     public Spot locate(double x, double z) {

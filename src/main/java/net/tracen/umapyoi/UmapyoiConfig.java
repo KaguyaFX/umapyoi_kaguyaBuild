@@ -149,10 +149,12 @@ public class UmapyoiConfig {
 
     public static ModConfigSpec.DoubleValue RACE_METERS_PER_BLOCK;
     public static ModConfigSpec.DoubleValue TRACK_STRAIGHT_METERS;
-    public static ModConfigSpec.DoubleValue TRACK_CURVE_RADIUS_METERS;
+    public static ModConfigSpec.DoubleValue TRACK_LAP_METERS;
     public static ModConfigSpec.IntValue TRACK_WIDTH;
     public static ModConfigSpec.DoubleValue TRACK_FINISH_METERS;
     public static ModConfigSpec.IntValue TRACK_BUILD_COLUMNS_PER_TICK;
+    public static ModConfigSpec.IntValue RACE_COUNTDOWN_SECONDS;
+    public static ModConfigSpec.IntValue RACE_GATE_CLEAR_SECONDS;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -447,15 +449,19 @@ public class UmapyoiConfig {
                 .defineInRange("race_meters_per_block", 3.2, 0.5, 20.0);
         TRACK_STRAIGHT_METERS = COMMON_BUILDER.comment("Racecourse: length of each straight, in meters.")
                 .defineInRange("track_straight_meters", 480.0, 0.0, 5000.0);
-        TRACK_CURVE_RADIUS_METERS = COMMON_BUILDER.comment("Racecourse: radius of the curves at the middle of the running surface, in meters.",
-                "With the defaults one lap is about 2000 m.")
-                .defineInRange("track_curve_radius_meters", 165.0, 10.0, 5000.0);
+        TRACK_LAP_METERS = COMMON_BUILDER.comment("Racecourse: one lap, in meters, measured one block outside the inner rail (where race distance is measured).",
+                "The curves take what the two straights leave. 2000 m makes a 2000 m race exactly one lap, starting and finishing in front of the stand.")
+                .defineInRange("track_lap_meters", 2000.0, 400.0, 20000.0);
         TRACK_WIDTH = COMMON_BUILDER.comment("Racecourse: width of the running surface, in blocks (one starting stall is one block).")
                 .defineInRange("track_width", 20, 4, 64);
         TRACK_FINISH_METERS = COMMON_BUILDER.comment("Racecourse: the finish line is this many meters before the home straight ends in the curve.")
                 .defineInRange("track_finish_meters", 100.0, 0.0, 5000.0);
         TRACK_BUILD_COLUMNS_PER_TICK = COMMON_BUILDER.comment("Building a racecourse: block columns placed per tick. Lower it if building lags.")
                 .defineInRange("track_build_columns_per_tick", 1500, 16, 100000);
+        RACE_COUNTDOWN_SECONDS = COMMON_BUILDER.comment("Seconds counted down in the starting stalls before the gates open.")
+                .defineInRange("race_countdown_seconds", 3, 1, 10);
+        RACE_GATE_CLEAR_SECONDS = COMMON_BUILDER.comment("The starting gates are taken off the course this many seconds after they open.")
+                .defineInRange("race_gate_clear_seconds", 8, 1, 60);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

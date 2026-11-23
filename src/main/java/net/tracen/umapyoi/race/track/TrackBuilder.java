@@ -40,7 +40,8 @@ public final class TrackBuilder {
     /** Flowers replace the hedge this far either side of the finish line. */
     private static final double FLOWER_SPAN = 15;
     private static final double POND_RIM = 1.15;
-    static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
+    /** Send to clients, skip neighbour shape updates (everything is placed explicitly). */
+    public static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final BlockState TURF = Blocks.GRASS_BLOCK.defaultBlockState();
@@ -124,7 +125,6 @@ public final class TrackBuilder {
         private final double poleSpacing;
         private final IntConsumer onProgress;
         private final Consumer<Result> onDone;
-        private final double halfWidth;
         /** The new course's area, for the result. */
         private final int[] own;
         /** The area to go over: the new course's plus the old one's. */
@@ -148,7 +148,6 @@ public final class TrackBuilder {
             this.poleSpacing = poleSpacing;
             this.onProgress = onProgress;
             this.onDone = onDone;
-            this.halfWidth = layout.halfWidth();
             this.own = bounds(track);
             int[] old = previous == null ? own : bounds(previous);
             this.minX = Math.min(own[0], old[0]);
@@ -187,7 +186,7 @@ public final class TrackBuilder {
                 default -> {
                     for (BlockPos pos : connect)
                         level.setBlock(pos, Block.updateFromNeighbourShapes(level.getBlockState(pos), level, pos), FLAGS);
-                    TrackGeometry.Point view = track.pointAt(track.homeStraightStart() + 2, 0);
+                    TrackGeometry.Point view = track.pointAt(track.homeStraightStart() + 2, track.middle());
                     onDone.accept(new Result(own[1] - own[0], own[3] - own[2], view, (System.nanoTime() - startNanos) / 1_000_000));
                     return true;
                 }
@@ -211,7 +210,7 @@ public final class TrackBuilder {
 
             BlockState surface = GROUND;
             BlockState above = null;
-            if (Math.abs(d) < halfWidth) {
+            if (track.onSurface(d)) {
                 double lap = track.lap();
                 if (spot.progress() >= lap - 1)
                     surface = FINISH;
@@ -224,9 +223,9 @@ public final class TrackBuilder {
                 above = p < FLOWER_SPAN || p > track.lap() - FLOWER_SPAN
                         ? FLOWERS[Math.floorMod(i * 7 + k * 3, FLOWERS.length)]
                         : HEDGE;
-            } else if (byStand && d > 0) {
+            } else if (byStand && d >= track.outer()) {
                 surface = APRON;
-            } else if (d < -halfWidth - 3) {
+            } else if (d < track.inner() - 3) {
                 double norm = layout.pondNorm(x, z);
                 if (norm < 1) {
                     pond(i, k);
@@ -265,12 +264,13 @@ public final class TrackBuilder {
         }
 
         private boolean onTrack(int i, int k) {
-            return Math.abs(track.locate(i + 0.5, k + 0.5).offset()) < halfWidth;
+            return track.onSurface(track.locate(i + 0.5, k + 0.5).offset());
         }
 
         /** Off the surface with surface among its 8 neighbours: using all 8 keeps the rail 4-connected, no diagonal gaps. */
         private boolean isRail(int i, int k, double d) {
-            if (Math.abs(d) < halfWidth || Math.abs(d) >= halfWidth + 2)
+            double beyond = track.beyondSurface(d);
+            if (beyond <= 0 || beyond >= 2)
                 return false;
             for (int di = -1; di <= 1; di++)
                 for (int dk = -1; dk <= 1; dk++)
@@ -281,14 +281,14 @@ public final class TrackBuilder {
 
         /** The ring just outside the outer rail, built the same way. */
         private boolean isHedge(int i, int k, double d) {
-            if (d < halfWidth || d >= halfWidth + 4)
+            if (d < track.outer() || d >= track.outer() + 4)
                 return false;
             for (int di = -1; di <= 1; di++)
                 for (int dk = -1; dk <= 1; dk++) {
                     if (di == 0 && dk == 0)
                         continue;
                     double nd = track.locate(i + di + 0.5, k + dk + 0.5).offset();
-                    if (nd > 0 && isRail(i + di, k + dk, nd))
+                    if (nd >= track.outer() && isRail(i + di, k + dk, nd))
                         return true;
                 }
             return false;

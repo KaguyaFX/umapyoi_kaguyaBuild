@@ -5,21 +5,19 @@ import net.minecraft.util.Mth;
 
 /**
  * Where everything around the running surface goes, in the same local block coordinates as
- * {@link TrackGeometry} (origin = the infield's middle). The grandstand faces the home straight
- * from the south; the pond sits in the middle of the infield.
+ * {@link TrackGeometry} (origin = the infield's middle). Offsets are from the course's reference
+ * line. The grandstand faces the home straight from the south; the pond sits in the middle of
+ * the infield.
  */
 record CourseLayout(TrackGeometry track, BlockPos origin) {
-    /** The stand's front wall is this far outside the centre line, beyond the rail, hedge and apron. */
+    /** The stand's front wall is this far outside the surface, beyond the rail, hedge and apron. */
     private static final double STAND_FROM_EDGE = 9;
     /** The stand stops this many blocks short of each end of the straight. */
     private static final int STAND_END_GAP = 2;
 
-    double halfWidth() {
-        return track.width() / 2;
-    }
-
+    /** The stand's front wall, as an offset from the reference line. */
     double standStart() {
-        return halfWidth() + STAND_FROM_EDGE;
+        return track.outer() + STAND_FROM_EDGE;
     }
 
     int standMinX() {
@@ -43,14 +41,10 @@ record CourseLayout(TrackGeometry track, BlockPos origin) {
     /** Below 1 inside the pond (an ellipse in the middle of the infield); infinite when there's no room for one. */
     double pondNorm(double x, double z) {
         double a = track.straight() / 2 * 0.55;
-        double b = (track.radius() - halfWidth()) * 0.42;
+        double b = (track.radius() + track.inner()) * 0.42;
         if (a < 4 || b < 3)
             return Double.POSITIVE_INFINITY;
         return (x / a) * (x / a) + (z / b) * (z / b);
-    }
-
-    int groundY() {
-        return origin.getY();
     }
 
     BlockPos world(int i, int h, int k) {
