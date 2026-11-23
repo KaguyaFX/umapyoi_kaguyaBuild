@@ -1,7 +1,5 @@
 package net.tracen.umapyoi.race;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -12,25 +10,27 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.UmapyoiConfig;
 
 /**
- * Sets a runner's movement speed during a race. The target, as an attribute value: sprinting is
- * the plain player's sprint times (1 + the bonus stamina leaves); walking is that times the cruise
- * ratio, so cruising is never faster than sprinting. One modifier is kept so the final value lands
- * on the target whatever else is on the attribute (the survival soul bonus, vanilla's sprint boost).
+ * Sets a runner's movement speed during a race from their {@link RaceMotion}: the attribute lands on
+ * the plain player's sprint times the motion's speed. One modifier is kept so the final value lands
+ * there whatever else is on the attribute (the survival soul bonus, vanilla's sprint boost, the
+ * Speed effect).
  * <p>
- * It runs on both sides with the same numbers. Players move on their own client, which is what
- * matters for the run; the server keeps the same modifier because whenever it re-sends the
- * player's attributes (it does every time the soul's action points change, for one), the client
- * replaces its own modifiers with the server's. A client-only modifier would vanish until the next
- * tick each time, and the field of view would twitch. The modifier is only touched when its
- * amount actually changes, so it doesn't make the server re-send attributes on its own.
+ * It runs on both sides. Players move on their own client, which steps its own motion here; the
+ * server steps its copy in the time trial and keeps the same modifier, because whenever it re-sends
+ * the player's attributes the client replaces its own modifiers with the server's (a client-only
+ * modifier would vanish until the next tick and the view would twitch). The modifier is only
+ * touched when its amount changes.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class RaceSpeed {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "race_speed");
     /** Vanilla's sprint boost. */
     private static final double SPRINT = 1.3;
+    /** Blocks per second on the ground per point of the movement speed attribute. */
+    public static final double BLOCKS_PER_SECOND = 43.17;
     private static final double EPSILON = 1.0E-6;
 
     private RaceSpeed() {
@@ -39,40 +39,51 @@ public final class RaceSpeed {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         Player player = event.getEntity();
-        RaceStatePayload state;
+        double speed;
         if (player.level().isClientSide()) {
             if (!player.isLocalPlayer())
                 return;
-            state = RaceClientState.current();
+            RaceStatePayload state = RaceClientState.current();
+            RaceMotion motion = RaceClientState.motion();
+            if (state == null || motion == null) {
+                apply(player, Double.NaN);
+                return;
+            }
+            AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+            double plain = attribute == null ? 0.13 : attribute.getBaseValue() * SPRINT;
+            double moved = Math.hypot(player.getX() - player.xo, player.getZ() - player.zo);
+            double actual = plain <= 0 ? -1 : moved / (plain * BLOCKS_PER_SECOND / 20);
+            motion.step(state, player.isSprinting(), actual, UmapyoiConfig.RACE_MOMENTUM_MARGIN.get());
+            speed = motion.speed();
         } else {
             if (!(player instanceof ServerPlayer serverPlayer))
                 return;
-            state = TimeTrial.state(serverPlayer);
+            speed = TimeTrial.speed(serverPlayer);
         }
-        apply(player, state);
+        apply(player, speed);
     }
 
-    private static void apply(Player player, @Nullable RaceStatePayload state) {
-        AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
-        if (speed == null)
+    /** @param speed a fraction of the plain sprint, or NaN when not racing */
+    private static void apply(Player player, double speed) {
+        AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (attribute == null)
             return;
-        AttributeModifier old = speed.getModifier(ID);
-        if (state == null || !state.active()) {
+        AttributeModifier old = attribute.getModifier(ID);
+        if (Double.isNaN(speed)) {
             if (old != null)
-                speed.removeModifier(ID);
+                attribute.removeModifier(ID);
             return;
         }
         // Ours is a final multiplier, so the value without it is the value with it divided back out.
-        double withoutOurs = old == null ? speed.getValue() : speed.getValue() / (1 + old.amount());
+        double withoutOurs = old == null ? attribute.getValue() : attribute.getValue() / (1 + old.amount());
         if (withoutOurs <= 0)
             return;
-        double sprint = speed.getBaseValue() * SPRINT * (1 + state.bonusRatio());
-        double target = player.isSprinting() ? sprint : sprint * state.cruiseRatio();
+        double target = attribute.getBaseValue() * SPRINT * speed;
         double amount = target / withoutOurs - 1;
         if (old != null && Math.abs(old.amount() - amount) < EPSILON)
             return;
         if (old != null)
-            speed.removeModifier(ID);
-        speed.addTransientModifier(new AttributeModifier(ID, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+            attribute.removeModifier(ID);
+        attribute.addTransientModifier(new AttributeModifier(ID, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
     }
 }

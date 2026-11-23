@@ -170,6 +170,15 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_PHASE_MIDDLE_FROM;
     public static ModConfigSpec.DoubleValue RACE_PHASE_FINAL_FROM;
     public static ModConfigSpec.DoubleValue RACE_PHASE_SPURT_FROM;
+    public static ModConfigSpec.DoubleValue RACE_ACCEL_BASE;
+    public static ModConfigSpec.DoubleValue RACE_ACCEL_SCALE;
+    public static ModConfigSpec.DoubleValue RACE_DECEL;
+    public static ModConfigSpec.DoubleValue RACE_START_DASH;
+    public static ModConfigSpec.DoubleValue RACE_START_SPEED;
+    public static ModConfigSpec.DoubleValue RACE_SPRINT_KICK;
+    public static ModConfigSpec.DoubleValue RACE_MOMENTUM_MARGIN;
+    public static ModConfigSpec.DoubleValue RACE_STYLE_STRENGTH;
+    public static ModConfigSpec.DoubleValue RACE_ACTION_POINT_REGEN_MAX;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -499,7 +508,8 @@ public class UmapyoiConfig {
                 .defineInRange("race_rest_seconds", 2, 0, 60);
         RACE_STAMINA_REGEN_PERCENT = COMMON_BUILDER.comment("Race stamina: percent of the bar recovered per second while resting.")
                 .defineInRange("race_stamina_regen_percent", 0.5, 0.0, 100.0);
-        RACE_ACTION_POINT_REGEN = COMMON_BUILDER.comment("Skill action points recover at this fraction of the usual rate in the race world.")
+        RACE_ACTION_POINT_REGEN = COMMON_BUILDER.comment("Skill action points in the race world recover at this fraction of the usual rate at the lowest wisdom;",
+                "higher wisdom raises it along the stat curve, up to race_action_point_regen_max.")
                 .defineInRange("race_action_point_regen", 0.5, 0.0, 1.0);
         RACE_SKILL_SPEED_PER_LEVEL = COMMON_BUILDER.comment("Race speed: each level of the Speed effect (what speed skills give) multiplies the Umamusume bonus by 1 + this.",
                 "It only touches the bonus, never the plain player's speed; vanilla Speed is 0.2 per level of the whole speed.")
@@ -510,6 +520,26 @@ public class UmapyoiConfig {
                 .defineInRange("race_phase_final_from", 2.0 / 3, 0.0, 1.0);
         RACE_PHASE_SPURT_FROM = COMMON_BUILDER.comment("Race phases: the last spurt starts at this fraction of the distance (the original game splits a race in sixths: 1, 3, 1, 1).")
                 .defineInRange("race_phase_spurt_from", 5.0 / 6, 0.0, 1.0);
+        RACE_ACTION_POINT_REGEN_MAX = COMMON_BUILDER.comment("Skill action points in the race world never recover faster than this fraction of the usual rate.")
+                .defineInRange("race_action_point_regen_max", 0.9, 0.0, 1.0);
+        RACE_ACCEL_BASE = COMMON_BUILDER.comment("Race acceleration, in blocks per second per second, at the lowest power. Sprinting doesn't reach full speed at once:",
+                "it climbs at this rate (plus the power part below).")
+                .defineInRange("race_accel_base", 0.25, 0.0, 100.0);
+        RACE_ACCEL_SCALE = COMMON_BUILDER.comment("Race acceleration: what the power stat adds at most (same curve as speed).")
+                .defineInRange("race_accel_scale", 0.55, 0.0, 100.0);
+        RACE_DECEL = COMMON_BUILDER.comment("Race deceleration, in blocks per second per second, when the target drops (stopped sprinting, stamina fell below the line).")
+                .defineInRange("race_decel", 0.8, 0.01, 100.0);
+        RACE_START_DASH = COMMON_BUILDER.comment("Race start: extra acceleration out of the gates, until cruising speed is first reached.")
+                .defineInRange("race_start_dash", 4.0, 0.0, 100.0);
+        RACE_START_SPEED = COMMON_BUILDER.comment("Race start: speed when the gates open, as a fraction of the plain player's sprint.")
+                .defineInRange("race_start_speed", 0.15, 0.0, 2.0);
+        RACE_SPRINT_KICK = COMMON_BUILDER.comment("Race: starting to sprint puts you at once this fraction of the way from cruising to full speed (it never stacks).")
+                .defineInRange("race_sprint_kick", 0.2, 0.0, 1.0);
+        RACE_MOMENTUM_MARGIN = COMMON_BUILDER.comment("Race: after being slowed down (a wall, a stop), speed can't be more than this far above how fast you're really moving,",
+                "as a fraction of the plain player's sprint, so you have to accelerate again.")
+                .defineInRange("race_momentum_margin", 0.25, 0.0, 10.0);
+        RACE_STYLE_STRENGTH = COMMON_BUILDER.comment("Running styles: how strongly the original game's per-phase speed, acceleration and stamina coefficients apply (1 = as in the original, 0 = off).")
+                .defineInRange("race_style_strength", 1.0, 0.0, 10.0);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

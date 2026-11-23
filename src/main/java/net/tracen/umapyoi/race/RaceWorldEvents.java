@@ -7,7 +7,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
-import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.events.ResumeActionPointEvent;
 
 /**
@@ -30,13 +29,16 @@ public final class RaceWorldEvents {
         food.setSaturation(5.0F);
     }
 
-    /** Action points normally come back one per tick; here only on the ticks the rate allows. */
+    /**
+     * Action points normally come back one per tick; here only on the ticks the rate allows. The
+     * rate grows with wisdom, from race_action_point_regen up to race_action_point_regen_max.
+     */
     @SubscribeEvent
     public static void onActionPointRegen(ResumeActionPointEvent event) {
         LivingEntity entity = event.getLivingEntity();
         if (entity == null || !RaceWorld.isRaceWorld(entity.level()))
             return;
-        double rate = UmapyoiConfig.RACE_ACTION_POINT_REGEN.get();
+        double rate = RaceStats.apRegen(event.getUmaSoul());
         int tick = entity.tickCount;
         if (Math.floor(tick * rate) == Math.floor((tick - 1) * rate))
             event.setCanceled(true);

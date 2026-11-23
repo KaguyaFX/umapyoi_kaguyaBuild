@@ -18,6 +18,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -92,10 +94,9 @@ public final class TimeTrial {
         return current != null;
     }
 
-    /** A runner's speed state once the gates are open, or null if they aren't running. */
-    @Nullable
-    public static RaceStatePayload state(ServerPlayer player) {
-        return current != null && current.player == player && current.openTick >= 0 ? current.state() : null;
+    /** A runner's race speed (a fraction of the plain sprint) once the gates are open, or NaN if they aren't running. */
+    public static double speed(ServerPlayer player) {
+        return current != null && current.player == player && current.motion != null ? current.motion.speed() : Double.NaN;
     }
 
     /** @return false if this player has no trial running */
@@ -168,6 +169,11 @@ public final class TimeTrial {
         private final RaceStats stats;
         /** Names the parts of this race (phases, corners, final straight). */
         private final RaceLayout layout;
+        /** The plain player's sprint, in blocks per second: converts accelerations to RaceMotion's unit. */
+        private final double plainSprint;
+        /** The server's copy of the runner's speed; null until the gates open. */
+        @Nullable
+        private RaceMotion motion;
         private double stamina;
         private double lastX;
         private double lastZ;
@@ -187,7 +193,10 @@ public final class TimeTrial {
             this.distance = distanceMeters / metersPerBlock;
             this.previousMode = player.gameMode.getGameModeForPlayer();
             this.countdownTicks = UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get() * 20;
-            this.stats = RaceStats.of(UmapyoiAPI.getUmaSoul(player));
+            ItemStack soul = UmapyoiAPI.getUmaSoul(player);
+            this.stats = RaceStats.of(soul, RaceStyle.of(soul, level));
+            var attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+            this.plainSprint = (attribute == null ? 0.1 : attribute.getBaseValue()) * 1.3 * RaceSpeed.BLOCKS_PER_SECOND;
             this.layout = new RaceLayout(track, distance);
             this.stamina = stats.stamina();
 
@@ -266,7 +275,9 @@ public final class TimeTrial {
             lastSpot = spot.progress();
             if (Math.abs(step) <= MAX_STEP)
                 progress += step;
-            useStamina();
+            RaceStatePayload state = state();
+            motion.step(state, player.isSprinting(), -1, 0);
+            useStamina(state);
 
             if (progress >= distance && step > 0) {
                 // Crossed during this tick: work out when, between the last tick and this one.
@@ -274,11 +285,7 @@ public final class TimeTrial {
                 finish((sinceOpen - 1 + fraction) / 20.0);
                 return true;
             }
-            double remaining = Math.max(0, distance - progress) * metersPerBlock;
-            player.displayClientMessage(Component.translatable(layout.phase(progress).key())
-                    .append(" · ").append(Component.translatable(layout.sectionKey(progress))).append("   ")
-                    .append(Component.translatable("umapyoi.race.trial.hud",
-                            String.format("%.0f", remaining), formatTime(sinceOpen / 20.0))), true);
+            showHud(state, sinceOpen);
             return false;
         }
 
@@ -307,7 +314,8 @@ public final class TimeTrial {
             openTick = ticks;
             lastX = player.getX();
             lastZ = player.getZ();
-            sendState();
+            motion = new RaceMotion(UmapyoiConfig.RACE_START_SPEED.get());
+            sendState(state());
             TrackGeometry.Spot spot = here();
             lastSpot = spot.progress();
             // Standing just behind the line: a little below zero.
@@ -315,18 +323,24 @@ public final class TimeTrial {
             return false;
         }
 
-        /** Sprinting costs one point per block (running wide costs more); resting brings a little back. */
-        private void useStamina() {
+        /**
+         * Speed above cruising costs stamina: one point per block at full speed, less while still
+         * accelerating, and a little while slowing back down. Running wide costs more (more blocks).
+         * Resting brings a little back.
+         */
+        private void useStamina(RaceStatePayload state) {
             double moved = Math.hypot(player.getX() - lastX, player.getZ() - lastZ);
             lastX = player.getX();
             lastZ = player.getZ();
-            if (moved <= MAX_STEP && player.isSprinting())
-                stamina -= moved;
+            double span = state.sprintSpeed() - state.cruiseSpeed();
+            double effort = span <= 0 ? 0 : Math.max(0, Math.min(1, (motion.speed() - state.cruiseSpeed()) / span));
+            if (moved <= MAX_STEP)
+                stamina -= moved * effort;
             stillTicks = moved < 0.01 ? stillTicks + 1 : 0;
             if (stillTicks >= UmapyoiConfig.RACE_REST_SECONDS.get() * 20)
                 stamina += stats.stamina() * UmapyoiConfig.RACE_STAMINA_REGEN_PERCENT.get() / 100 / 20;
             stamina = Math.max(0, Math.min(stats.stamina(), stamina));
-            sendState();
+            sendState(state);
         }
 
         void jump() {
@@ -335,19 +349,54 @@ public final class TimeTrial {
             stamina = Math.max(0, stamina - UmapyoiConfig.RACE_JUMP_STAMINA.get());
         }
 
+        /**
+         * Full speed = the running style's coefficient for this phase x (1 + the Umamusume bonus left
+         * after stamina, times the skill boost); cruise is a fraction of it.
+         */
         RaceStatePayload state() {
+            RacePhase phase = layout.phase(progress);
             double left = RaceStats.bonusLeft(stamina / stats.stamina());
             // Speed skills give the Speed effect; in a race it multiplies only the Umamusume bonus.
             double skill = 1;
             MobEffectInstance speedEffect = player.getEffect(MobEffects.MOVEMENT_SPEED);
             if (speedEffect != null)
                 skill += UmapyoiConfig.RACE_SKILL_SPEED_PER_LEVEL.get() * (speedEffect.getAmplifier() + 1);
-            return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(),
-                    (float) (stats.bonusRatio() * left * skill), UmapyoiConfig.RACE_CRUISE_RATIO.get().floatValue());
+            double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * skill);
+            double cruise = sprint * UmapyoiConfig.RACE_CRUISE_RATIO.get();
+            double perTick = 1 / (plainSprint * 20);
+            return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(), (float) sprint, (float) cruise,
+                    (float) (stats.accel() * RaceStyle.accel(stats.style(), phase) * perTick),
+                    (float) (UmapyoiConfig.RACE_DECEL.get() * perTick),
+                    (float) (UmapyoiConfig.RACE_START_DASH.get() * perTick),
+                    UmapyoiConfig.RACE_SPRINT_KICK.get().floatValue(),
+                    UmapyoiConfig.RACE_START_SPEED.get().floatValue());
         }
 
-        private void sendState() {
-            PacketDistributor.sendToPlayer(player, state());
+        private void sendState(RaceStatePayload state) {
+            PacketDistributor.sendToPlayer(player, state);
+        }
+
+        /**
+         * The action bar, with what helps while testing: phase and place on the course, running
+         * style and its speed coefficient now, whether the runner is speeding up or slowing down,
+         * and the speed being aimed at, then distance left and time.
+         */
+        private void showHud(RaceStatePayload state, int sinceOpen) {
+            RacePhase phase = layout.phase(progress);
+            boolean sprinting = player.isSprinting();
+            String motionKey = motion.accelerating(state, sprinting) ? "umapyoi.race.motion.accelerating"
+                    : motion.decelerating(state, sprinting) ? "umapyoi.race.motion.decelerating"
+                    : sprinting ? "umapyoi.race.motion.full" : "umapyoi.race.motion.cruising";
+            double target = (sprinting ? state.sprintSpeed() : state.cruiseSpeed()) * plainSprint * metersPerBlock * 3.6;
+            double remaining = Math.max(0, distance - progress) * metersPerBlock;
+            player.displayClientMessage(Component.translatable(phase.key())
+                    .append(" · ").append(Component.translatable(layout.sectionKey(progress)))
+                    .append(" | ").append(Component.translatable(RaceStyle.key(stats.style())))
+                    .append(String.format(" ×%.3f", RaceStyle.speed(stats.style(), phase)))
+                    .append(" | ").append(Component.translatable(motionKey))
+                    .append(String.format(" → %.0f km/h", target))
+                    .append(" | ").append(Component.translatable("umapyoi.race.trial.hud",
+                            String.format("%.0f", remaining), formatTime(sinceOpen / 20.0))), true);
         }
 
         private TrackGeometry.Spot here() {
