@@ -23,11 +23,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.block.BlockRegistry;
 import net.tracen.umapyoi.block.Gate;
 import net.tracen.umapyoi.block.GateDoor;
@@ -45,6 +48,11 @@ import net.tracen.umapyoi.utils.ThreeBlockPart;
  * moved along the course, and a jump of more than {@link #MAX_STEP} blocks (a teleport, a cut
  * through the infield) counts for nothing. Running backwards takes distance off. So skipping
  * part of the course never helps, which is what checkpoints would be for.
+ * <p>
+ * Stamina: sprinting costs one point per block, each jump costs a few more, walking (cruising)
+ * costs nothing, and standing still for a moment slowly brings some back. Below the low line the
+ * Umamusume speed bonus drops ({@link RaceStats#bonusLeft}); the plain player's speed never does.
+ * The client gets the result every tick and moves at that speed ({@link RaceSpeed}).
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class TimeTrial {
@@ -116,6 +124,12 @@ public final class TimeTrial {
     }
 
     @SubscribeEvent
+    public static void onJump(LivingEvent.LivingJumpEvent event) {
+        if (current != null && !event.getEntity().level().isClientSide() && event.getEntity() == current.player)
+            current.jump();
+    }
+
+    @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
         if (current != null) {
             current.cleanUp();
@@ -143,6 +157,11 @@ public final class TimeTrial {
         private final double stallZ;
         private final float yaw;
         private final int countdownTicks;
+        private final RaceStats stats;
+        private double stamina;
+        private double lastX;
+        private double lastZ;
+        private int stillTicks;
         private int ticks;
         private int openTick = -1;
         private double progress;
@@ -158,6 +177,8 @@ public final class TimeTrial {
             this.distance = distanceMeters / metersPerBlock;
             this.previousMode = player.gameMode.getGameModeForPlayer();
             this.countdownTicks = UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get() * 20;
+            this.stats = RaceStats.of(UmapyoiAPI.getUmaSoul(player));
+            this.stamina = stats.stamina();
 
             // A row of stalls standing on the finish line, doors just past it, innermost stall first.
             double lap = track.lap();
@@ -234,6 +255,7 @@ public final class TimeTrial {
             lastSpot = spot.progress();
             if (Math.abs(step) <= MAX_STEP)
                 progress += step;
+            useStamina();
 
             if (progress >= distance && step > 0) {
                 // Crossed during this tick: work out when, between the last tick and this one.
@@ -270,11 +292,40 @@ public final class TimeTrial {
             title(Component.translatable("umapyoi.race.trial.go"), Component.empty());
             player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0F, 2.0F);
             openTick = ticks;
+            lastX = player.getX();
+            lastZ = player.getZ();
+            sendState();
             TrackGeometry.Spot spot = here();
             lastSpot = spot.progress();
             // Standing just behind the line: a little below zero.
             progress = spot.progress() > track.lap() / 2 ? spot.progress() - track.lap() : spot.progress();
             return false;
+        }
+
+        /** Sprinting costs one point per block (running wide costs more); resting brings a little back. */
+        private void useStamina() {
+            double moved = Math.hypot(player.getX() - lastX, player.getZ() - lastZ);
+            lastX = player.getX();
+            lastZ = player.getZ();
+            if (moved <= MAX_STEP && player.isSprinting())
+                stamina -= moved;
+            stillTicks = moved < 0.01 ? stillTicks + 1 : 0;
+            if (stillTicks >= UmapyoiConfig.RACE_REST_SECONDS.get() * 20)
+                stamina += stats.stamina() * UmapyoiConfig.RACE_STAMINA_REGEN_PERCENT.get() / 100 / 20;
+            stamina = Math.max(0, Math.min(stats.stamina(), stamina));
+            sendState();
+        }
+
+        void jump() {
+            if (openTick < 0)
+                return;
+            stamina = Math.max(0, stamina - UmapyoiConfig.RACE_JUMP_STAMINA.get());
+        }
+
+        private void sendState() {
+            double left = RaceStats.bonusLeft(stamina / stats.stamina());
+            PacketDistributor.sendToPlayer(player, new RaceStatePayload(true, (float) stamina, (float) stats.stamina(),
+                    (float) (stats.bonusRatio() * left), UmapyoiConfig.RACE_CRUISE_RATIO.get().floatValue()));
         }
 
         private TrackGeometry.Spot here() {
@@ -310,6 +361,8 @@ public final class TimeTrial {
 
         void cleanUp() {
             removeGates(false);
+            if (!player.hasDisconnected())
+                PacketDistributor.sendToPlayer(player, RaceStatePayload.INACTIVE);
             if (!player.hasDisconnected() && player.gameMode.getGameModeForPlayer() != previousMode)
                 player.setGameMode(previousMode);
         }

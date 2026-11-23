@@ -155,6 +155,17 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue TRACK_BUILD_COLUMNS_PER_TICK;
     public static ModConfigSpec.IntValue RACE_COUNTDOWN_SECONDS;
     public static ModConfigSpec.IntValue RACE_GATE_CLEAR_SECONDS;
+    public static ModConfigSpec.DoubleValue RACE_SPEED_MAX_BONUS;
+    public static ModConfigSpec.DoubleValue RACE_CRUISE_RATIO;
+    public static ModConfigSpec.DoubleValue RACE_STAMINA_BASE;
+    public static ModConfigSpec.DoubleValue RACE_STAMINA_SCALE;
+    public static ModConfigSpec.DoubleValue RACE_LOW_STAMINA;
+    public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_START;
+    public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_END;
+    public static ModConfigSpec.DoubleValue RACE_JUMP_STAMINA;
+    public static ModConfigSpec.IntValue RACE_REST_SECONDS;
+    public static ModConfigSpec.DoubleValue RACE_STAMINA_REGEN_PERCENT;
+    public static ModConfigSpec.DoubleValue RACE_ACTION_POINT_REGEN;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -462,6 +473,30 @@ public class UmapyoiConfig {
                 .defineInRange("race_countdown_seconds", 3, 1, 10);
         RACE_GATE_CLEAR_SECONDS = COMMON_BUILDER.comment("The starting gates are taken off the course this many seconds after they open.")
                 .defineInRange("race_gate_clear_seconds", 8, 1, 60);
+        RACE_SPEED_MAX_BONUS = COMMON_BUILDER.comment("Race speed: the most the speed stat can add to an Umamusume's sprint, as a fraction (survival uses 0.84).",
+                "A race sprint is the plain player's sprint plus the Umamusume bonus (body + speed stat, mood and growth rate included).",
+                "Graduated and active souls both count at full strength in races for now.")
+                .defineInRange("race_speed_max_bonus", 0.5, 0.0, 10.0);
+        RACE_CRUISE_RATIO = COMMON_BUILDER.comment("Race speed: walking (cruising) is this fraction of the current sprint speed, and costs no stamina.")
+                .defineInRange("race_cruise_ratio", 0.85, 0.1, 1.0);
+        RACE_STAMINA_BASE = COMMON_BUILDER.comment("Race stamina: blocks of sprinting any runner has (one point per block sprinted).")
+                .defineInRange("race_stamina_base", 250.0, 1.0, 100000.0);
+        RACE_STAMINA_SCALE = COMMON_BUILDER.comment("Race stamina: blocks the stamina stat adds at most (same curve as speed).")
+                .defineInRange("race_stamina_scale", 500.0, 0.0, 100000.0);
+        RACE_LOW_STAMINA = COMMON_BUILDER.comment("Race stamina: below this fraction of the bar, the Umamusume speed bonus drops.")
+                .defineInRange("race_low_stamina", 0.5, 0.0, 1.0);
+        RACE_LOW_BONUS_START = COMMON_BUILDER.comment("Race stamina: the bonus drops at once to this fraction when stamina falls below the line above...")
+                .defineInRange("race_low_bonus_start", 0.8, 0.0, 1.0);
+        RACE_LOW_BONUS_END = COMMON_BUILDER.comment("...and keeps falling to this fraction at empty.")
+                .defineInRange("race_low_bonus_end", 0.1, 0.0, 1.0);
+        RACE_JUMP_STAMINA = COMMON_BUILDER.comment("Race stamina: points each jump costs (the same as sprinting this many blocks).")
+                .defineInRange("race_jump_stamina", 10.0, 0.0, 10000.0);
+        RACE_REST_SECONDS = COMMON_BUILDER.comment("Race stamina: standing still this long starts a slow recovery.")
+                .defineInRange("race_rest_seconds", 2, 0, 60);
+        RACE_STAMINA_REGEN_PERCENT = COMMON_BUILDER.comment("Race stamina: percent of the bar recovered per second while resting.")
+                .defineInRange("race_stamina_regen_percent", 0.5, 0.0, 100.0);
+        RACE_ACTION_POINT_REGEN = COMMON_BUILDER.comment("Skill action points recover at this fraction of the usual rate in the race world.")
+                .defineInRange("race_action_point_regen", 0.5, 0.0, 1.0);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

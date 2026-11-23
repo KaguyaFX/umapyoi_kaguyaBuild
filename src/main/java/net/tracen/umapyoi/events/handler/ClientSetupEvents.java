@@ -20,6 +20,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.block.entity.BlockEntityRegistry;
 import net.tracen.umapyoi.client.ActionBarOverlay;
+import net.tracen.umapyoi.client.StaminaOverlay;
 import net.tracen.umapyoi.client.CareerOverlay;
 import net.tracen.umapyoi.client.MotivationOverlay;
 import net.tracen.umapyoi.client.SkillOverlay;
@@ -148,6 +149,7 @@ public class ClientSetupEvents {
         event.registerBelowAll(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "skill_overlay"), SkillOverlay.INSTANCE);
         event.registerBelowAll(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "motivation_overlay"), MotivationOverlay.INSTANCE);
         event.registerBelowAll(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "action_bar"), ActionBarOverlay.INSTANCE);
+        event.registerBelowAll(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "stamina_bar"), StaminaOverlay.INSTANCE);
         event.registerBelowAll(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "career_calendar"), CareerOverlay.INSTANCE);
     }
 
