@@ -16,8 +16,9 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
 
 /**
  * /umapyoi racetrack build [straight_m radius_m width]: builds a prototype racecourse around the
- * caller (the infield's middle where they stand) and puts them at the start of the home straight.
- * Without arguments the sizes come from the config. It overwrites the area; use a test world.
+ * caller (the infield's middle where they stand), a slice per tick, and then puts them at the
+ * start of the home straight. Without arguments the sizes come from the config. It overwrites the
+ * area; use a test world.
  */
 public class RaceTrackCommand {
     /** Distance poles stand every this many race meters before the finish. */
@@ -38,25 +39,33 @@ public class RaceTrackCommand {
     }
 
     private static int build(CommandSourceStack source, double straightMeters, double radiusMeters, int width) {
+        if (TrackBuilder.busy()) {
+            source.sendFailure(Component.translatable("umapyoi.command.racetrack.busy"));
+            return 0;
+        }
         ServerLevel level = source.getLevel();
         double metersPerBlock = UmapyoiConfig.RACE_METERS_PER_BLOCK.get();
-        TrackGeometry track = TrackGeometry.fromMeters(straightMeters, radiusMeters, width, metersPerBlock);
+        TrackGeometry track = TrackGeometry.fromMeters(straightMeters, radiusMeters, width,
+                UmapyoiConfig.TRACK_FINISH_METERS.get(), metersPerBlock);
         BlockPos ground = BlockPos.containing(source.getPosition()).below();
+        ServerPlayer player = source.getEntity() instanceof ServerPlayer p ? p : null;
 
-        long start = System.nanoTime();
-        TrackBuilder.Result result = TrackBuilder.build(level, ground, track, POLE_METERS / metersPerBlock);
-        long millis = (System.nanoTime() - start) / 1_000_000;
-
-        double lap = track.lap();
-        source.sendSuccess(() -> Component.translatable("umapyoi.command.racetrack.built",
-                String.format("%.0f", lap), String.format("%.0f", lap * metersPerBlock),
-                result.sizeX(), result.sizeZ(), millis), true);
-
-        if (source.getEntity() instanceof ServerPlayer player) {
-            TrackGeometry.Point view = result.view();
-            player.teleportTo(level, ground.getX() + view.x(), ground.getY() + 1, ground.getZ() + view.z(),
-                    view.yaw(), 0);
-        }
+        TrackBuilder.start(level, ground, track, POLE_METERS / metersPerBlock,
+                percent -> {
+                    if (player != null)
+                        player.displayClientMessage(Component.translatable("umapyoi.command.racetrack.progress", percent), true);
+                },
+                result -> {
+                    double lap = track.lap();
+                    source.sendSuccess(() -> Component.translatable("umapyoi.command.racetrack.built",
+                            String.format("%.0f", lap), String.format("%.0f", lap * metersPerBlock),
+                            result.sizeX(), result.sizeZ(), result.millis()), true);
+                    if (player != null && !player.isRemoved() && player.level() == level) {
+                        TrackGeometry.Point view = result.view();
+                        player.teleportTo(level, ground.getX() + view.x(), ground.getY() + 1, ground.getZ() + view.z(),
+                                view.yaw(), 0);
+                    }
+                });
         return 1;
     }
 }

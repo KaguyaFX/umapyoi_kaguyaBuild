@@ -151,6 +151,8 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue TRACK_STRAIGHT_METERS;
     public static ModConfigSpec.DoubleValue TRACK_CURVE_RADIUS_METERS;
     public static ModConfigSpec.IntValue TRACK_WIDTH;
+    public static ModConfigSpec.DoubleValue TRACK_FINISH_METERS;
+    public static ModConfigSpec.IntValue TRACK_BUILD_COLUMNS_PER_TICK;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
 
@@ -450,6 +452,10 @@ public class UmapyoiConfig {
                 .defineInRange("track_curve_radius_meters", 165.0, 10.0, 5000.0);
         TRACK_WIDTH = COMMON_BUILDER.comment("Racecourse: width of the running surface, in blocks (one starting stall is one block).")
                 .defineInRange("track_width", 20, 4, 64);
+        TRACK_FINISH_METERS = COMMON_BUILDER.comment("Racecourse: the finish line is this many meters before the home straight ends in the curve.")
+                .defineInRange("track_finish_meters", 100.0, 0.0, 5000.0);
+        TRACK_BUILD_COLUMNS_PER_TICK = COMMON_BUILDER.comment("Building a racecourse: block columns placed per tick. Lower it if building lags.")
+                .defineInRange("track_build_columns_per_tick", 1500, 16, 100000);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();

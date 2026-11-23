@@ -991,6 +991,8 @@
   "umapyoi.uma.no_riding": "ウマ娘は馬には乗らない",
   "umapyoi.career.notebook_cap": "%sの上限 +%s",
   "umapyoi.command.racetrack.built": "コースを生成しました：1周 %s ブロック（%s m）、全体 %s × %s ブロック、%s ミリ秒。",
+  "umapyoi.command.racetrack.busy": "別のコースを生成中です。",
+  "umapyoi.command.racetrack.progress": "コース生成中…… %s%%",
   "item.umapyoi.career_keepsake": "思い出",
   "item.umapyoi.career_keepsake.named": "%sの思い出",
   "item.umapyoi.career_keepsake.desc": "本当に忘れられない時間だったね。",

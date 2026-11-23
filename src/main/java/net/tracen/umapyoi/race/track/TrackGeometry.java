@@ -6,14 +6,15 @@ package net.tracen.umapyoi.race.track;
  * <p>
  * Units are blocks. The origin is the middle of the infield and the straights run along X.
  * Runners go clockwise seen from above (north up): east along the north straight, west along the
- * south one. The south straight is the home straight, and progress 0 is the finish line at its
- * west end.
+ * south one. The south straight is the home straight. Progress 0 is the finish line, {@code finish}
+ * blocks before the home straight runs into the curve.
  *
  * @param straight length of each straight
  * @param radius   radius of the centre line in the curves
  * @param width    width of the running surface
+ * @param finish   how far before the end of the home straight the finish line is (0 to straight)
  */
-public record TrackGeometry(double straight, double radius, double width) {
+public record TrackGeometry(double straight, double radius, double width, double finish) {
 
     /** Where a spot is: how far along the centre line (0 to lap) and how far off it (positive is outside). */
     public record Spot(double progress, double offset) {
@@ -23,8 +24,11 @@ public record TrackGeometry(double straight, double radius, double width) {
     public record Point(double x, double z, float yaw) {
     }
 
-    public static TrackGeometry fromMeters(double straightMeters, double radiusMeters, double widthBlocks, double metersPerBlock) {
-        return new TrackGeometry(straightMeters / metersPerBlock, radiusMeters / metersPerBlock, widthBlocks);
+    public static TrackGeometry fromMeters(double straightMeters, double radiusMeters, double widthBlocks,
+            double finishMeters, double metersPerBlock) {
+        double straight = straightMeters / metersPerBlock;
+        double finish = Math.min(Math.max(finishMeters / metersPerBlock, 0), straight);
+        return new TrackGeometry(straight, radiusMeters / metersPerBlock, widthBlocks, finish);
     }
 
     public double lap() {
@@ -33,6 +37,11 @@ public record TrackGeometry(double straight, double radius, double width) {
 
     private double curve() {
         return Math.PI * radius;
+    }
+
+    /** Progress where the home straight begins (the end of the last curve). */
+    public double homeStraightStart() {
+        return wrap(lap() - straight + finish);
     }
 
     /** Half the extent along X and Z of everything up to {@code beyond} blocks outside the running surface. */
@@ -46,33 +55,34 @@ public record TrackGeometry(double straight, double radius, double width) {
 
     public Spot locate(double x, double z) {
         double half = straight / 2;
-        double progress;
+        double raw;
         double offset;
         if (x < -half) {
-            // West curve, entered right after the finish line. Angle runs from pi/2 (south) to 3pi/2 (north).
+            // West curve, right after the home straight. Angle runs from pi/2 (south) to 3pi/2 (north).
             double dx = x + half;
             double angle = Math.atan2(z, dx);
             if (angle < 0)
                 angle += 2 * Math.PI;
             offset = Math.hypot(dx, z) - radius;
-            progress = (angle - Math.PI / 2) * radius;
+            raw = (angle - Math.PI / 2) * radius;
         } else if (x > half) {
             // East curve. Angle runs from -pi/2 (north) to pi/2 (south).
             double dx = x - half;
             offset = Math.hypot(dx, z) - radius;
-            progress = curve() + straight + (Math.atan2(z, dx) + Math.PI / 2) * radius;
+            raw = curve() + straight + (Math.atan2(z, dx) + Math.PI / 2) * radius;
         } else if (z < 0) {
             offset = -z - radius;
-            progress = curve() + (x + half);
+            raw = curve() + (x + half);
         } else {
             offset = z - radius;
-            progress = 2 * curve() + straight + (half - x);
+            raw = 2 * curve() + straight + (half - x);
         }
-        return new Spot(wrap(progress), offset);
+        // "raw" starts where the home straight meets the west curve; the finish is a little before that.
+        return new Spot(wrap(raw + finish), offset);
     }
 
     public Point pointAt(double progress, double offset) {
-        double p = wrap(progress);
+        double p = wrap(progress - finish);
         double half = straight / 2;
         double r = radius + offset;
         double c = curve();
@@ -100,7 +110,7 @@ public record TrackGeometry(double straight, double radius, double width) {
         return (float) Math.toDegrees(Math.atan2(-dx, dz));
     }
 
-    private double wrap(double progress) {
+    public double wrap(double progress) {
         double lap = lap();
         double p = progress % lap;
         return p < 0 ? p + lap : p;
