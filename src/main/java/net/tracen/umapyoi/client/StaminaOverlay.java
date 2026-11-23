@@ -57,5 +57,11 @@ public class StaminaOverlay implements LayeredDraw.Layer {
 
         String text = String.valueOf(Math.round(fraction * 100)) + "%";
         graphics.drawString(minecraft.font, text, x + 8, y - 3 - bar, 0xFFFFFF);
+
+        // Speedometer under the bar: ground speed over the last tick, in race km/h.
+        var player = minecraft.player;
+        double blocksPerSecond = Math.hypot(player.getX() - player.xo, player.getZ() - player.zo) * 20;
+        double kmh = blocksPerSecond * UmapyoiConfig.RACE_METERS_PER_BLOCK.get() * 3.6;
+        graphics.drawString(minecraft.font, String.format("%.0f km/h", kmh), x - 4, y + 4, 0xFFFFFF);
     }
 }
