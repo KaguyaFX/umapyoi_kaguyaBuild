@@ -27,6 +27,11 @@ public final class RaceClientState {
         active = false;
     }
 
+    /** The last state as a payload, or null when not racing. */
+    public static RaceStatePayload current() {
+        return active ? new RaceStatePayload(true, stamina, maxStamina, bonusRatio, cruiseRatio) : null;
+    }
+
     public static boolean active() {
         return active;
     }

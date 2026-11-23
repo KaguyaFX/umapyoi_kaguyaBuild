@@ -15,6 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.career.CareerManager;
@@ -30,8 +31,9 @@ import net.tracen.umapyoi.client.key.SkillKeyMapping;
 /**
  * Career calendar, only while the worn soul is in its three-year career: a banner with the
  * current period, and a calendar page counting the periods left (62 down to 1). A red "!" on the
- * banner means there are events the player hasn't looked at; the "show events" key fades in the
- * event list to the right of the calendar.
+ * banner means there are events the player hasn't looked at; a yellow pause sign in its place means
+ * the career is paused (in the race world). The "show events" key fades in the event list to the
+ * right of the calendar.
  */
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -44,7 +46,7 @@ public class CareerOverlay implements LayeredDraw.Layer {
     private static final int BANNER_H = 14, BANNER_CAP = 6, BANNER_TILE = 16, BANNER_MIN_W = 44;
     private static final int PAGE_W = 32, PAGE_H = 44;
     private static final int FOOTER_COLOR = 0x1F3F72;
-    private static final int BADGE_U = 100, BADGE_SIZE = 9;
+    private static final int BADGE_U = 100, PAUSE_U = 109, BADGE_SIZE = 9;
     private static final int LIST_W = 156, ROW_H = 22;
     private static final int NAVY = 0x1F3F72, OUTLINE = 0x1968B3, SEPARATOR = 0xC3CEDC, HINT = 0x66768C,
             RED = 0xDD3C3C, HEADER_KEY = 0xD8EEFC;
@@ -117,7 +119,10 @@ public class CareerOverlay implements LayeredDraw.Layer {
         CareerEventsClient.markSeenIfOpen(careerId, active);
         float visibility = CareerEventsClient.visibility();
         if (visibility <= 0F) {
-            if (CareerEventsClient.hasUnseen(careerId, active))
+            // In the race world the career is paused: a yellow pause sign takes the badge's place.
+            if (minecraft.level != null && RaceWorld.isRaceWorld(minecraft.level))
+                graphics.blit(TEXTURE, x + bannerW - 6, y - 3, PAUSE_U, 0, BADGE_SIZE, BADGE_SIZE, TEX_W, TEX_H);
+            else if (CareerEventsClient.hasUnseen(careerId, active))
                 graphics.blit(TEXTURE, x + bannerW - 6, y - 3, BADGE_U, 0, BADGE_SIZE, BADGE_SIZE, TEX_W, TEX_H);
             return;
         }

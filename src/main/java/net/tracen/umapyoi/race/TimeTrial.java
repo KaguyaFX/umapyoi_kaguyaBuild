@@ -90,6 +90,12 @@ public final class TimeTrial {
         return current != null;
     }
 
+    /** A runner's speed state once the gates are open, or null if they aren't running. */
+    @Nullable
+    public static RaceStatePayload state(ServerPlayer player) {
+        return current != null && current.player == player && current.openTick >= 0 ? current.state() : null;
+    }
+
     /** @return false if this player has no trial running */
     public static boolean cancel(ServerPlayer player) {
         if (current == null || current.player != player)
@@ -322,10 +328,14 @@ public final class TimeTrial {
             stamina = Math.max(0, stamina - UmapyoiConfig.RACE_JUMP_STAMINA.get());
         }
 
-        private void sendState() {
+        RaceStatePayload state() {
             double left = RaceStats.bonusLeft(stamina / stats.stamina());
-            PacketDistributor.sendToPlayer(player, new RaceStatePayload(true, (float) stamina, (float) stats.stamina(),
-                    (float) (stats.bonusRatio() * left), UmapyoiConfig.RACE_CRUISE_RATIO.get().floatValue()));
+            return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(),
+                    (float) (stats.bonusRatio() * left), UmapyoiConfig.RACE_CRUISE_RATIO.get().floatValue());
+        }
+
+        private void sendState() {
+            PacketDistributor.sendToPlayer(player, state());
         }
 
         private TrackGeometry.Spot here() {
