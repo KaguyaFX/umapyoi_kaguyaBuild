@@ -40,6 +40,8 @@ import net.tracen.umapyoi.block.Gate;
 import net.tracen.umapyoi.block.GateDoor;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
+import net.tracen.umapyoi.utils.Distance;
+import net.tracen.umapyoi.utils.Surface;
 import net.tracen.umapyoi.utils.ThreeBlockPart;
 
 /**
@@ -76,7 +78,8 @@ public final class TimeTrial {
     private TimeTrial() {
     }
 
-    public static Start start(ServerPlayer player, double distanceMeters) {
+    /** @param surface what the race is run on; the course is turf for now, so it only matters for the aptitude */
+    public static Start start(ServerPlayer player, double distanceMeters, Surface surface) {
         if (current != null || TrackBuilder.busy())
             return Start.BUSY;
         if (!RaceWorld.isRaceWorld(player.level()))
@@ -86,7 +89,7 @@ public final class TimeTrial {
         TrackGeometry track = data.track();
         if (!data.built() || track == null)
             return Start.NO_COURSE;
-        current = new Run(player, level, track, data.origin(), distanceMeters);
+        current = new Run(player, level, track, data.origin(), distanceMeters, surface);
         return Start.STARTED;
     }
 
@@ -178,7 +181,7 @@ public final class TimeTrial {
         private double progress;
         private double lastSpot;
 
-        Run(ServerPlayer player, ServerLevel level, TrackGeometry track, BlockPos origin, double distanceMeters) {
+        Run(ServerPlayer player, ServerLevel level, TrackGeometry track, BlockPos origin, double distanceMeters, Surface surface) {
             this.player = player;
             this.level = level;
             this.track = track;
@@ -189,7 +192,7 @@ public final class TimeTrial {
             this.previousMode = player.gameMode.getGameModeForPlayer();
             this.countdownTicks = UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get() * 20;
             ItemStack soul = UmapyoiAPI.getUmaSoul(player);
-            this.stats = RaceStats.of(soul, RaceStyle.of(soul, level));
+            this.stats = RaceStats.of(soul, RaceStyle.of(soul, level), surface, Distance.match((int) Math.round(distanceMeters)));
             var attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
             this.plainSprint = (attribute == null ? 0.1 : attribute.getBaseValue()) * 1.3 * RaceSpeed.BLOCKS_PER_SECOND;
             this.layout = new RaceLayout(track, distance);
@@ -216,6 +219,20 @@ public final class TimeTrial {
                 player.setGameMode(GameType.ADVENTURE);
             player.teleportTo(level, stallX, origin.getY() + 1, stallZ, yaw, 0);
             player.connection.send(new ClientboundSetTitlesAnimationPacket(0, 25, 5));
+            sendStats(surface);
+        }
+
+        /** What the race makes of this soul: shown once at the start, for testing. */
+        private void sendStats(Surface surface) {
+            player.sendSystemMessage(Component.translatable("umapyoi.race.trial.stats",
+                    String.format("%.1f", stats.bonusRatio() * 100),
+                    String.format("%.2f", stats.accel()),
+                    String.format("%.0f", stats.stamina()),
+                    String.format("%.0f", stats.emptyFloor() * 100),
+                    String.format("%.2f", stats.mood()),
+                    Component.translatable("umapyoi.race.surface." + surface.name().toLowerCase(java.util.Locale.ROOT)),
+                    String.format("%.2f", stats.surfaceFactor()),
+                    String.format("%.2f", stats.distanceFactor())));
         }
 
         private BlockPos cell(TrackGeometry.Point point) {
@@ -350,7 +367,7 @@ public final class TimeTrial {
          */
         RaceStatePayload state() {
             RacePhase phase = layout.phase(progress);
-            double left = RaceStats.bonusLeft(stamina / stats.stamina());
+            double left = RaceStats.bonusLeft(stamina / stats.stamina(), stats.emptyFloor());
             // Speed skills give the Speed effect; in a race it multiplies only the Umamusume bonus.
             double skill = 1;
             MobEffectInstance speedEffect = player.getEffect(MobEffects.MOVEMENT_SPEED);

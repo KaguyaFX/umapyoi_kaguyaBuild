@@ -14,6 +14,7 @@ import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.race.RacecourseData;
 import net.tracen.umapyoi.race.TimeTrial;
+import net.tracen.umapyoi.utils.Surface;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 
@@ -74,7 +75,7 @@ public class RaceCommand {
     }
 
     private static int trial(CommandSourceStack source, double distanceMeters) throws CommandSyntaxException {
-        String key = switch (TimeTrial.start(source.getPlayerOrException(), distanceMeters)) {
+        String key = switch (TimeTrial.start(source.getPlayerOrException(), distanceMeters, Surface.TURF)) {
             case STARTED -> null;
             case BUSY -> "umapyoi.command.race.trial_busy";
             case NOT_THERE -> "umapyoi.command.race.not_there";

@@ -250,6 +250,10 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.trial.go", "Go!");
         add("umapyoi.race.trial.hud", "%s m to go   %s");
         add("umapyoi.race.trial.result", "Time trial, %s m: %s");
+        add("umapyoi.race.surface.dirt", "dirt");
+        add("umapyoi.race.surface.synthetic", "synthetic");
+        add("umapyoi.race.surface.turf", "turf");
+        add("umapyoi.race.trial.stats", "Uma speed bonus +%s%%, acceleration %s blocks/s², stamina %s blocks, bonus kept at empty %s%%, mood ×%s, %s aptitude ×%s, distance aptitude ×%s");
         add("umapyoi.race.motion.accelerating", "Accelerating");
         add("umapyoi.race.motion.cruising", "Cruising");
         add("umapyoi.race.motion.decelerating", "Slowing");

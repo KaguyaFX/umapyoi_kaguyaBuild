@@ -181,6 +181,8 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_COAST_DECEL;
     public static ModConfigSpec.DoubleValue RACE_STOP_DECEL;
     public static ModConfigSpec.DoubleValue RACE_STYLE_STRENGTH;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_MOOD_MULTIPLIERS;
+    public static ModConfigSpec.DoubleValue RACE_GUTS_FLOOR_MAX;
     public static ModConfigSpec.DoubleValue RACE_ACTION_POINT_REGEN_MAX;
     public static ModConfigSpec.DoubleValue EVENT_ACUPUNCTURE_CHANCE;
     public static ModConfigSpec.IntValue EVENT_NEW_YEAR_BUFF_SECONDS;
@@ -550,6 +552,12 @@ public class UmapyoiConfig {
                 .defineInRange("race_coast_decel", 0.8, 0.0, 100.0);
         RACE_STOP_DECEL = COMMON_BUILDER.comment("Race coasting: deceleration once the rolling is over, in blocks per second per second.")
                 .defineInRange("race_stop_decel", 8.0, 0.0, 1000.0);
+        RACE_MOOD_MULTIPLIERS = COMMON_BUILDER.comment("Race: what the motivation multiplies every stat by, from perfect to bad (the original game's values).",
+                "Survival's multipliers are separate.")
+                .defineList("race_mood_multipliers", java.util.List.of(1.04, 1.02, 1.0, 0.98, 0.96), () -> 1.0,
+                        value -> value instanceof Number number && number.doubleValue() >= 0 && number.doubleValue() <= 10);
+        RACE_GUTS_FLOOR_MAX = COMMON_BUILDER.comment("Race stamina: how much of the Umamusume speed bonus is still there at empty for the highest guts (lowest guts: race_low_bonus_end).")
+                .defineInRange("race_guts_floor_max", 0.4, 0.0, 1.0);
         COMMON_BUILDER.pop();
 
         COMMON_CONFIG = COMMON_BUILDER.build();
