@@ -163,6 +163,7 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_START;
     public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_END;
     public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_SPEED;
+    public static ModConfigSpec.DoubleValue RACE_AI_ERROR;
     public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_SPRINT;
     public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_ACCEL;
     public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_UNTIL;
@@ -522,6 +523,9 @@ public class UmapyoiConfig {
                 .defineInRange("race_exhausted_accel", 0.5, 0.0, 1.0);
         RACE_EXHAUSTED_UNTIL = COMMON_BUILDER.comment("Race exhaustion: it ends when stamina is back to this fraction of the bar, so a short rest doesn't clear it.")
                 .defineInRange("race_exhausted_until", 0.1, 0.0, 1.0);
+        RACE_AI_ERROR = COMMON_BUILDER.comment("Computer runners: how badly they time their last sprint, as a fraction of the race's distance (standard deviation;",
+                "0 = always perfect).")
+                .defineInRange("race_ai_error", 0.04, 0.0, 0.5);
         RACE_JUMP_STAMINA = COMMON_BUILDER.comment("Race stamina: points each jump costs (the same as sprinting this many blocks).")
                 .defineInRange("race_jump_stamina", 10.0, 0.0, 10000.0);
         RACE_REST_SECONDS = COMMON_BUILDER.comment("Race stamina: standing still this long starts a slow recovery.")

@@ -278,6 +278,11 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.section.final_straight", "Final straight");
         add("umapyoi.race.section.home_straight", "Homestretch");
         add("umapyoi.race.speed", "%s blocks/s");
+        add("entity.umapyoi.race_runner", "Runner");
+        add("umapyoi.race.rank", "%s/%s");
+        add("umapyoi.race.result.header", "%s m race");
+        add("umapyoi.race.result.unplaced", "still running");
+        add("umapyoi.race.result.waiting", "Waiting for the others to finish...");
         add("umapyoi.race.stash.give_failed", "Couldn't give back what was kept for you. It's still in keeping; an operator can look in the server log.");
         add("umapyoi.race.stash.given", "You have your things back.");
         add("umapyoi.race.stash.take_failed", "Couldn't put your things in keeping, so you can't stay at the racecourse.");

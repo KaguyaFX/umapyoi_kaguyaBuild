@@ -5,6 +5,7 @@ import java.util.Locale;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
@@ -30,7 +31,9 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  * <li>/umapyoi race leave: go back.</li>
  * <li>/umapyoi race trial [distance_m] [turf|dirt|synthetic] [right|left] [sunny|rain|thunder]: a solo
  * time trial from the stalls on the finish line (2000 m on turf, right-handed, sunny, by default).</li>
- * <li>/umapyoi race cancel: stop your time trial.</li>
+ * <li>/umapyoi race start (opponents) [level] [the same]: a race against computer runners whose stats are
+ * around a level (1 to 39; 0 or nothing for like yours).</li>
+ * <li>/umapyoi race cancel: stop your race.</li>
  * <li>/umapyoi racetrack rebuild [lap_m straight_m width]: rebuild the course from the config or
  * the given sizes, clearing the old one.</li>
  * </ul>
@@ -42,6 +45,7 @@ public class RaceCommand {
                 .then(Commands.literal("enter").executes(ctx -> enter(ctx.getSource())))
                 .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource())))
                 .then(trialArguments())
+                .then(startArguments())
                 .then(Commands.literal("cancel").executes(ctx -> cancel(ctx.getSource()))));
         return builder.then(Commands.literal("racetrack").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("rebuild")
@@ -55,27 +59,48 @@ public class RaceCommand {
                                                         IntegerArgumentType.getInteger(ctx, "width")))))))));
     }
 
-    /** Each argument may be left off, from the right. */
-    private static LiteralArgumentBuilder<CommandSourceStack> trialArguments() {
+    private interface RaceStart {
+        int run(CommandContext<CommandSourceStack> ctx, RaceSetup setup) throws CommandSyntaxException;
+    }
+
+    /** distance [surface] [direction] [weather]: each may be left off, from the right. */
+    private static RequiredArgumentBuilder<CommandSourceStack, Double> setupArguments(RaceStart start) {
         RaceSetup standard = RaceSetup.DEFAULT;
         var distance = Commands.argument("distance_m", DoubleArgumentType.doubleArg(200, 10000))
-                .executes(ctx -> trial(ctx, distance(ctx), standard.surface(), standard.leftHanded(), standard.weather()));
+                .executes(ctx -> start.run(ctx, new RaceSetup(distance(ctx), standard.surface(), standard.leftHanded(), standard.weather())));
         for (Surface surface : Surface.values()) {
             if (surface == Surface.ADAPTIVE)
                 continue;
             var surfaceNode = Commands.literal(lower(surface))
-                    .executes(ctx -> trial(ctx, distance(ctx), surface, standard.leftHanded(), standard.weather()));
+                    .executes(ctx -> start.run(ctx, new RaceSetup(distance(ctx), surface, standard.leftHanded(), standard.weather())));
             for (boolean left : new boolean[] { false, true }) {
                 var direction = Commands.literal(left ? "left" : "right")
-                        .executes(ctx -> trial(ctx, distance(ctx), surface, left, standard.weather()));
+                        .executes(ctx -> start.run(ctx, new RaceSetup(distance(ctx), surface, left, standard.weather())));
                 for (RaceWeather weather : RaceWeather.values())
                     direction.then(Commands.literal(lower(weather))
-                            .executes(ctx -> trial(ctx, distance(ctx), surface, left, weather)));
+                            .executes(ctx -> start.run(ctx, new RaceSetup(distance(ctx), surface, left, weather))));
                 surfaceNode.then(direction);
             }
             distance.then(surfaceNode);
         }
-        return Commands.literal("trial").executes(ctx -> trial(ctx.getSource(), standard)).then(distance);
+        return distance;
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> trialArguments() {
+        return Commands.literal("trial")
+                .executes(ctx -> start(ctx.getSource(), RaceSetup.DEFAULT, 0, 0))
+                .then(setupArguments((ctx, setup) -> start(ctx.getSource(), setup, 0, 0)));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> startArguments() {
+        return Commands.literal("start")
+                .then(Commands.argument("opponents", IntegerArgumentType.integer(1, 17))
+                        .executes(ctx -> start(ctx.getSource(), RaceSetup.DEFAULT, IntegerArgumentType.getInteger(ctx, "opponents"), 0))
+                        .then(Commands.argument("level", IntegerArgumentType.integer(0, 39))
+                                .executes(ctx -> start(ctx.getSource(), RaceSetup.DEFAULT, IntegerArgumentType.getInteger(ctx, "opponents"),
+                                        IntegerArgumentType.getInteger(ctx, "level")))
+                                .then(setupArguments((ctx, setup) -> start(ctx.getSource(), setup, IntegerArgumentType.getInteger(ctx, "opponents"),
+                                        IntegerArgumentType.getInteger(ctx, "level"))))));
     }
 
     private static double distance(CommandContext<CommandSourceStack> ctx) {
@@ -84,11 +109,6 @@ public class RaceCommand {
 
     private static String lower(Enum<?> value) {
         return value.name().toLowerCase(Locale.ROOT);
-    }
-
-    private static int trial(CommandContext<CommandSourceStack> ctx, double distance, Surface surface, boolean left,
-            RaceWeather weather) throws CommandSyntaxException {
-        return trial(ctx.getSource(), new RaceSetup(distance, surface, left, weather));
     }
 
     private static int enter(CommandSourceStack source) throws CommandSyntaxException {
@@ -113,8 +133,8 @@ public class RaceCommand {
         return 1;
     }
 
-    private static int trial(CommandSourceStack source, RaceSetup setup) throws CommandSyntaxException {
-        String key = switch (TimeTrial.start(source.getPlayerOrException(), setup)) {
+    private static int start(CommandSourceStack source, RaceSetup setup, int opponents, int level) throws CommandSyntaxException {
+        String key = switch (TimeTrial.start(source.getPlayerOrException(), setup, opponents, level)) {
             case STARTED, PREPARING -> null;
             case BUSY -> "umapyoi.command.race.trial_busy";
             case NOT_THERE -> "umapyoi.command.race.not_there";

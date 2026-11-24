@@ -14,6 +14,7 @@ import net.tracen.umapyoi.events.FindUmaSoulEvent;
 import net.tracen.umapyoi.item.UmaCostumeItem;
 import net.tracen.umapyoi.item.UmaSoulItem;
 import net.tracen.umapyoi.item.UmaSuitItem;
+import net.tracen.umapyoi.race.RunnerEntity;
 import net.tracen.umapyoi.registry.cosmetics.CosmeticData;
 import net.tracen.umapyoi.registry.races.Race;
 import net.tracen.umapyoi.registry.races.field.RaceField;
@@ -33,6 +34,8 @@ public class UmapyoiAPI {
 
     @OnlyIn(Dist.CLIENT)
     public static ItemStack getRenderingUmaSoul(LivingEntity entity) {
+        if (entity instanceof RunnerEntity runner)
+            return runner.soul();
         if (CuriosApi.getCuriosInventory(entity).isPresent()) {
             var itemHandler = CuriosApi.getCuriosInventory(entity).orElse(null);
             if (itemHandler == null)

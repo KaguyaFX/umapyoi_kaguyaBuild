@@ -22,6 +22,7 @@ import net.tracen.umapyoi.effect.MobEffectRegistry;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.loot.LootFunctionRegistry;
+import net.tracen.umapyoi.race.RaceEntities;
 import net.tracen.umapyoi.registry.*;
 import net.tracen.umapyoi.villager.VillageRegistry;
 
@@ -46,6 +47,7 @@ public class Umapyoi {
         MobEffectRegistry.EFFECTS.register(modEventBus);
         BlockRegistry.BLOCKS.register(modEventBus);
         BlockEntityRegistry.BLOCK_ENTITIES.register(modEventBus);
+        RaceEntities.ENTITY_TYPES.register(modEventBus);
         ItemRegistry.ITEMS.register(modEventBus);
         ContainerRegistry.CONTAINER_TYPES.register(modEventBus);
         LootFunctionRegistry.LOOT_FUNCTION_TYPES.register(modEventBus);

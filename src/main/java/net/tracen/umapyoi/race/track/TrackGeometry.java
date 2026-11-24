@@ -157,6 +157,11 @@ public record TrackGeometry(double straight, double radius, double width, double
         return radius + outer() + beyond;
     }
 
+    /** How much progress a block run at this offset makes: 1 on a straight, less on the outside of a curve. */
+    public double along(double progress, double offset) {
+        return section(wrap(progress)).straight() ? 1 : radius / Math.max(1, radius + offset);
+    }
+
     public Spot locate(double x, double z) {
         if (mirrored)
             x = -x;
