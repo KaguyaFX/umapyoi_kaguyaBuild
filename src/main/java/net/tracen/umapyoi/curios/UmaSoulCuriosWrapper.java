@@ -40,11 +40,15 @@ public class UmaSoulCuriosWrapper implements ICurio {
         this.stack = stack;
     }
 
+    /**
+     * Not the place to ask for the race world: Curios also asks it of a soul that is being worn when a player is
+     * loaded, and takes it off them if the answer is no.
+     */
     @Override
     public boolean canEquip(SlotContext slotContext) {
         // A soul whose training route is not chosen yet can't be worn (three-year career).
         return slotContext.identifier().equals("uma_soul") && UmaSoulUtils.hasSoulData(this.getStack())
-                && !CareerManager.isUndecided(this.getStack()) && !inRaceWorld(slotContext);
+                && !CareerManager.isUndecided(this.getStack());
     }
 
     @Override
@@ -53,7 +57,7 @@ public class UmaSoulCuriosWrapper implements ICurio {
                 && !CareerManager.isUndecided(this.getStack()) && !inRaceWorld(slotContext);
     }
 
-    /** In the race world the soul stays as it is: no putting one on, taking it off or swapping. */
+    /** In the race world the soul stays as it is: nobody has another one there to put on, and it doesn't come off. */
     @Override
     public boolean canUnequip(SlotContext slotContext) {
         return !inRaceWorld(slotContext);
