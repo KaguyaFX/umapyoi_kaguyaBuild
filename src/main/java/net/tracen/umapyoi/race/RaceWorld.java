@@ -25,7 +25,8 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
 /**
  * The race world: a separate dimension (flat, no mobs, always noon) where races are run, so race
  * rules never mix with survival. It holds one course, built the first time someone goes there.
- * Going in remembers where the player came from; leaving sends them back.
+ * Going in remembers where the player came from; leaving sends them back. What they carry stays at the
+ * door ({@link RaceStash}).
  */
 public final class RaceWorld {
     public static final ResourceKey<Level> RACECOURSE = ResourceKey.create(Registries.DIMENSION,

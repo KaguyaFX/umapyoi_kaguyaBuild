@@ -1,10 +1,15 @@
 package net.tracen.umapyoi.race;
 
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.food.FoodData;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.events.ResumeActionPointEvent;
@@ -12,8 +17,9 @@ import net.tracen.umapyoi.events.ResumeActionPointEvent;
 /**
  * Rules that hold for everyone in the race world. Hunger stays full: vanilla stops sprinting when
  * hunger runs low, which would fight the race's own stamina. Skill action points come back slower
- * ({@code race_action_point_regen}), and not at all while exhausted in a race. (The career clock and events pause there too; see
- * CareerManager and CareerEventHooks.)
+ * ({@code race_action_point_regen}), and not at all while exhausted in a race. Nobody is hurt or dies
+ * there: dying would drop the soul and skip the way out ({@link RaceStash}). (The career clock and
+ * events pause there too; see CareerManager and CareerEventHooks.)
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class RaceWorldEvents {
@@ -27,6 +33,25 @@ public final class RaceWorldEvents {
         FoodData food = player.getFoodData();
         food.setFoodLevel(20);
         food.setSaturation(5.0F);
+    }
+
+    @SubscribeEvent
+    public static void onDamage(LivingIncomingDamageEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && RaceWorld.isRaceWorld(player.level())
+                && !event.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+            event.setCanceled(true);
+    }
+
+    /** What still kills (a command, the void) puts them back at the course instead, out of any race. */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || !RaceWorld.isRaceWorld(player.level()))
+            return;
+        event.setCanceled(true);
+        player.setHealth(player.getMaxHealth());
+        TimeTrial.cancel(player);
+        ServerLevel race = player.serverLevel();
+        RaceWorld.sendToCourse(player, race, RacecourseData.get(race));
     }
 
     /**
