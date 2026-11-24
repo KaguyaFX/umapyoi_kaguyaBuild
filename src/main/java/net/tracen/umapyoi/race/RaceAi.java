@@ -81,16 +81,20 @@ final class RaceAi {
     private boolean lasts(RaceRunner runner, TrackGeometry track, double offset, double from) {
         runner.start(0);
         for (int tick = 0; tick < 20 * 600 && runner.progress() < distance; tick++) {
-            step(runner, track, offset, runner.progress() < earlyUntil || runner.progress() >= from);
+            step(runner, track, offset, runner.progress() < earlyUntil || runner.progress() >= from, RaceTraffic.FREE);
             if (runner.exhausted())
                 return false;
         }
         return true;
     }
 
-    /** One tick of a computer runner. */
-    static RaceStatePayload step(RaceRunner runner, TrackGeometry track, double offset, boolean sprint) {
-        RaceStatePayload state = runner.state(1);
+    /**
+     * One tick of a computer runner.
+     *
+     * @param limit the most the runner in front allows, in blocks per second
+     */
+    static RaceStatePayload step(RaceRunner runner, TrackGeometry track, double offset, boolean sprint, double limit) {
+        RaceStatePayload state = runner.state(1, limit);
         runner.move(state, sprint);
         double moved = runner.speed() / 20;
         runner.useStamina(state, moved);

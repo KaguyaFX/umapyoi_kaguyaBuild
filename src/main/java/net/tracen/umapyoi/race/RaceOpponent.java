@@ -31,7 +31,11 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
 /**
  * A computer runner: an Umamusume with made-up stats, her pacing ({@link RaceAi}) and
  * the figure people see ({@link RunnerEntity}). Where she is comes from her race progress and how far
- * off the inside she runs; nobody bumps into anybody, but she steps out around runners in her way.
+ * off the inside she runs.
+ * <p>
+ * She likes the inside. A slower runner in her way ({@link RaceTraffic}) makes her look for a lane to
+ * pass in: inside or outside of the bunch that one is in, whichever is free and nearer. She can't move
+ * into someone beside her, and she doesn't tuck in behind someone slower.
  */
 final class RaceOpponent {
     /** Each stat is the one asked for plus or minus up to this. */
@@ -45,10 +49,23 @@ final class RaceOpponent {
     private static final double LANE_SPREAD = 1;
     /** Blocks sideways per tick. */
     private static final double SIDESTEP = 0.06;
-    /** Room a runner takes up: along the course (behind, ahead) and across it. */
-    private static final double BESIDE = 1.0;
-    private static final double AHEAD = 2.5;
+    /** Beside her: within this along the course. */
+    private static final double BESIDE = 0.9;
+    /** Room between two runners side by side. */
     private static final double ACROSS = 0.95;
+    /** On top of each other: the outer one is moved off. */
+    private static final double OVERLAP = 0.5;
+    /** How far ahead she looks for someone to pass, and how many seconds she'd need to get to them at most. */
+    private static final double LOOK_AHEAD = 9;
+    private static final double CATCH_UP_SECONDS = 15;
+    /** Runners this close to each other along the course, and side by side, are one bunch. */
+    private static final double BUNCH_LENGTH = 3;
+    private static final double BUNCH_WIDTH = 1.7;
+    /** She keeps to the lane she passes in for this many ticks after there's nobody left to pass. */
+    private static final int LINGER = 30;
+    /** What a block outward counts for against a block inward, early and later on. */
+    private static final double OUTWARD_EARLY = 4;
+    private static final double OUTWARD = 1.15;
 
     private final RaceRunner runner;
     private final RaceAi ai;
@@ -57,14 +74,13 @@ final class RaceOpponent {
     private final double stallOffset;
     private final int delay;
     private double offset;
+    /** The lane she passes someone in, and until when. */
+    private double passing;
+    private int passingUntil = -1;
     @Nullable
     private RunnerEntity entity;
     /** Seconds since the gates opened; below zero while still running. */
     private double time = -1;
-
-    /** Someone to step around. */
-    record Other(double progress, double offset) {
-    }
 
     private RaceOpponent(RaceRunner runner, RaceAi ai, ItemStack soul, double lane, double stallOffset, int delay) {
         this.runner = runner;
@@ -73,6 +89,7 @@ final class RaceOpponent {
         this.lane = lane;
         this.stallOffset = stallOffset;
         this.offset = stallOffset;
+        this.passing = stallOffset;
         this.delay = delay;
     }
 
@@ -179,8 +196,8 @@ final class RaceOpponent {
         return time;
     }
 
-    Other place() {
-        return new Other(runner.progress(), offset);
+    RaceTraffic.Body body() {
+        return new RaceTraffic.Body(this, runner.progress(), offset, runner.speed());
     }
 
     /**
@@ -188,37 +205,140 @@ final class RaceOpponent {
      *
      * @param sinceOpen ticks since the gates opened
      * @param start     progress she starts from
+     * @param all       everyone still running (herself included)
      */
-    void tick(TrackGeometry track, double distance, int sinceOpen, double start, List<Other> others) {
+    void tick(TrackGeometry track, double distance, int sinceOpen, double start, List<RaceTraffic.Body> all) {
         if (sinceOpen < delay)
             return;
         if (!runner.started())
             runner.start(start);
         double before = runner.progress();
-        RaceAi.step(runner, track, offset, ai.sprint(runner));
+        RaceTraffic.Body me = body();
+        boolean sprint = ai.sprint(runner);
+        RaceStatePayload state = RaceAi.step(runner, track, offset, sprint, finished() ? RaceTraffic.FREE : RaceTraffic.limit(me, all));
         double step = runner.progress() - before;
         if (!finished() && runner.progress() >= distance && step > 0)
             time = (sinceOpen - 1 + (distance - before) / step) / 20.0;
-        steer(track, others);
+        steer(track, sinceOpen, runner.wanted(state, sprint), me, all);
         if (entity != null && !entity.isRemoved())
             entity.show(runner.progress(), offset, runner.speed());
     }
 
-    /** Over to the lane she likes, around whoever is level with her or just ahead there. */
-    private void steer(TrackGeometry track, List<Other> others) {
-        double want = runner.progress() < KEEP_LANE ? stallOffset : lane;
-        List<Other> near = new ArrayList<>();
-        for (Other other : others) {
-            double ahead = other.progress() - runner.progress();
-            // Exactly level can only be told apart by who is further in; the one outside gives way.
-            if (ahead > 0 ? ahead < AHEAD : ahead > -BESIDE && other.offset() < offset)
-                near.add(other);
+    /** One tick of choosing a lane and moving over to it. */
+    private void steer(TrackGeometry track, int tick, double wanted, RaceTraffic.Body me, List<RaceTraffic.Body> all) {
+        double inner = track.inner() + 0.5;
+        double outer = track.outer() - 0.5;
+        List<RaceTraffic.Body> others = all.stream().filter(other -> other.who() != this).toList();
+
+        double want;
+        RaceTraffic.Body slower = me.progress() < KEEP_LANE ? null : inTheWay(me, wanted, others);
+        if (me.progress() < KEEP_LANE) {
+            want = stallOffset;
+        } else if (slower != null) {
+            boolean arrived = Math.abs(passing - offset) < 0.3 || tick > passingUntil;
+            if (arrived || blockedSide(me, Math.signum(passing - offset), others))
+                passing = passingLane(me, slower, others, inner, outer);
+            passingUntil = tick + LINGER;
+            want = passing;
+        } else if (tick <= passingUntil) {
+            want = passing;
+        } else {
+            want = lane < offset && !worthMovingIn(me, wanted, others) ? offset : lane;
         }
-        near.sort((a, b) -> Double.compare(a.offset(), b.offset()));
-        for (Other other : near)
-            if (Math.abs(other.offset() - want) < ACROSS)
-                want = other.offset() + ACROSS;
-        want = Mth.clamp(want, track.inner() + 0.5, track.outer() - 0.5);
-        offset += Mth.clamp(want - offset, -SIDESTEP, SIDESTEP);
+
+        double step = Mth.clamp(Mth.clamp(want, inner, outer) - offset, -SIDESTEP, SIDESTEP);
+        if (step != 0 && !blockedSide(me, Math.signum(step), others))
+            offset += step;
+        // Never two in one place: the outer one is moved off.
+        for (RaceTraffic.Body other : others)
+            if (Math.abs(other.progress() - me.progress()) < OVERLAP && Math.abs(other.offset() - offset) < OVERLAP
+                    && (offset > other.offset() || offset == other.offset() && stallOffset > other.offset()))
+                offset = Math.min(outer, offset + SIDESTEP);
+    }
+
+    /** The nearest runner ahead in her lane whom she would catch. */
+    @Nullable
+    private RaceTraffic.Body inTheWay(RaceTraffic.Body me, double wanted, List<RaceTraffic.Body> others) {
+        RaceTraffic.Body nearest = null;
+        for (RaceTraffic.Body other : others) {
+            double gap = other.progress() - me.progress();
+            double faster = wanted - other.speed();
+            if (gap <= 0 || gap > LOOK_AHEAD || faster < 0.05 || gap / faster > CATCH_UP_SECONDS
+                    || Math.abs(other.offset() - offset) >= ACROSS)
+                continue;
+            if (nearest == null || other.progress() < nearest.progress())
+                nearest = other;
+        }
+        return nearest;
+    }
+
+    /** The free lane to pass {@code slower} in that costs least; her own if there is none. */
+    private double passingLane(RaceTraffic.Body me, RaceTraffic.Body slower, List<RaceTraffic.Body> others, double inner, double outer) {
+        // The bunch: everyone about level with them, side by side without a gap to slip through.
+        double innermost = slower.offset();
+        double outermost = slower.offset();
+        boolean grown = true;
+        while (grown) {
+            grown = false;
+            for (RaceTraffic.Body other : others) {
+                if (Math.abs(other.progress() - slower.progress()) > BUNCH_LENGTH)
+                    continue;
+                if (other.offset() < innermost && innermost - other.offset() < BUNCH_WIDTH) {
+                    innermost = other.offset();
+                    grown = true;
+                } else if (other.offset() > outermost && other.offset() - outermost < BUNCH_WIDTH) {
+                    outermost = other.offset();
+                    grown = true;
+                }
+            }
+        }
+        double best = offset;
+        double cost = Double.MAX_VALUE;
+        double outward = runner.phase() == RacePhase.OPENING ? OUTWARD_EARLY : OUTWARD;
+        for (double candidate : new double[] { innermost - 1, outermost + 1 }) {
+            if (candidate < inner - 0.01 || candidate > outer || !free(me, candidate, slower.progress() + 1, others))
+                continue;
+            double price = Math.abs(candidate - offset) * (candidate > offset ? outward : 1);
+            if (price < cost) {
+                cost = price;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    /** Nobody in that lane from beside her up to {@code until}, and nobody beside her on the way over. */
+    private boolean free(RaceTraffic.Body me, double lane, double until, List<RaceTraffic.Body> others) {
+        for (RaceTraffic.Body other : others) {
+            double gap = other.progress() - me.progress();
+            if (gap < -BESIDE || other.progress() > until)
+                continue;
+            if (Math.abs(other.offset() - lane) < ACROSS - 0.1)
+                return false;
+            if (gap < BESIDE && other.offset() > Math.min(lane, offset) && other.offset() < Math.max(lane, offset))
+                return false;
+        }
+        return true;
+    }
+
+    /** Someone right beside her on that side (-1 inside, 1 outside). */
+    private boolean blockedSide(RaceTraffic.Body me, double side, List<RaceTraffic.Body> others) {
+        for (RaceTraffic.Body other : others) {
+            double across = (other.offset() - offset) * side;
+            if (Math.abs(other.progress() - me.progress()) < BESIDE && across > 0 && across < ACROSS)
+                return true;
+        }
+        return false;
+    }
+
+    /** Further in there's nobody slower just ahead to get stuck behind. */
+    private boolean worthMovingIn(RaceTraffic.Body me, double wanted, List<RaceTraffic.Body> others) {
+        for (RaceTraffic.Body other : others) {
+            double gap = other.progress() - me.progress();
+            if (gap > -BESIDE && gap < LOOK_AHEAD && other.offset() < offset && offset - other.offset() < 1 + ACROSS
+                    && other.speed() < wanted + 0.1)
+                return false;
+        }
+        return true;
     }
 }

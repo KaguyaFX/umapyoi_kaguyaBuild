@@ -99,8 +99,9 @@ final class RaceRunner {
      * about the same, slower speed.
      *
      * @param skill what speed skills multiply the Umamusume bonus by (1 = none)
+     * @param limit the most the runner in front allows, in blocks per second ({@link RaceTraffic#limit})
      */
-    RaceStatePayload state(double skill) {
+    RaceStatePayload state(double skill, double limit) {
         RacePhase phase = phase();
         double left = RaceStats.bonusLeft(staminaFraction(), stats.emptyFloor());
         double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * skill);
@@ -118,7 +119,14 @@ final class RaceRunner {
                 (float) (UmapyoiConfig.RACE_START_DASH.get() * perTick),
                 UmapyoiConfig.RACE_SPRINT_KICK.get().floatValue(),
                 UmapyoiConfig.RACE_START_SPEED.get().floatValue(),
-                exhausted);
+                exhausted,
+                (float) (limit / plainSprint),
+                (float) (UmapyoiConfig.RACE_BLOCK_DECEL.get() * perTick));
+    }
+
+    /** How fast they would like to go, in blocks per second, if nobody were in the way. */
+    double wanted(RaceStatePayload state, boolean sprinting) {
+        return (sprinting ? state.sprintSpeed() : state.cruiseSpeed()) * plainSprint;
     }
 
     /**

@@ -1104,6 +1104,7 @@
   "umapyoi.race.ground.heavy": "heavy",
   "umapyoi.race.ground.yielding": "yielding",
   "umapyoi.race.motion.accelerating": "Accelerating",
+  "umapyoi.race.motion.blocked": "Blocked",
   "umapyoi.race.motion.cruising": "Cruising",
   "umapyoi.race.motion.decelerating": "Slowing",
   "umapyoi.race.motion.exhausted": "Exhausted",

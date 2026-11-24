@@ -20,9 +20,12 @@ import net.tracen.umapyoi.Umapyoi;
  * @param kick        how far from cruise to full speed starting a sprint jumps at once
  * @param startSpeed  speed when the gates open
  * @param exhausted   stamina ran out: no jumping (the speeds here already allow for it)
+ * @param limit       the most the runner in front allows (a big number when nobody is there)
+ * @param limitDecel  deceleration down to that
  */
 public record RaceStatePayload(boolean active, float stamina, float maxStamina, float sprintSpeed, float cruiseSpeed,
-        float accel, float decel, float dash, float kick, float startSpeed, boolean exhausted) implements CustomPacketPayload {
+        float accel, float decel, float dash, float kick, float startSpeed, boolean exhausted,
+        float limit, float limitDecel) implements CustomPacketPayload {
     public static final Type<RaceStatePayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "race_state"));
     public static final StreamCodec<ByteBuf, RaceStatePayload> STREAM_CODEC = StreamCodec.of(
             (buf, p) -> {
@@ -37,11 +40,14 @@ public record RaceStatePayload(boolean active, float stamina, float maxStamina, 
                 buf.writeFloat(p.kick);
                 buf.writeFloat(p.startSpeed);
                 buf.writeBoolean(p.exhausted);
+                buf.writeFloat(p.limit);
+                buf.writeFloat(p.limitDecel);
             },
             buf -> new RaceStatePayload(buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                    buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean()));
+                    buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(),
+                    buf.readFloat(), buf.readFloat()));
 
-    public static final RaceStatePayload INACTIVE = new RaceStatePayload(false, 0, 0, 1, 1, 0, 0, 0, 0, 0, false);
+    public static final RaceStatePayload INACTIVE = new RaceStatePayload(false, 0, 0, 1, 1, 0, 0, 0, 0, 0, false, 1000, 0);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

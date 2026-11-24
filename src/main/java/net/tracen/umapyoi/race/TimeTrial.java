@@ -238,6 +238,8 @@ public final class TimeTrial {
         private int openTick = -1;
         private double lastSpot;
         private double offset;
+        /** The player's speed along the course, smoothed, in blocks per second: what others behind them are held to. */
+        private double pace;
         /** The player's time in seconds; below zero while they're still running. */
         private double time = -1;
         private int finishTick;
@@ -399,9 +401,11 @@ public final class TimeTrial {
                 step += lap;
             lastSpot = spot.progress();
             offset = spot.offset();
-            if (Math.abs(step) <= RaceRunner.MAX_STEP)
+            if (Math.abs(step) <= RaceRunner.MAX_STEP) {
                 runner.advance(step);
-            RaceStatePayload state = runner.state(skill());
+                pace += (step * 20 - pace) * 0.3;
+            }
+            RaceStatePayload state = runner.state(skill(), RaceTraffic.limit(body(), bodies()));
             runner.move(state, player.isSprinting());
             double moved = Math.hypot(player.getX() - lastX, player.getZ() - lastZ);
             lastX = player.getX();
@@ -425,15 +429,24 @@ public final class TimeTrial {
                 return;
             if (ticks % 40 == 0)
                 keepCourseLoaded();
-            List<RaceOpponent.Other> everyone = new ArrayList<>();
-            if (time < 0)
-                everyone.add(new RaceOpponent.Other(runner.progress(), offset));
+            List<RaceTraffic.Body> everyone = bodies();
             for (RaceOpponent opponent : opponents)
-                everyone.add(opponent.place());
-            for (RaceOpponent opponent : opponents) {
-                RaceOpponent.Other self = opponent.place();
-                opponent.tick(track, distance, sinceOpen, START, everyone.stream().filter(other -> !other.equals(self)).toList());
-            }
+                opponent.tick(track, distance, sinceOpen, START, everyone);
+        }
+
+        private RaceTraffic.Body body() {
+            return new RaceTraffic.Body(player, runner.progress(), offset, pace);
+        }
+
+        /** Everyone still running. */
+        private List<RaceTraffic.Body> bodies() {
+            List<RaceTraffic.Body> bodies = new ArrayList<>();
+            if (time < 0)
+                bodies.add(body());
+            for (RaceOpponent opponent : opponents)
+                if (!opponent.finished())
+                    bodies.add(opponent.body());
+            return bodies;
         }
 
         /** The player is in; the rest have a while to come in too. @return true when it's all over */
@@ -518,7 +531,7 @@ public final class TimeTrial {
             offset = spot.offset();
             // Standing just behind the line: a little below zero.
             runner.start(spot.progress() > track.lap() / 2 ? spot.progress() - track.lap() : spot.progress());
-            PacketDistributor.sendToPlayer(player, runner.state(skill()));
+            PacketDistributor.sendToPlayer(player, runner.state(skill(), RaceTraffic.FREE));
             return false;
         }
 
@@ -545,7 +558,8 @@ public final class TimeTrial {
         private void showHud(RaceStatePayload state, int sinceOpen) {
             RacePhase phase = runner.phase();
             boolean sprinting = player.isSprinting();
-            String motionKey = runner.exhausted() ? "umapyoi.race.motion.exhausted"
+            String motionKey = RaceMotion.blocked(state, sprinting) ? "umapyoi.race.motion.blocked"
+                    : runner.exhausted() ? "umapyoi.race.motion.exhausted"
                     : runner.accelerating(state, sprinting) ? "umapyoi.race.motion.accelerating"
                     : runner.decelerating(state, sprinting) ? "umapyoi.race.motion.decelerating"
                     : sprinting ? "umapyoi.race.motion.full" : "umapyoi.race.motion.cruising";

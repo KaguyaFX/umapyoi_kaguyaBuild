@@ -266,6 +266,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.weather.sunny", "sunny");
         add("umapyoi.race.weather.thunder", "thunderstorm");
         add("umapyoi.race.motion.accelerating", "Accelerating");
+        add("umapyoi.race.motion.blocked", "Blocked");
         add("umapyoi.race.motion.cruising", "Cruising");
         add("umapyoi.race.motion.decelerating", "Slowing");
         add("umapyoi.race.motion.exhausted", "Exhausted");

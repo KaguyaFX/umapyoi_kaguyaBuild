@@ -1021,6 +1021,7 @@
   "umapyoi.race.weather.sunny": "晴",
   "umapyoi.race.weather.thunder": "雷雨",
   "umapyoi.race.motion.accelerating": "加速中",
+  "umapyoi.race.motion.blocked": "前が塞がっている",
   "umapyoi.race.motion.cruising": "巡航",
   "umapyoi.race.motion.decelerating": "減速中",
   "umapyoi.race.motion.exhausted": "スタミナ切れ",

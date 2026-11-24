@@ -8,6 +8,7 @@ package net.tracen.umapyoi.race;
  * <li>Below the target it accelerates (power); out of the gates there's an extra start dash until
  * cruising speed is first reached.</li>
  * <li>Above the target it slows at a fixed rate.</li>
+ * <li>Right behind another runner the target is at most what they allow, and it slows to that quickly.</li>
  * <li>Starting to sprint while already about at cruising speed puts the speed at once a little way
  * above the cruise (a floor, so tapping sprint again and again doesn't stack). Not from a
  * standstill: there the start dash and the power acceleration do the work.</li>
@@ -40,8 +41,17 @@ public final class RaceMotion {
         return speed > target(state, sprinting) + 1.0E-4;
     }
 
-    private static double target(RaceStatePayload state, boolean sprinting) {
+    private static double wanted(RaceStatePayload state, boolean sprinting) {
         return sprinting ? state.sprintSpeed() : state.cruiseSpeed();
+    }
+
+    private static double target(RaceStatePayload state, boolean sprinting) {
+        return Math.min(wanted(state, sprinting), state.limit());
+    }
+
+    /** Held up by the runner in front. */
+    public static boolean blocked(RaceStatePayload state, boolean sprinting) {
+        return state.limit() < wanted(state, sprinting) - 1.0E-4;
     }
 
     /** One tick of slowing down without any target: rolling to a stop, or braking. */
@@ -62,15 +72,15 @@ public final class RaceMotion {
         double cruise = state.cruiseSpeed();
         double sprint = state.sprintSpeed();
         if (sprinting && !wasSprinting && sprint > cruise && speed >= cruise * KICK_FROM)
-            speed = Math.max(speed, cruise + state.kick() * (sprint - cruise));
+            speed = Math.max(speed, Math.min(cruise + state.kick() * (sprint - cruise), state.limit()));
         wasSprinting = sprinting;
 
-        double target = sprinting ? sprint : cruise;
+        double target = target(state, sprinting);
         if (speed < target) {
             double accel = state.accel() + (dashing ? state.dash() : 0);
             speed = Math.min(target, speed + accel);
         } else {
-            speed = Math.max(target, speed - state.decel());
+            speed = Math.max(target, speed - (blocked(state, sprinting) ? state.limitDecel() : state.decel()));
         }
         if (dashing && speed >= cruise)
             dashing = false;
