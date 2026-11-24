@@ -1,6 +1,11 @@
 package net.tracen.umapyoi.container;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
@@ -14,6 +19,8 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 import net.tracen.umapyoi.block.BlockRegistry;
 import net.tracen.umapyoi.block.entity.RaceRegisterBlockEntity;
 import net.tracen.umapyoi.item.ItemRegistry;
+import net.tracen.umapyoi.race.RaceMeeting;
+import net.tracen.umapyoi.race.RaceMeetingClient;
 import net.tracen.umapyoi.utils.Position;
 import org.jetbrains.annotations.NotNull;
 
@@ -43,6 +50,78 @@ public class RaceContainer extends AbstractContainerMenu {
         this(i, playerInv, getTileEntity(playerInv, data), new SimpleContainerData(DATA_SLOT_SIZE));
     }
 
+    // ---------------------------------------------------------------- pages
+
+    /** The quick race in the terminal, and the race meeting. */
+    public static final int PAGE_QUICK = 0;
+    public static final int PAGE_MEETING = 1;
+    /** Button ids (0 and 1 show a page). */
+    public static final int BUTTON_CREATE = 10, BUTTON_CREATE_RUN = 11, BUTTON_ENTER = 12, BUTTON_WATCH = 13, BUTTON_WITHDRAW = 14;
+    private static final int QUICK_SLOTS = 6;
+    private static final int PLAYER_SLOTS = 36;
+    /** Where the ticket for a meeting goes; whatever is in it goes back to the player when they close the menu. */
+    public static final int MEETING_SLOT = QUICK_SLOTS + PLAYER_SLOTS;
+
+    private final Container meetingTicket = new SimpleContainer(1);
+    private int page = PAGE_QUICK;
+
+    public int getPage() {
+        return page;
+    }
+
+    /** Client side; the server is told through the button packet. */
+    public void setPage(int page) {
+        this.page = page;
+    }
+
+    /** While a race is being held the meeting page shows nothing but that. */
+    private boolean showsMeeting() {
+        return page == PAGE_MEETING && tileEntity.getLevel() != null && tileEntity.getLevel().isClientSide() && RaceMeetingClient.current() != null;
+    }
+
+    public ItemStack getMeetingTicket() {
+        return meetingTicket.getItem(0);
+    }
+
+    @Override
+    public boolean clickMenuButton(@Nonnull Player player, int id) {
+        if (id == PAGE_QUICK || id == PAGE_MEETING) {
+            this.page = id;
+            return true;
+        }
+        if (!(player instanceof ServerPlayer serverPlayer))
+            return false;
+        Component problem = null;
+        switch (id) {
+            case BUTTON_CREATE, BUTTON_CREATE_RUN -> {
+                ItemStack ticket = getMeetingTicket();
+                if (!ticket.is(ItemRegistry.UMA_RACE_TICKET.get()))
+                    return false;
+                problem = RaceMeeting.apply(serverPlayer, ticket, id == BUTTON_CREATE_RUN);
+                if (problem == null) {
+                    ticket.shrink(1);
+                    meetingTicket.setChanged();
+                }
+            }
+            case BUTTON_ENTER -> problem = RaceMeeting.enter(serverPlayer);
+            case BUTTON_WATCH -> problem = RaceMeeting.watch(serverPlayer);
+            case BUTTON_WITHDRAW -> problem = RaceMeeting.withdraw(serverPlayer);
+            default -> {
+                return false;
+            }
+        }
+        if (problem != null)
+            serverPlayer.sendSystemMessage(problem.copy().withStyle(ChatFormatting.RED));
+        return true;
+    }
+
+    @Override
+    public void removed(@Nonnull Player player) {
+        super.removed(player);
+        if (!player.level().isClientSide())
+            this.clearContainer(player, meetingTicket);
+    }
+
     public static class UmaSoulSlot extends SlotItemHandler {
         public UmaSoulSlot(IItemHandler handler, int index, int x, int y) {
             super(handler, index, x, y);
@@ -67,31 +146,76 @@ public class RaceContainer extends AbstractContainerMenu {
         assert tileEntity.getLevel() != null;
         this.canInteractWithCallable = ContainerLevelAccess.create(tileEntity.getLevel(), tileEntity.getBlockPos());
 
-        this.addSlot(new UmaSoulSlot(this.inventory, 0, 26, 83));
+        this.addSlot(new UmaSoulSlot(this.inventory, 0, 26, 83) {
+            @Override
+            public boolean isActive() {
+                return page == PAGE_QUICK;
+            }
+        });
         this.addSlot(new SlotItemHandler(this.inventory, 1, 44, 83){
             @Override
             public boolean mayPlace(@NotNull ItemStack stack) {
                 return stack.is(ItemRegistry.UMA_RACE_TICKET.get());
             }
+
+            @Override
+            public boolean isActive() {
+                return page == PAGE_QUICK;
+            }
         });
 
         for (int j = 0; j < 4; j++) {
             // actually, I am not so sure that if bit ops optimization still works in java
-            this.addSlot(new SlotItemHandler(this.inventory, j + 2, (j & 1) * 18 + 98, 75 + (j >> 1) * 18));
+            this.addSlot(new SlotItemHandler(this.inventory, j + 2, (j & 1) * 18 + 98, 75 + (j >> 1) * 18) {
+                @Override
+                public boolean isActive() {
+                    return page == PAGE_QUICK;
+                }
+            });
         }
 
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 9; ++column) {
-                this.addSlot(new Slot(playerInv, 9 + (row * 9) + column, 8 + (column * 18),
+                this.addSlot(new PlayerSlot(playerInv, 9 + (row * 9) + column, 8 + (column * 18),
                         120 + (row * 18))); // inline playerInventoryY=120 for opt.
             }
         }
 
         for (int column = 0; column < 9; ++column) {
-            this.addSlot(new Slot(playerInv, column, 8 + (column * 18), 178));
+            this.addSlot(new PlayerSlot(playerInv, column, 8 + (column * 18), 178));
         }
 
+        // Added last so the other slots keep their numbers.
+        this.addSlot(new Slot(meetingTicket, 0, 11, 27) {
+            @Override
+            public boolean mayPlace(@Nonnull ItemStack stack) {
+                return stack.is(ItemRegistry.UMA_RACE_TICKET.get());
+            }
+
+            @Override
+            public int getMaxStackSize() {
+                return 1;
+            }
+
+            @Override
+            public boolean isActive() {
+                return page == PAGE_MEETING && !showsMeeting();
+            }
+        });
+
         this.addDataSlots(containerData);
+    }
+
+    /** The player's own slots, out of the way while a race being held fills the page. */
+    private final class PlayerSlot extends Slot {
+        private PlayerSlot(Container container, int slot, int x, int y) {
+            super(container, slot, x, y);
+        }
+
+        @Override
+        public boolean isActive() {
+            return !showsMeeting();
+        }
     }
 
     @Override
@@ -104,7 +228,7 @@ public class RaceContainer extends AbstractContainerMenu {
             ItemStack stack1 = slot.getItem();
             stack = stack1.copy();
 
-            if (pIndex >= 0 && pIndex < 6) {
+            if (pIndex >= 0 && pIndex < 6 || pIndex == MEETING_SLOT) {
                 // from container to player inventory
                 if (!this.moveItemStackTo(stack1, 6, 6 + 36, true)) {
                     return ItemStack.EMPTY;
@@ -115,7 +239,8 @@ public class RaceContainer extends AbstractContainerMenu {
                 // from player inventory to container
                 if (pIndex < 6 + 36) {
                     // only move from 0 to 1
-                    if (!this.moveItemStackTo(stack1, 0, 2, false)) {
+                    if (!(page == PAGE_MEETING ? this.moveItemStackTo(stack1, MEETING_SLOT, MEETING_SLOT + 1, false)
+                            : this.moveItemStackTo(stack1, 0, 2, false))) {
                         return ItemStack.EMPTY;
                     }
                 }

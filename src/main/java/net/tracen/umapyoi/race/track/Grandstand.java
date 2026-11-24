@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.state.properties.SlabType;
  *          ___/     _/|       |
  *   __concourse       |       |   concourse: a walkway between the tiers
  *  /lower tier        |       |   lower tier: one block up per two rows (seat + floor)
- * |front wall ... tunnels under everything at ground level, every 36 blocks
+ * |front wall ... tunnels under everything at ground level, every 36 blocks, barred at the track end
  * </pre>
  * Seats are coloured; every 12 blocks along the stand (and beside each end wall) a white aisle
  * runs from front to back, like a cinema.
@@ -37,6 +37,8 @@ final class Grandstand {
     /** In the upper tier, every this many rows the last one is a flat landing. */
     private static final int UPPER_CYCLE = 4;
     private static final int TUNNEL_SPACING = 36;
+    /** People come in on the walkway between the tiers. */
+    static final int ENTRANCE_ROW = 12;
     private static final int AISLE_SPACING = 12;
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
@@ -53,6 +55,7 @@ final class Grandstand {
             .setValue(SlabBlock.TYPE, SlabType.BOTTOM);
     private static final BlockState ROOF_EDGE = Blocks.SMOOTH_QUARTZ.defaultBlockState();
     private static final BlockState LIGHT = Blocks.SEA_LANTERN.defaultBlockState();
+    private static final BlockState BARS = Blocks.IRON_BARS.defaultBlockState();
 
     private static final int UPPER_TOP = seatHeight(UPPER_LAST);
 
@@ -68,7 +71,7 @@ final class Grandstand {
     static BlockState blockAt(int row, int h, int along, int length) {
         boolean end = along == 0 || along == length - 1;
         if (!end && h <= 3 && tunnel(along, length))
-            return AIR;
+            return row == 0 ? BARS : AIR;
 
         if (h == ROOF && row >= ROOF_FRONT) {
             boolean light = (row == 8 || row == 14 || row == 20) && along % 6 == 3;
@@ -121,6 +124,11 @@ final class Grandstand {
         return 7 + u - (u + 1) / UPPER_CYCLE;
     }
 
+    /** How high above the ground people stand on the walkway. */
+    static int entranceHeight() {
+        return seatHeight(ENTRANCE_ROW) + 1;
+    }
+
     private static boolean landing(int row) {
         return (row - CONCOURSE_LAST) % UPPER_CYCLE == 0;
     }
@@ -142,6 +150,6 @@ final class Grandstand {
 
     /** True for blocks that join their neighbours (glass panes) and need a second pass. */
     static boolean connects(BlockState state) {
-        return state.is(Blocks.GLASS_PANE);
+        return state.is(Blocks.GLASS_PANE) || state.is(Blocks.IRON_BARS);
     }
 }

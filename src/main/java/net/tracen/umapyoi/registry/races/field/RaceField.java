@@ -16,13 +16,15 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public record RaceField(ResourceLocation id, Set<Distance> turfs, Set<Distance> dirts, Set<Distance> synthetics) implements Comparable<RaceField> {
+/** @param leftHanded races there are run counter-clockwise */
+public record RaceField(ResourceLocation id, Set<Distance> turfs, Set<Distance> dirts, Set<Distance> synthetics, boolean leftHanded) implements Comparable<RaceField> {
     public static final Codec<RaceField> CODEC = RecordCodecBuilder.create(instance -> instance
             .group(
                     ResourceLocation.CODEC.fieldOf("id").forGetter(RaceField::id),
                     Distance.CODEC.listOf().xmap(Set::copyOf, ArrayList::new).fieldOf("turfs").forGetter(RaceField::turfs),
                     Distance.CODEC.listOf().xmap(Set::copyOf, ArrayList::new).fieldOf("dirts").forGetter(RaceField::dirts),
-                    Distance.CODEC.listOf().xmap(Set::copyOf, ArrayList::new).fieldOf("synthetics").forGetter(RaceField::synthetics)
+                    Distance.CODEC.listOf().xmap(Set::copyOf, ArrayList::new).fieldOf("synthetics").forGetter(RaceField::synthetics),
+                    Codec.BOOL.optionalFieldOf("left_handed", false).forGetter(RaceField::leftHanded)
             ).apply(instance, RaceField::new));
 
     public static final ResourceKey<Registry<RaceField>> REGISTRY_KEY = ResourceKey

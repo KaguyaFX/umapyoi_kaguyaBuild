@@ -1,7 +1,6 @@
 package net.tracen.umapyoi.race.track;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -114,6 +113,16 @@ public final class TrackBuilder {
         JOBS.add(new DressJob(level, new CourseLayout(track, origin), surface, poleSpacing, onProgress, onDone));
     }
 
+    /** How high above the ground (the origin's height) people stand at the stand's entrance. */
+    public static final int STAND_ENTRANCE_HEIGHT = Grandstand.entranceHeight();
+
+    /** Where people come into the stand, facing the course; {@code aside} blocks from its middle. */
+    public static TrackGeometry.Point standEntrance(TrackGeometry track, int aside) {
+        CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
+        double x = (layout.standMinX() + layout.standMaxX()) / 2.0 + aside;
+        return new TrackGeometry.Point(x, track.radius() + layout.standStart() + Grandstand.ENTRANCE_ROW + 0.5, 180);
+    }
+
     /** The area a course covers, in blocks around its origin: min X, max X (exclusive), min Z, max Z (exclusive). */
     private static int[] bounds(TrackGeometry track) {
         CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
@@ -130,10 +139,10 @@ public final class TrackBuilder {
         if (JOBS.isEmpty())
             return;
         int budget = UmapyoiConfig.TRACK_BUILD_COLUMNS_PER_TICK.get();
-        Iterator<Work> it = JOBS.iterator();
-        while (it.hasNext())
-            if (it.next().step(budget))
-                it.remove();
+        // A copy: what is done with one job may start the next.
+        for (Work job : List.copyOf(JOBS))
+            if (job.step(budget))
+                JOBS.remove(job);
     }
 
     @SubscribeEvent

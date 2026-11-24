@@ -164,6 +164,17 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_END;
     public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_SPEED;
     public static ModConfigSpec.DoubleValue RACE_AI_ERROR;
+    public static ModConfigSpec.IntValue RACE_MEETING_OPEN_SECONDS;
+    public static ModConfigSpec.IntValue RACE_MEETING_CLOSE_SECONDS;
+    public static ModConfigSpec.IntValue RACE_MEETING_GATE_SECONDS;
+    public static ModConfigSpec.IntValue RACE_MEETING_STRAGGLER_SECONDS;
+    public static ModConfigSpec.IntValue RACE_MEETING_RESULT_SECONDS;
+    public static ModConfigSpec.IntValue RACE_MEETING_LEAVE_SECONDS;
+    public static ModConfigSpec.IntValue RACE_MEETING_RUNNERS;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends Integer>> RACE_MEETING_LEVELS;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_MEETING_REWARDS;
+    public static ModConfigSpec.DoubleValue RACE_MEETING_RAIN_CHANCE;
+    public static ModConfigSpec.DoubleValue RACE_MEETING_STORM_CHANCE;
     public static ModConfigSpec.DoubleValue RACE_BLOCK_LENGTH;
     public static ModConfigSpec.DoubleValue RACE_BLOCK_DECEL;
     public static ModConfigSpec.DoubleValue RACE_AI_BOOST;
@@ -537,6 +548,31 @@ public class UmapyoiConfig {
         RACE_AI_ERROR = COMMON_BUILDER.comment("Computer runners: how badly they time their last sprint, as a fraction of the race's distance (standard deviation;",
                 "0 = always perfect).")
                 .defineInRange("race_ai_error", 0.04, 0.0, 0.5);
+        RACE_MEETING_OPEN_SECONDS = COMMON_BUILDER.comment("Race meetings: seconds from the race world opening to the start.")
+                .defineInRange("race_meeting_open_seconds", 300, 10, 7200);
+        RACE_MEETING_CLOSE_SECONDS = COMMON_BUILDER.comment("Race meetings: entries close this many seconds before the start; runners who aren't there then have withdrawn.")
+                .defineInRange("race_meeting_close_seconds", 120, 0, 7200);
+        RACE_MEETING_GATE_SECONDS = COMMON_BUILDER.comment("Race meetings: runners are put into the stalls this many seconds before the start.")
+                .defineInRange("race_meeting_gate_seconds", 15, 3, 600);
+        RACE_MEETING_STRAGGLER_SECONDS = COMMON_BUILDER.comment("Race meetings: whoever isn't in this many seconds after the winner hasn't finished (0 = no limit).")
+                .defineInRange("race_meeting_straggler_seconds", 20, 0, 600);
+        RACE_MEETING_RESULT_SECONDS = COMMON_BUILDER.comment("Race meetings: seconds until the result is announced.")
+                .defineInRange("race_meeting_result_seconds", 10, 0, 600);
+        RACE_MEETING_LEAVE_SECONDS = COMMON_BUILDER.comment("Race meetings: seconds to leave after that; then everyone is sent home and the race world closes.")
+                .defineInRange("race_meeting_leave_seconds", 180, 5, 7200);
+        RACE_MEETING_RUNNERS = COMMON_BUILDER.comment("Race meetings: how many run, players included.")
+                .defineInRange("race_meeting_runners", 12, 2, 18);
+        RACE_MEETING_LEVELS = COMMON_BUILDER.comment("Race meetings: what the computer runners' stats are around (1 to 39), for debut, pre-open, open, GIII, GII and GI races.")
+                .defineList("race_meeting_levels", java.util.List.of(2, 4, 6, 9, 11, 14), () -> 10,
+                        value -> value instanceof Number number && number.intValue() >= 1 && number.intValue() <= 39);
+        RACE_MEETING_REWARDS = COMMON_BUILDER.comment("Race meetings: what first, second, third and everyone else who finishes gets, as a share of what the",
+                "terminal's quick race pays for the same soul.")
+                .defineList("race_meeting_rewards", java.util.List.of(1.0, 0.4, 0.25, 0.1), () -> 0.1,
+                        value -> value instanceof Number number && number.doubleValue() >= 0 && number.doubleValue() <= 100);
+        RACE_MEETING_RAIN_CHANCE = COMMON_BUILDER.comment("Race meetings: how often it rains.")
+                .defineInRange("race_meeting_rain_chance", 0.2, 0.0, 1.0);
+        RACE_MEETING_STORM_CHANCE = COMMON_BUILDER.comment("Race meetings: how often there's a thunderstorm.")
+                .defineInRange("race_meeting_storm_chance", 0.05, 0.0, 1.0);
         RACE_JUMP_STAMINA = COMMON_BUILDER.comment("Race stamina: points each jump costs (the same as sprinting this many blocks).")
                 .defineInRange("race_jump_stamina", 10.0, 0.0, 10000.0);
         RACE_REST_SECONDS = COMMON_BUILDER.comment("Race stamina: standing still this long starts a slow recovery.")

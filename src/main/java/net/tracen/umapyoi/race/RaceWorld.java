@@ -14,9 +14,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.Vec3;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.race.track.TrackBuilder;
@@ -35,6 +37,7 @@ public final class RaceWorld {
     public static final ResourceKey<Biome> BIOME = ResourceKey.create(Registries.BIOME,
             ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "racecourse"));
     private static final String RETURN_TAG = "umapyoi_race_return";
+    private static final String MODE = "mode";
     /** Distance poles stand every this many race meters before the finish. */
     private static final double POLE_METERS = 200;
 
@@ -97,6 +100,7 @@ public final class RaceWorld {
         RacecourseData data = RacecourseData.get(race);
         TrackGeometry previous = data.baseTrack();
         BlockPos origin = previous != null ? data.origin() : groundAtCentre(race);
+        RaceWorldEvents.used();
         data.startBuilding(origin);
         TrackBuilder.start(race, origin, track, previous, poleSpacing(), onProgress, result -> {
             data.markBuilt(track);
@@ -115,6 +119,7 @@ public final class RaceWorld {
         TrackGeometry track = data.baseTrack();
         if (track == null || !data.needsDressing(setup.surface(), setup.leftHanded()))
             return false;
+        RaceWorldEvents.used();
         data.startDressing();
         TrackBuilder.dress(race, data.origin(), track.withMirrored(setup.leftHanded()), setup.surface(), poleSpacing(),
                 onProgress, () -> {
@@ -140,12 +145,29 @@ public final class RaceWorld {
         player.teleportTo(race, origin.getX() + view.x(), origin.getY() + 1, origin.getZ() + view.z(), view.yaw(), 0);
     }
 
+    /** Sends a player somewhere in the race world, in adventure mode until they leave. */
+    static void visit(ServerPlayer player, ServerLevel race, Vec3 at, float yaw) {
+        if (!isRaceWorld(player.level()))
+            saveReturnPoint(player);
+        CompoundTag back = player.getPersistentData().getCompound(RETURN_TAG);
+        if (!back.contains(MODE)) {
+            back.putInt(MODE, player.gameMode.getGameModeForPlayer().getId());
+            player.getPersistentData().put(RETURN_TAG, back);
+        }
+        player.stopRiding();
+        player.teleportTo(race, at.x, at.y, at.z, yaw, 0);
+        if (isRaceWorld(player.level()) && player.gameMode.getGameModeForPlayer() != GameType.ADVENTURE)
+            player.setGameMode(GameType.ADVENTURE);
+    }
+
     /** Sends a player back to where they came from (or to the world spawn). False if they aren't in the race world. */
     public static boolean leave(ServerPlayer player) {
         if (!isRaceWorld(player.level()))
             return false;
         CompoundTag back = player.getPersistentData().getCompound(RETURN_TAG);
         player.getPersistentData().remove(RETURN_TAG);
+        if (back.contains(MODE))
+            player.setGameMode(GameType.byId(back.getInt(MODE)));
         ServerLevel target = null;
         ResourceLocation dimension = back.contains("dimension") ? ResourceLocation.tryParse(back.getString("dimension")) : null;
         if (dimension != null)

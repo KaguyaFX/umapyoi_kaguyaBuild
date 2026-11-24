@@ -1,14 +1,11 @@
 package net.tracen.umapyoi.block.entity;
 
 import cn.mcmod_mmf.mmlib.block.entity.SyncedBlockEntity;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -20,9 +17,6 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
@@ -34,17 +28,16 @@ import net.tracen.umapyoi.container.RaceContainer;
 import net.tracen.umapyoi.inventory.UniversalIOItemHandler;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.registry.races.Race;
+import net.tracen.umapyoi.registry.races.RaceLoot;
 import net.tracen.umapyoi.registry.races.RaceRegistry;
 import net.tracen.umapyoi.registry.umadata.UmaData;
 import net.tracen.umapyoi.utils.Position;
-import net.tracen.umapyoi.utils.RaceRanking;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Objects;
 
 import static net.tracen.umapyoi.item.UmaRaceTicketItem.getRaceID;
 
@@ -286,49 +279,9 @@ public class RaceRegisterBlockEntity extends SyncedBlockEntity implements MenuPr
         return true;
     }
 
-    private LootTable getLootTable(ResourceLocation lootSpecify) {
-        return Objects.requireNonNull(this.level.getServer()).reloadableRegistries().getLootTable(ResourceKey.create(Registries.LOOT_TABLE, lootSpecify));
-    }
-
     public ItemStack getResultItem(ResourceLocation raceID) {
-        if (this.level == null) return ItemStack.EMPTY;
-
-        Race race = UmapyoiAPI.getRaceRegistry(this.level).get(raceID);
-        ResourceLocation lootSpecify = ResourceLocation.fromNamespaceAndPath(raceID.getNamespace(), "race/id/" + raceID.getPath());
-        LootTable table = getLootTable(lootSpecify);
-        if (table == LootTable.EMPTY) {
-            Umapyoi.getLogger().debug("There doesn't exist a loot table for {}, falling back to generic rank + field table", raceID);
-            if (race == null) {
-                Umapyoi.getLogger().error("No such race! {}", raceID);
-                return ItemStack.EMPTY;
-            }
-            ItemStack stackSoul = this.inventory.getStackInSlot(0);
-            RaceRanking rank = race.ranking;
-            if (stackSoul.equals(ItemStack.EMPTY)) {
-                Umapyoi.getLogger().error("Umasoul is no longer present.");
-                table = getLootTable(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "race/generic/race_" +
-                        rank.name().toLowerCase()));
-            } else {
-                ResourceLocation field = race.field(this.level, stackSoul).id();
-                table = getLootTable(ResourceLocation.fromNamespaceAndPath(field.getNamespace(), "race/generic/field/race_"
-                        + field.getPath() + "_" + rank.name().toLowerCase()));
-                if (table == LootTable.EMPTY) {
-                    Umapyoi.getLogger().debug("There doesn't exist a loot table for {} {}, falling back to generic table", field, rank);
-                    table = getLootTable(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "race/generic/race_" +
-                            rank.name().toLowerCase()));
-                }
-            }
-        }
-
-        LootParams lootParams = new LootParams.Builder((ServerLevel) this.level)
-                .create(LootContextParamSets.EMPTY);
-
-        ObjectArrayList<ItemStack> returns = table.getRandomItems(lootParams);
-        if (returns.isEmpty()) {
-            Umapyoi.getLogger().error("Rolls Empty! {}", raceID);
-            return ItemStack.EMPTY;
-        }
-        return returns.get(0);
+        if (!(this.level instanceof ServerLevel serverLevel)) return ItemStack.EMPTY;
+        return RaceLoot.roll(serverLevel, raceID, UmapyoiAPI.getRaceRegistry(this.level).get(raceID), this.inventory.getStackInSlot(0));
     }
 
     public boolean fulfill() {

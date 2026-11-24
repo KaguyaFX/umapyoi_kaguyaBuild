@@ -139,7 +139,7 @@ final class RaceOpponent {
         return field;
     }
 
-    private static ResourceLocation identifier(Registry<UmaData> registry, ItemStack soul) {
+    static ResourceLocation identifier(Registry<UmaData> registry, ItemStack soul) {
         ResourceLocation name = UmaSoulUtils.getName(soul);
         return registry.getOptional(name).map(UmaData::identifier).orElse(name);
     }
@@ -186,6 +186,15 @@ final class RaceOpponent {
 
     RaceRunner runner() {
         return runner;
+    }
+
+    ItemStack soul() {
+        return soul;
+    }
+
+    /** Her stall (0 = innermost). */
+    int lane(TrackGeometry track) {
+        return (int) Math.round(stallOffset - track.inner() - 0.5);
     }
 
     boolean finished() {

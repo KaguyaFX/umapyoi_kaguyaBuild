@@ -1,5 +1,8 @@
 package net.tracen.umapyoi.race;
 
+import java.util.concurrent.locks.LockSupport;
+
+import net.minecraft.Util;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
@@ -10,6 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.events.ResumeActionPointEvent;
@@ -23,6 +27,10 @@ import net.tracen.umapyoi.events.ResumeActionPointEvent;
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class RaceWorldEvents {
+    private static final long QUIET_MILLIS = 250;
+    private static final long STOP_MILLIS = 5000;
+    private static boolean used;
+
     private RaceWorldEvents() {
     }
 
@@ -30,6 +38,7 @@ public final class RaceWorldEvents {
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !RaceWorld.isRaceWorld(player.level()))
             return;
+        used();
         FoodData food = player.getFoodData();
         food.setFoodLevel(20);
         food.setSaturation(5.0F);
@@ -42,6 +51,35 @@ public final class RaceWorldEvents {
             event.setCanceled(true);
     }
 
+    /** The race world is being used, so {@link #onServerStopping} has something to do. */
+    static void used() {
+        used = true;
+    }
+
+    /**
+     * The game has a trap when it stops: a chunk that is still being loaded then may never be done, because it
+     * waits for it without doing what it waits for, and saving hangs. The race world loads many at a time
+     * (building, races, coming and going), so what is under way is finished first. Part of that happens on other
+     * threads: it's over once nothing has come for a while.
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onServerStopping(ServerStoppingEvent event) {
+        if (!used)
+            return;
+        used = false;
+        long end = Util.getMillis() + STOP_MILLIS;
+        long quietSince = Util.getMillis();
+        while (Util.getMillis() < end && Util.getMillis() - quietSince < QUIET_MILLIS) {
+            boolean busy = false;
+            for (ServerLevel level : event.getServer().getAllLevels())
+                busy |= level.getChunkSource().pollTask();
+            if (busy)
+                quietSince = Util.getMillis();
+            else
+                LockSupport.parkNanos(1_000_000);
+        }
+    }
+
     /** What still kills (a command, the void) puts them back at the course instead, out of any race. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onDeath(LivingDeathEvent event) {
@@ -50,6 +88,8 @@ public final class RaceWorldEvents {
         event.setCanceled(true);
         player.setHealth(player.getMaxHealth());
         TimeTrial.cancel(player);
+        if (RaceMeeting.rescue(player))
+            return;
         ServerLevel race = player.serverLevel();
         RaceWorld.sendToCourse(player, race, RacecourseData.get(race));
     }
@@ -63,7 +103,7 @@ public final class RaceWorldEvents {
         LivingEntity entity = event.getLivingEntity();
         if (entity == null || !RaceWorld.isRaceWorld(entity.level()))
             return;
-        if (entity instanceof ServerPlayer player && TimeTrial.exhausted(player)) {
+        if (entity instanceof ServerPlayer player && RaceSession.exhausted(player)) {
             event.setCanceled(true);
             return;
         }

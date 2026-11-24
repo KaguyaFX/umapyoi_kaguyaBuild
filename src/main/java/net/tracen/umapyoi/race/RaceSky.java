@@ -29,7 +29,7 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
 /**
  * The race world's sky. Other dimensions all share the overworld's weather; the race world's own is
  * switched off ({@code ServerLevelMixin}) and its players are shown the weather of the race instead
- * ({@link TimeTrial#weather()}), fading in and out. It is only for show: the server's race world is
+ * ({@link RaceSetup#weather()}), fading in and out. It is only for show: the server's race world is
  * always dry, so nothing freezes or burns, and lightning strikes off the course, as decoration.
  * <p>
  * It can only rain where the biome allows it; chunks made before the race world had a biome of its
@@ -59,7 +59,8 @@ public final class RaceSky {
         ServerLevel level = RaceWorld.level(event.getServer());
         if (level == null)
             return;
-        RaceWeather weather = TimeTrial.weather();
+        RaceSetup setup = RaceMeeting.active() ? RaceMeeting.setup() : TimeTrial.setup();
+        RaceWeather weather = setup == null ? RaceWeather.SUNNY : setup.weather();
         float rainBefore = rain;
         float thunderBefore = thunder;
         rain = Mth.approach(rain, weather.raining() ? 1 : 0, FADE);

@@ -11,21 +11,32 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.item.ItemRegistry;
+import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
+import net.tracen.umapyoi.race.RaceMeeting;
 import net.tracen.umapyoi.race.RaceSetup;
 import net.tracen.umapyoi.race.RaceWeather;
 import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.race.RacecourseData;
 import net.tracen.umapyoi.race.TimeTrial;
+import net.tracen.umapyoi.registry.races.Race;
 import net.tracen.umapyoi.utils.Surface;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 
 /**
- * Test commands for the race world (operators only, for now):
+ * Race meetings, for everyone: /umapyoi meeting enter, watch, withdraw, leave. They do what the race terminal's
+ * page does (and the links in chat), and leave is the way home.
+ * <p>
+ * Test commands for the race world (operators only):
  * <ul>
  * <li>/umapyoi race enter: go to the course (built the first time) and remember where you were.</li>
  * <li>/umapyoi race leave: go back.</li>
@@ -34,6 +45,7 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  * <li>/umapyoi race start (opponents) [level] [the same]: a race against computer runners whose stats are
  * all around a level (1 to 39), or each around your own (0 or nothing).</li>
  * <li>/umapyoi race cancel: stop your race.</li>
+ * <li>/umapyoi race hold (race) [run]: hold a race meeting without a ticket; skip: on to its next stage; stop: call it off.</li>
  * <li>/umapyoi racetrack rebuild [lap_m straight_m width]: rebuild the course from the config or
  * the given sizes, clearing the old one.</li>
  * </ul>
@@ -46,7 +58,19 @@ public class RaceCommand {
                 .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource())))
                 .then(trialArguments())
                 .then(startArguments())
-                .then(Commands.literal("cancel").executes(ctx -> cancel(ctx.getSource()))));
+                .then(Commands.literal("cancel").executes(ctx -> cancel(ctx.getSource())))
+                .then(Commands.literal("hold").then(Commands.argument("race", ResourceLocationArgument.id())
+                        .suggests((ctx, suggestions) -> SharedSuggestionProvider.suggestResource(
+                                ctx.getSource().registryAccess().registryOrThrow(Race.REGISTRY_KEY).keySet(), suggestions))
+                        .executes(ctx -> hold(ctx.getSource(), ResourceLocationArgument.getId(ctx, "race"), false))
+                        .then(Commands.literal("run").executes(ctx -> hold(ctx.getSource(), ResourceLocationArgument.getId(ctx, "race"), true)))))
+                .then(Commands.literal("skip").executes(ctx -> meeting(ctx.getSource(), RaceMeeting.skip())))
+                .then(Commands.literal("stop").executes(ctx -> meeting(ctx.getSource(), RaceMeeting.stop()))));
+        builder.then(Commands.literal("meeting")
+                .then(Commands.literal("enter").executes(ctx -> answer(ctx.getSource(), RaceMeeting.enter(ctx.getSource().getPlayerOrException()))))
+                .then(Commands.literal("watch").executes(ctx -> answer(ctx.getSource(), RaceMeeting.watch(ctx.getSource().getPlayerOrException()))))
+                .then(Commands.literal("withdraw").executes(ctx -> answer(ctx.getSource(), RaceMeeting.withdraw(ctx.getSource().getPlayerOrException()))))
+                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource()))));
         return builder.then(Commands.literal("racetrack").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("rebuild")
                         .executes(ctx -> rebuild(ctx.getSource(), RaceWorld.configuredTrack()))
@@ -57,6 +81,26 @@ public class RaceCommand {
                                                         DoubleArgumentType.getDouble(ctx, "lap_m"),
                                                         DoubleArgumentType.getDouble(ctx, "straight_m"),
                                                         IntegerArgumentType.getInteger(ctx, "width")))))))));
+    }
+
+    /** @param problem why it didn't work, or null */
+    private static int answer(CommandSourceStack source, Component problem) {
+        if (problem == null)
+            return 1;
+        source.sendFailure(problem);
+        return 0;
+    }
+
+    private static int hold(CommandSourceStack source, ResourceLocation race, boolean run) throws CommandSyntaxException {
+        ItemStack ticket = new ItemStack(ItemRegistry.UMA_RACE_TICKET.get());
+        ticket.set(DataComponentsTypeRegistry.RACE_DATA, race);
+        return answer(source, RaceMeeting.apply(source.getPlayerOrException(), ticket, run));
+    }
+
+    private static int meeting(CommandSourceStack source, boolean done) {
+        if (!done)
+            source.sendFailure(Component.translatable("umapyoi.meeting.problem.none"));
+        return done ? 1 : 0;
     }
 
     private interface RaceStart {
@@ -155,7 +199,7 @@ public class RaceCommand {
     }
 
     private static int rebuild(CommandSourceStack source, TrackGeometry track) {
-        if (TimeTrial.running()) {
+        if (TimeTrial.running() || RaceMeeting.active()) {
             source.sendFailure(Component.translatable("umapyoi.command.race.trial_busy"));
             return 0;
         }

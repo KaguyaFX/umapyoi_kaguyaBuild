@@ -18,6 +18,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Inventory;
@@ -34,6 +35,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.utils.UmaSoulUtils;
 import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
@@ -54,7 +56,9 @@ import top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler;
  * save, delete the file.</li>
  * </ol>
  * "Save" is the whole world, not just the player's file: in singleplayer the host's data is in
- * level.dat, and chests and the like should be from the same moment as the player.
+ * level.dat, and chests and the like should be from the same moment as the player. It happens a moment
+ * later, once for everyone who came or went in the meantime; until then the save is the one from before,
+ * and a file is only deleted after it.
  * When someone logs in with the mark, their save is from while their things were in keeping: they get
  * them back. Without it, they have their things already and a leftover file is put aside. Someone who
  * logs in inside the race world is sent back out first.
@@ -67,7 +71,13 @@ public final class RaceStash {
     /** Equipment changes reach max health a tick or two later, so health is set once more after this long. */
     private static final int SETTLE_TICKS = 3;
 
+    /** Ticks at least between two saves. */
+    private static final int SAVE_EVERY = 60;
+
     private static final List<Later> LATER = new ArrayList<>();
+    private static final List<Path> DELETE_AFTER_SAVE = new ArrayList<>();
+    private static boolean saveDue;
+    private static int lastSave = -SAVE_EVERY;
 
     private record Later(ServerPlayer player, int tick, Runnable action) {
     }
@@ -105,14 +115,19 @@ public final class RaceStash {
 
     /** Out of the race world first (which gives everything back), then whatever is left to settle. */
     static void loggedIn(ServerPlayer player) {
-        if (RaceWorld.isRaceWorld(player.level()))
+        if (RaceWorld.isRaceWorld(player.level())) {
+            RaceWorldEvents.used();
             RaceWorld.leave(player);
+        }
         if (RaceWorld.isRaceWorld(player.level()))
             return;
-        if (marked(player))
+        if (marked(player)) {
             giveBack(player);
-        else
-            putAside(file(player));
+        } else {
+            if (!DELETE_AFTER_SAVE.contains(file(player)))
+                putAside(file(player));
+            RaceMail.deliver(player);
+        }
     }
 
     private static void later(ServerPlayer player, int ticks, Runnable action) {
@@ -121,6 +136,7 @@ public final class RaceStash {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
+        save(event.getServer());
         if (LATER.isEmpty())
             return;
         List<Later> due = new ArrayList<>();
@@ -139,6 +155,24 @@ public final class RaceStash {
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
         LATER.clear();
+        saveDue = false; // it saves itself now
+        DELETE_AFTER_SAVE.clear(); // what is left over is put aside at the next login
+        lastSave = -SAVE_EVERY;
+    }
+
+    private static void save(MinecraftServer server) {
+        if (!saveDue || server.getTickCount() - lastSave < SAVE_EVERY)
+            return;
+        saveDue = false;
+        lastSave = server.getTickCount();
+        server.saveEverything(true, false, false);
+        for (Path file : DELETE_AFTER_SAVE)
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                LOGGER.warn("Couldn't delete {}; it is ignored, since the player has everything", file, e);
+            }
+        DELETE_AFTER_SAVE.clear();
     }
 
     // ---- taking and giving back
@@ -156,9 +190,10 @@ public final class RaceStash {
             player.sendSystemMessage(Component.translatable("umapyoi.race.stash.take_failed"));
             return false;
         }
+        DELETE_AFTER_SAVE.remove(file(player));
         strip(player);
         mark(player, true);
-        player.server.saveEverything(true, false, false);
+        saveDue = true;
         player.setHealth(player.getMaxHealth());
         later(player, SETTLE_TICKS, () -> {
             if (RaceWorld.isRaceWorld(player.level()))
@@ -187,21 +222,21 @@ public final class RaceStash {
             player.sendSystemMessage(Component.translatable("umapyoi.race.stash.give_failed"));
             return;
         }
+        List<ItemStack> souls = looseSouls(player);
         strip(player);
         fill(player, stash);
+        rescue(player, souls);
         mark(player, false);
-        player.server.saveEverything(true, false, false);
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            LOGGER.warn("Couldn't delete {}; it is ignored, since the player has everything", file, e);
-        }
+        saveDue = true;
+        DELETE_AFTER_SAVE.add(file);
         player.sendSystemMessage(Component.translatable("umapyoi.race.stash.given"));
+        if (!RaceWorld.isRaceWorld(player.level()))
+            RaceMail.deliver(player);
     }
 
     // ---- the player
 
-    private static boolean marked(ServerPlayer player) {
+    static boolean marked(ServerPlayer player) {
         return player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).getBoolean(MARK);
     }
 
@@ -278,6 +313,28 @@ public final class RaceStash {
                         action.accept(id, index, cosmetic, slots);
             }
         }));
+    }
+
+    /** Souls that aren't where they belong. What is picked up inside doesn't come along, but a soul is too much to lose. */
+    private static List<ItemStack> looseSouls(ServerPlayer player) {
+        List<ItemStack> souls = new ArrayList<>();
+        Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+            if (UmaSoulUtils.hasSoulData(inventory.getItem(slot)))
+                souls.add(inventory.getItem(slot).copy());
+        return souls;
+    }
+
+    /** Puts them back on, or else into the inventory. */
+    private static void rescue(ServerPlayer player, List<ItemStack> souls) {
+        for (ItemStack soul : souls) {
+            IDynamicStackHandler slots = CuriosApi.getCuriosInventory(player).map(handler -> handler.getCurios().get(SOUL_SLOT))
+                    .map(ICurioStacksHandler::getStacks).orElse(null);
+            if (slots != null && slots.getSlots() > 0 && slots.getStackInSlot(0).isEmpty())
+                slots.setStackInSlot(0, soul);
+            else
+                player.getInventory().placeItemBackInInventory(soul);
+        }
     }
 
     /** Takes everything off the player but the soul. */

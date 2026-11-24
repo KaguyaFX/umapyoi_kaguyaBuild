@@ -317,9 +317,14 @@ public class Race {
     }
 
     public void followUp(ItemStack stack, Level level) {
+        followUp(stack, level, this.isPassed(stack, level));
+    }
+
+    /** Notes on a soul that it ran this race, and perhaps won it. */
+    public void followUp(ItemStack stack, Level level, boolean won) {
         UmaRaceHistory hist = stack.getOrDefault(DataComponentsTypeRegistry.UMA_RACE_HISTORY, UmaRaceHistory.DEFAULT);
 
-        if (this.isPassed(stack, level)) {
+        if (won) {
             tags.stream().map(UmapyoiAPI.getRaceTagRegistry(level)::get).filter(Objects::nonNull)
                     .forEach((t) -> t.applyToUmaSoul(stack, this));
 
