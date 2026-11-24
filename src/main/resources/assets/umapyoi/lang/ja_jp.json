@@ -1023,6 +1023,7 @@
   "umapyoi.race.motion.accelerating": "加速中",
   "umapyoi.race.motion.cruising": "巡航",
   "umapyoi.race.motion.decelerating": "減速中",
+  "umapyoi.race.motion.exhausted": "スタミナ切れ",
   "umapyoi.race.motion.full": "全速",
   "umapyoi.race.phase.final": "終盤",
   "umapyoi.race.phase.last_spurt": "ラストスパート",

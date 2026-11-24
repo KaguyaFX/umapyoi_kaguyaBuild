@@ -15,7 +15,7 @@ import net.tracen.umapyoi.race.RaceClientState;
 /**
  * The race stamina bar: the action point bar's look, mirrored to the left side of the screen,
  * shown only while racing. Green above the low line, orange below it, red near empty; a tick marks
- * the low line, where the speed bonus drops.
+ * the low line, where the speed bonus drops. Once exhausted, the percentage gives way to a red label.
  */
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -55,8 +55,11 @@ public class StaminaOverlay implements LayeredDraw.Layer {
         int lowY = y - (int) Math.round(low * HEIGHT);
         graphics.fill(x - 1, lowY, x + 6, lowY + 1, 0xCCFFFFFF);
 
-        String text = String.valueOf(Math.round(fraction * 100)) + "%";
-        graphics.drawString(minecraft.font, text, x + 8, y - 3 - bar, 0xFFFFFF);
+        if (RaceClientState.exhausted())
+            graphics.drawString(minecraft.font, net.minecraft.network.chat.Component.translatable("umapyoi.race.motion.exhausted"),
+                    x + 8, y - 3 - bar, 0xFF5555);
+        else
+            graphics.drawString(minecraft.font, Math.round(fraction * 100) + "%", x + 8, y - 3 - bar, 0xFFFFFF);
 
         // Speedometer under the bar: ground speed over the last tick, in blocks per second.
         var player = minecraft.player;

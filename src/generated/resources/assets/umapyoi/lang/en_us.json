@@ -1105,6 +1105,7 @@
   "umapyoi.race.motion.accelerating": "Accelerating",
   "umapyoi.race.motion.cruising": "Cruising",
   "umapyoi.race.motion.decelerating": "Slowing",
+  "umapyoi.race.motion.exhausted": "Exhausted",
   "umapyoi.race.motion.full": "Full speed",
   "umapyoi.race.phase.final": "Final leg",
   "umapyoi.race.phase.last_spurt": "Last spurt",

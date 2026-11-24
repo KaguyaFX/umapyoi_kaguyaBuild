@@ -268,6 +268,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.motion.accelerating", "Accelerating");
         add("umapyoi.race.motion.cruising", "Cruising");
         add("umapyoi.race.motion.decelerating", "Slowing");
+        add("umapyoi.race.motion.exhausted", "Exhausted");
         add("umapyoi.race.motion.full", "Full speed");
         add("umapyoi.race.phase.final", "Final leg");
         add("umapyoi.race.phase.last_spurt", "Last spurt");

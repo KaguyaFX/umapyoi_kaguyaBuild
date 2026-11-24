@@ -12,7 +12,7 @@ import net.tracen.umapyoi.events.ResumeActionPointEvent;
 /**
  * Rules that hold for everyone in the race world. Hunger stays full: vanilla stops sprinting when
  * hunger runs low, which would fight the race's own stamina. Skill action points come back slower
- * ({@code race_action_point_regen}). (The career clock and events pause there too; see
+ * ({@code race_action_point_regen}), and not at all while exhausted in a race. (The career clock and events pause there too; see
  * CareerManager and CareerEventHooks.)
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
@@ -38,6 +38,10 @@ public final class RaceWorldEvents {
         LivingEntity entity = event.getLivingEntity();
         if (entity == null || !RaceWorld.isRaceWorld(entity.level()))
             return;
+        if (entity instanceof ServerPlayer player && TimeTrial.exhausted(player)) {
+            event.setCanceled(true);
+            return;
+        }
         double rate = RaceStats.apRegen(event.getUmaSoul());
         int tick = entity.tickCount;
         if (Math.floor(tick * rate) == Math.floor((tick - 1) * rate))

@@ -18,6 +18,9 @@ import net.tracen.umapyoi.race.RaceClientState;
  * <p>
  * Vanilla sprinting is switched off as soon as nothing is pressed; the injected input is kept below
  * the amount that would start it again.
+ * <p>
+ * An exhausted runner can't jump: sprint-jumping is faster than running, and with no stamina left it
+ * would cost nothing.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID, value = Dist.CLIENT)
 public final class RaceInput {
@@ -29,6 +32,9 @@ public final class RaceInput {
         if (!(event.getEntity() instanceof LocalPlayer player) || !RaceClientState.active())
             return;
         Input input = event.getInput();
+        // In water the jump key swims up, so it stays.
+        if (RaceClientState.exhausted() && !player.isInWater())
+            input.jumping = false;
         if (input.leftImpulse != 0 || input.forwardImpulse != 0) {
             RaceClientState.moving(player);
             return;

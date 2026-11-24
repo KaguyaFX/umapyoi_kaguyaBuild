@@ -19,9 +19,10 @@ import net.tracen.umapyoi.Umapyoi;
  * @param dash        extra acceleration out of the gates
  * @param kick        how far from cruise to full speed starting a sprint jumps at once
  * @param startSpeed  speed when the gates open
+ * @param exhausted   stamina ran out: no jumping (the speeds here already allow for it)
  */
 public record RaceStatePayload(boolean active, float stamina, float maxStamina, float sprintSpeed, float cruiseSpeed,
-        float accel, float decel, float dash, float kick, float startSpeed) implements CustomPacketPayload {
+        float accel, float decel, float dash, float kick, float startSpeed, boolean exhausted) implements CustomPacketPayload {
     public static final Type<RaceStatePayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "race_state"));
     public static final StreamCodec<ByteBuf, RaceStatePayload> STREAM_CODEC = StreamCodec.of(
             (buf, p) -> {
@@ -35,11 +36,12 @@ public record RaceStatePayload(boolean active, float stamina, float maxStamina, 
                 buf.writeFloat(p.dash);
                 buf.writeFloat(p.kick);
                 buf.writeFloat(p.startSpeed);
+                buf.writeBoolean(p.exhausted);
             },
             buf -> new RaceStatePayload(buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
-                    buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat()));
+                    buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean()));
 
-    public static final RaceStatePayload INACTIVE = new RaceStatePayload(false, 0, 0, 1, 1, 0, 0, 0, 0, 0);
+    public static final RaceStatePayload INACTIVE = new RaceStatePayload(false, 0, 0, 1, 1, 0, 0, 0, 0, 0, false);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

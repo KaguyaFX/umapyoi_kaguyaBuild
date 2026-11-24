@@ -1188,6 +1188,7 @@
   "umapyoi.race.motion.accelerating": "가속 중",
   "umapyoi.race.motion.cruising": "순항",
   "umapyoi.race.motion.decelerating": "감속 중",
+  "umapyoi.race.motion.exhausted": "탈진",
   "umapyoi.race.motion.full": "전속력",
   "umapyoi.race.phase.final": "종반",
   "umapyoi.race.phase.last_spurt": "라스트 스퍼트",

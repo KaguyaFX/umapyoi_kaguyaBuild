@@ -162,6 +162,10 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_LOW_STAMINA;
     public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_START;
     public static ModConfigSpec.DoubleValue RACE_LOW_BONUS_END;
+    public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_SPEED;
+    public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_SPRINT;
+    public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_ACCEL;
+    public static ModConfigSpec.DoubleValue RACE_EXHAUSTED_UNTIL;
     public static ModConfigSpec.DoubleValue RACE_JUMP_STAMINA;
     public static ModConfigSpec.IntValue RACE_REST_SECONDS;
     public static ModConfigSpec.DoubleValue RACE_STAMINA_REGEN_PERCENT;
@@ -509,6 +513,15 @@ public class UmapyoiConfig {
                 .defineInRange("race_low_bonus_start", 0.8, 0.0, 1.0);
         RACE_LOW_BONUS_END = COMMON_BUILDER.comment("...and keeps falling to this fraction at empty.")
                 .defineInRange("race_low_bonus_end", 0.1, 0.0, 1.0);
+        RACE_EXHAUSTED_SPEED = COMMON_BUILDER.comment("Race exhaustion: a runner whose stamina runs out is exhausted. They cruise at this fraction of what cruising would be",
+                "without it. They also can't jump and get no action points back.")
+                .defineInRange("race_exhausted_speed", 0.8, 0.1, 1.0);
+        RACE_EXHAUSTED_SPRINT = COMMON_BUILDER.comment("Race exhaustion: sprinting is this many times the exhausted cruise (close to 1: no strength left to sprint).")
+                .defineInRange("race_exhausted_sprint", 1.03, 1.0, 2.0);
+        RACE_EXHAUSTED_ACCEL = COMMON_BUILDER.comment("Race exhaustion: what acceleration is multiplied by.")
+                .defineInRange("race_exhausted_accel", 0.5, 0.0, 1.0);
+        RACE_EXHAUSTED_UNTIL = COMMON_BUILDER.comment("Race exhaustion: it ends when stamina is back to this fraction of the bar, so a short rest doesn't clear it.")
+                .defineInRange("race_exhausted_until", 0.1, 0.0, 1.0);
         RACE_JUMP_STAMINA = COMMON_BUILDER.comment("Race stamina: points each jump costs (the same as sprinting this many blocks).")
                 .defineInRange("race_jump_stamina", 10.0, 0.0, 10000.0);
         RACE_REST_SECONDS = COMMON_BUILDER.comment("Race stamina: standing still this long starts a slow recovery.")

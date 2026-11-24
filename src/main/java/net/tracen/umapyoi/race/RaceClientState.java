@@ -126,6 +126,11 @@ public final class RaceClientState {
         return moved;
     }
 
+    /** Out of stamina (until some of it is back). */
+    public static boolean exhausted() {
+        return state != null && state.exhausted();
+    }
+
     public static float stamina() {
         return state == null ? 0 : state.stamina();
     }

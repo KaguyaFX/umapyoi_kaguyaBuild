@@ -42,6 +42,7 @@ import net.tracen.umapyoi.block.GateDoor;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 import net.tracen.umapyoi.utils.ThreeBlockPart;
+import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
  * A solo time trial on the race world's course, which is repainted first if the race's surface or
@@ -56,7 +57,10 @@ import net.tracen.umapyoi.utils.ThreeBlockPart;
  * <p>
  * Stamina: sprinting costs one point per block, each jump costs a few more, walking (cruising)
  * costs nothing, and standing still for a moment slowly brings some back. Below the low line the
- * Umamusume speed bonus drops ({@link RaceStats#bonusLeft}); the plain player's speed never does.
+ * Umamusume speed bonus drops ({@link RaceStats#bonusLeft}), the plain player's speed doesn't. With
+ * none left the runner is exhausted until some of it is back: cruising slows further, sprinting is
+ * hardly faster than cruising, and there is no jumping and no action point recovery. So the last
+ * point of stamina is worth keeping. The action points are filled up before the start.
  * The client gets the result every tick and moves at that speed ({@link RaceSpeed}).
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
@@ -117,6 +121,11 @@ public final class TimeTrial {
 
     public static boolean running() {
         return current != null;
+    }
+
+    /** Whether this player is running a trial and out of stamina. */
+    public static boolean exhausted(ServerPlayer player) {
+        return current != null && current.player == player && current.exhausted;
     }
 
     /** The weather of the race being run or prepared; sunny otherwise. */
@@ -209,6 +218,7 @@ public final class TimeTrial {
         @Nullable
         private RaceMotion motion;
         private double stamina;
+        private boolean exhausted;
         private double lastX;
         private double lastZ;
         private int stillTicks;
@@ -233,6 +243,8 @@ public final class TimeTrial {
             this.plainSprint = (attribute == null ? 0.1 : attribute.getBaseValue()) * 1.3 * RaceSpeed.BLOCKS_PER_SECOND;
             this.layout = new RaceLayout(track, distance);
             this.stamina = stats.stamina();
+            if (UmaSoulUtils.hasSoulData(soul))
+                UmaSoulUtils.setActionPoint(soul, UmaSoulUtils.getMaxActionPoint(soul));
 
             // A row of stalls standing on the finish line, doors just past it, innermost stall first.
             double lap = track.lap();
@@ -402,18 +414,31 @@ public final class TimeTrial {
             if (stillTicks >= UmapyoiConfig.RACE_REST_SECONDS.get() * 20)
                 stamina += stats.stamina() * UmapyoiConfig.RACE_STAMINA_REGEN_PERCENT.get() / 100 / 20;
             stamina = Math.max(0, Math.min(stats.stamina(), stamina));
+            updateExhaustion();
             sendState(state);
+        }
+
+        private void updateExhaustion() {
+            if (stamina <= 0) {
+                if (!exhausted)
+                    player.playNotifySound(SoundEvents.PLAYER_BREATH, SoundSource.PLAYERS, 1.0F, 0.8F);
+                exhausted = true;
+            } else if (stamina >= stats.stamina() * UmapyoiConfig.RACE_EXHAUSTED_UNTIL.get()) {
+                exhausted = false;
+            }
         }
 
         void jump() {
             if (openTick < 0)
                 return;
             stamina = Math.max(0, stamina - UmapyoiConfig.RACE_JUMP_STAMINA.get());
+            updateExhaustion();
         }
 
         /**
          * Full speed = the running style's coefficient for this phase x (1 + the Umamusume bonus left
-         * after stamina, times the skill boost); cruise is a fraction of it.
+         * after stamina, times the skill boost); cruise is a fraction of it. Exhausted, both drop to
+         * about the same, slower speed.
          */
         RaceStatePayload state() {
             RacePhase phase = layout.phase(progress);
@@ -425,13 +450,20 @@ public final class TimeTrial {
                 skill += UmapyoiConfig.RACE_SKILL_SPEED_PER_LEVEL.get() * (speedEffect.getAmplifier() + 1);
             double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * skill);
             double cruise = sprint * UmapyoiConfig.RACE_CRUISE_RATIO.get();
+            double accel = stats.accel() * RaceStyle.accel(stats.style(), phase) * setup.ground().accel();
+            if (exhausted) {
+                cruise *= UmapyoiConfig.RACE_EXHAUSTED_SPEED.get();
+                sprint = cruise * UmapyoiConfig.RACE_EXHAUSTED_SPRINT.get();
+                accel *= UmapyoiConfig.RACE_EXHAUSTED_ACCEL.get();
+            }
             double perTick = 1 / (plainSprint * 20);
             return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(), (float) sprint, (float) cruise,
-                    (float) (stats.accel() * RaceStyle.accel(stats.style(), phase) * setup.ground().accel() * perTick),
+                    (float) (accel * perTick),
                     (float) (UmapyoiConfig.RACE_DECEL.get() * perTick),
                     (float) (UmapyoiConfig.RACE_START_DASH.get() * perTick),
                     UmapyoiConfig.RACE_SPRINT_KICK.get().floatValue(),
-                    UmapyoiConfig.RACE_START_SPEED.get().floatValue());
+                    UmapyoiConfig.RACE_START_SPEED.get().floatValue(),
+                    exhausted);
         }
 
         private void sendState(RaceStatePayload state) {
@@ -446,7 +478,8 @@ public final class TimeTrial {
         private void showHud(RaceStatePayload state, int sinceOpen) {
             RacePhase phase = layout.phase(progress);
             boolean sprinting = player.isSprinting();
-            String motionKey = motion.accelerating(state, sprinting) ? "umapyoi.race.motion.accelerating"
+            String motionKey = exhausted ? "umapyoi.race.motion.exhausted"
+                    : motion.accelerating(state, sprinting) ? "umapyoi.race.motion.accelerating"
                     : motion.decelerating(state, sprinting) ? "umapyoi.race.motion.decelerating"
                     : sprinting ? "umapyoi.race.motion.full" : "umapyoi.race.motion.cruising";
             double target = (sprinting ? state.sprintSpeed() : state.cruiseSpeed()) * plainSprint;
