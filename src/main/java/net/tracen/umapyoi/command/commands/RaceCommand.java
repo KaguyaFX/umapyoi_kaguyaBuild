@@ -32,7 +32,7 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  * <li>/umapyoi race trial [distance_m] [turf|dirt|synthetic] [right|left] [sunny|rain|thunder]: a solo
  * time trial from the stalls on the finish line (2000 m on turf, right-handed, sunny, by default).</li>
  * <li>/umapyoi race start (opponents) [level] [the same]: a race against computer runners whose stats are
- * around a level (1 to 39; 0 or nothing for like yours).</li>
+ * all around a level (1 to 39), or each around your own (0 or nothing).</li>
  * <li>/umapyoi race cancel: stop your race.</li>
  * <li>/umapyoi racetrack rebuild [lap_m straight_m width]: rebuild the course from the config or
  * the given sizes, clearing the old one.</li>

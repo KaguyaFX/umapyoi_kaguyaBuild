@@ -101,7 +101,7 @@ public final class TimeTrial {
      * Starts a race, repainting the course first if it isn't laid out for it.
      *
      * @param opponents how many computer runners
-     * @param statLevel what their stats are around; 0 means like the player's
+     * @param statLevel what all their stats are around; 0 means each around the player's own
      */
     public static Start start(ServerPlayer player, RaceSetup setup, int opponents, int statLevel) {
         if (current != null || TrackBuilder.busy())
@@ -287,7 +287,7 @@ public final class TimeTrial {
 
             List<Double> theirs = draw.stream().map(lane -> track.inner() + 0.5 + lane).toList();
             this.opponents = RaceOpponent.field(level, track, setup, layout, distance, plainSprint,
-                    statLevel > 0 ? statLevel : levelOf(soul), theirs,
+                    statsAround(statLevel, soul), theirs,
                     soul, level.getRandom());
             keepCourseLoaded();
             for (RaceOpponent opponent : opponents)
@@ -300,10 +300,13 @@ public final class TimeTrial {
             sendStats();
         }
 
-        /** The average of a soul's stats. */
-        private static int levelOf(ItemStack soul) {
-            return UmaSoulUtils.hasSoulData(soul)
-                    ? (int) Math.round(Arrays.stream(UmaSoulUtils.getProperty(soul).toArray()).average().orElse(1)) : 1;
+        /** A soul's own five stats, or five times a level. */
+        private static int[] statsAround(int level, ItemStack soul) {
+            if (level <= 0 && UmaSoulUtils.hasSoulData(soul))
+                return UmaSoulUtils.getProperty(soul).toArray();
+            int[] stats = new int[5];
+            Arrays.fill(stats, Math.max(1, level));
+            return stats;
         }
 
         private void keepCourseLoaded() {

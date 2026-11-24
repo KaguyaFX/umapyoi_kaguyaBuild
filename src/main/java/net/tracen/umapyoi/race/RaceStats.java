@@ -34,7 +34,13 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
 public record RaceStats(Position style, double bonusRatio, double stamina, double accel, double apRegen, double emptyFloor,
         double distanceFactor, double surfaceFactor, double mood) {
     private static final int SPEED = 0, STAMINA = 1, POWER = 2, GUTS = 3, WISDOM = 4;
+
     public static RaceStats of(ItemStack soul, Position style, Surface surface, Distance distance) {
+        return of(soul, style, surface, distance, 1);
+    }
+
+    /** @param boost multiplies every stat, like the mood does (computer runners get a little) */
+    public static RaceStats of(ItemStack soul, Position style, Surface surface, Distance distance, double boost) {
         double lowBonus = UmapyoiConfig.RACE_LOW_BONUS_END.get();
         double apMin = UmapyoiConfig.RACE_ACTION_POINT_REGEN.get();
         if (!UmaSoulUtils.hasSoulData(soul))
@@ -44,12 +50,12 @@ public record RaceStats(Position style, double bonusRatio, double stamina, doubl
         double surfaceFactor = surface.GetMultiplier(soul);
         double mood = mood(soul);
         double bonus = ((1 + UmapyoiConfig.UMA_BASE_SPEED.get())
-                * (1 + UmapyoiConfig.RACE_SPEED_MAX_BONUS.get() * curve(soul, SPEED)) - 1) * distanceFactor;
-        double stamina = (UmapyoiConfig.RACE_STAMINA_BASE.get() + UmapyoiConfig.RACE_STAMINA_SCALE.get() * curve(soul, STAMINA))
+                * (1 + UmapyoiConfig.RACE_SPEED_MAX_BONUS.get() * boost * curve(soul, SPEED)) - 1) * distanceFactor;
+        double stamina = (UmapyoiConfig.RACE_STAMINA_BASE.get() + UmapyoiConfig.RACE_STAMINA_SCALE.get() * boost * curve(soul, STAMINA))
                 * RaceStyle.stamina(style);
-        double accel = (UmapyoiConfig.RACE_ACCEL_BASE.get() + UmapyoiConfig.RACE_ACCEL_SCALE.get() * curve(soul, POWER)) * surfaceFactor;
+        double accel = (UmapyoiConfig.RACE_ACCEL_BASE.get() + UmapyoiConfig.RACE_ACCEL_SCALE.get() * boost * curve(soul, POWER)) * surfaceFactor;
         double floorMax = UmapyoiConfig.RACE_GUTS_FLOOR_MAX.get();
-        double emptyFloor = lowBonus + (floorMax - lowBonus) * Math.min(1, curve(soul, GUTS) / curveMax());
+        double emptyFloor = lowBonus + (floorMax - lowBonus) * Math.min(1, boost * curve(soul, GUTS) / curveMax());
         return new RaceStats(style, bonus, stamina, accel, apRegen(soul), emptyFloor, distanceFactor, surfaceFactor, mood);
     }
 

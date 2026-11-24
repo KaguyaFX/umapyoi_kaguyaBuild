@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
@@ -28,20 +29,20 @@ import net.tracen.umapyoi.utils.GachaRanking;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
 /**
- * A computer runner: an Umamusume with made-up stats around a level, her pacing ({@link RaceAi}) and
+ * A computer runner: an Umamusume with made-up stats, her pacing ({@link RaceAi}) and
  * the figure people see ({@link RunnerEntity}). Where she is comes from her race progress and how far
  * off the inside she runs; nobody bumps into anybody, but she steps out around runners in her way.
  */
 final class RaceOpponent {
-    /** Stats are the level plus or minus up to this. */
-    private static final int LEVEL_SPREAD = 2;
-    private static final int MAX_LEVEL = 39;
-    /** Aptitudes of at least this (B) for the race's surface and distance. */
+    /** Each stat is the one asked for plus or minus up to this. */
+    private static final int STAT_SPREAD = 2;
+    /** Well suited: aptitude A or better for the race's surface and distance. Suited: B. */
+    private static final double WELL_SUITED = 1.0;
     private static final double SUITED = 0.9;
     /** Everyone keeps their stall's lane this far, then moves over to the lane they like. */
     private static final double KEEP_LANE = 30;
-    /** They like to run up to this far off the innermost lane. */
-    private static final double LANE_SPREAD = 3;
+    /** They like to run up to this far off the innermost lane: further out is further to run. */
+    private static final double LANE_SPREAD = 1;
     /** Blocks sideways per tick. */
     private static final double SIDESTEP = 0.06;
     /** Room a runner takes up: along the course (behind, ahead) and across it. */
@@ -76,27 +77,32 @@ final class RaceOpponent {
     }
 
     /**
-     * Picks the field: different Umamusume suited to the race, each with stats around {@code level}.
+     * Picks the field: different Umamusume, the best suited to the race first.
      *
+     * @param stats  what each one's stats are around: speed, stamina, power, guts, wisdom
      * @param stalls where each starts, as an offset from the course's reference line
      * @param except the player's own soul: she doesn't run against herself, in whatever outfit
      */
     static List<RaceOpponent> field(ServerLevel level, TrackGeometry track, RaceSetup setup, RaceLayout layout, double distance,
-            double plainSprint, int statLevel, List<Double> stalls, ItemStack except, RandomSource random) {
+            double plainSprint, int[] stats, List<Double> stalls, ItemStack except, RandomSource random) {
         Registry<UmaData> registry = UmapyoiAPI.getUmaDataRegistry(level);
         List<ItemStack> souls = new ArrayList<>();
+        List<ItemStack> suited = new ArrayList<>();
         List<ItemStack> others = new ArrayList<>();
         for (Map.Entry<ResourceKey<UmaData>, UmaData> entry : registry.entrySet()) {
             ResourceLocation id = entry.getKey().location();
             if (id.equals(UmaData.DEFAULT_UMA_ID) || entry.getValue().ranking() == GachaRanking.EASTER_EGG)
                 continue;
             ItemStack soul = UmaSoulUtils.initUmaSoul(ItemRegistry.UMA_SOUL.get().getDefaultInstance(), id, entry.getValue());
-            boolean suited = setup.surface().GetMultiplier(soul) >= SUITED && setup.category().GetMultiplier(soul) >= SUITED;
-            (suited ? souls : others).add(soul);
+            double aptitude = Math.min(setup.surface().GetMultiplier(soul), setup.category().GetMultiplier(soul));
+            (aptitude >= WELL_SUITED ? souls : aptitude >= SUITED ? suited : others).add(soul);
         }
         shuffle(souls, random);
+        shuffle(suited, random);
         shuffle(others, random);
-        souls.addAll(others); // not enough suited ones: the rest fill up
+        // When there aren't enough of the best, the next fill up.
+        souls.addAll(suited);
+        souls.addAll(others);
         // The same Umamusume has several entries, one per outfit: each runs once.
         Set<ResourceLocation> taken = new HashSet<>();
         if (UmaSoulUtils.hasSoulData(except))
@@ -105,11 +111,12 @@ final class RaceOpponent {
         List<RaceOpponent> field = new ArrayList<>();
         for (int i = 0; i < stalls.size() && i < souls.size(); i++) {
             ItemStack soul = souls.get(i);
-            soul.set(DataComponentsTypeRegistry.UMADATA_BASIC_STATUS.get(), new UmaDataBasicStatus(stat(statLevel, random),
-                    stat(statLevel, random), stat(statLevel, random), stat(statLevel, random), stat(statLevel, random)));
-            RaceStats stats = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category());
-            RaceRunner runner = new RaceRunner(setup, stats, layout, plainSprint);
-            field.add(new RaceOpponent(runner, new RaceAi(stats.style(), distance, random), soul,
+            soul.set(DataComponentsTypeRegistry.UMADATA_BASIC_STATUS.get(), new UmaDataBasicStatus(stat(stats[0], random),
+                    stat(stats[1], random), stat(stats[2], random), stat(stats[3], random), stat(stats[4], random)));
+            RaceStats worth = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category(),
+                    UmapyoiConfig.RACE_AI_BOOST.get());
+            RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint);
+            field.add(new RaceOpponent(runner, new RaceAi(worth.style(), distance, random), soul,
                     track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stalls.get(i), random.nextInt(6)));
         }
         return field;
@@ -120,8 +127,9 @@ final class RaceOpponent {
         return registry.getOptional(name).map(UmaData::identifier).orElse(name);
     }
 
-    private static int stat(int level, RandomSource random) {
-        return Mth.clamp(level + random.nextInt(LEVEL_SPREAD * 2 + 1) - LEVEL_SPREAD, 1, MAX_LEVEL);
+    /** Not capped at the highest grade, so the strongest field isn't a little weak on average. */
+    private static int stat(int around, RandomSource random) {
+        return Math.max(1, around + random.nextInt(STAT_SPREAD * 2 + 1) - STAT_SPREAD);
     }
 
     private static <T> void shuffle(List<T> list, RandomSource random) {
