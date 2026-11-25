@@ -8,6 +8,12 @@
   "identifier": "umapyoi:common_uma_b",
   "position": "late_surger",
   "ranking": "r",
+  "style_aptitude": [
+    1,
+    4,
+    6,
+    4
+  ],
   "surface_aptitude": [
     4,
     4,

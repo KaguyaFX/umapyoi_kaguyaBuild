@@ -6,7 +6,6 @@
     2
   ],
   "identifier": "umapyoi:daitaku_helios",
-  "position": "runaway",
   "propertyRate": [
     15,
     0,
@@ -15,6 +14,12 @@
     0
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    6,
+    6,
+    0,
+    0
+  ],
   "surface_aptitude": [
     6,
     0,

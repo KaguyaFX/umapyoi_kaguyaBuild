@@ -6,7 +6,7 @@
     1
   ],
   "identifier": "umapyoi:cesario",
-  "position": "pace_chaser",
+  "position": "late_surger",
   "propertyRate": [
     10,
     0,
@@ -15,6 +15,12 @@
     10
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    0,
+    6,
+    6,
+    4
+  ],
   "surface_aptitude": [
     6,
     0,

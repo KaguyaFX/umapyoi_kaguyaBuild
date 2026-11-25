@@ -6,7 +6,6 @@
     0
   ],
   "identifier": "umapyoi:sakura_bakushin_o",
-  "position": "pace_chaser",
   "propertyRate": [
     20,
     0,
@@ -15,6 +14,12 @@
     10
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    6,
+    6,
+    1,
+    0
+  ],
   "surface_aptitude": [
     6,
     0,

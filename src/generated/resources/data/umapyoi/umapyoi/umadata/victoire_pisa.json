@@ -6,7 +6,7 @@
     5
   ],
   "identifier": "umapyoi:victoire_pisa",
-  "position": "pace_chaser",
+  "position": "late_surger",
   "propertyRate": [
     0,
     10,
@@ -15,6 +15,12 @@
     10
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    0,
+    6,
+    6,
+    2
+  ],
   "surface_aptitude": [
     6,
     6,

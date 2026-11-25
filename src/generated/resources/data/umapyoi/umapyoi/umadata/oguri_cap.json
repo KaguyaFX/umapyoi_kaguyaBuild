@@ -6,7 +6,7 @@
     5
   ],
   "identifier": "umapyoi:oguri_cap",
-  "position": "late_surger",
+  "position": "pace_chaser",
   "propertyRate": [
     20,
     0,
@@ -15,6 +15,12 @@
     0
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    1,
+    6,
+    6,
+    3
+  ],
   "surface_aptitude": [
     6,
     5,

@@ -8,6 +8,12 @@
   "identifier": "umapyoi:common_uma_a",
   "position": "pace_chaser",
   "ranking": "r",
+  "style_aptitude": [
+    4,
+    6,
+    4,
+    1
+  ],
   "surface_aptitude": [
     4,
     4,

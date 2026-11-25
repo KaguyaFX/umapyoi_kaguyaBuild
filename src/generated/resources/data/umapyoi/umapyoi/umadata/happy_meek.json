@@ -1,12 +1,12 @@
 {
   "distance_aptitude": [
-    4,
-    3,
-    2,
-    1
+    6,
+    6,
+    6,
+    6
   ],
   "identifier": "umapyoi:happy_meek",
-  "position": "pace_chaser",
+  "position": "late_surger",
   "propertyRate": [
     6,
     6,
@@ -15,9 +15,15 @@
     6
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    1,
+    6,
+    6,
+    1
+  ],
   "surface_aptitude": [
     6,
-    5,
+    6,
     5
   ]
 }

@@ -3,7 +3,7 @@
     0,
     4,
     6,
-    5
+    6
   ],
   "identifier": "umapyoi:sakura_laurel",
   "position": "late_surger",
@@ -15,6 +15,12 @@
     0
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    0,
+    5,
+    6,
+    5
+  ],
   "surface_aptitude": [
     6,
     2,

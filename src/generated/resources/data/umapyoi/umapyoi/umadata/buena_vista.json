@@ -6,7 +6,7 @@
     4
   ],
   "identifier": "umapyoi:buena_vista",
-  "position": "late_surger",
+  "position": "end_closer",
   "propertyRate": [
     0,
     0,
@@ -15,6 +15,12 @@
     0
   ],
   "ranking": "sr",
+  "style_aptitude": [
+    0,
+    5,
+    6,
+    6
+  ],
   "surface_aptitude": [
     6,
     1,
