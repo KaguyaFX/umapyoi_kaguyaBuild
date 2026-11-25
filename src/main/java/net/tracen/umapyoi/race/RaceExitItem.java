@@ -53,7 +53,7 @@ final class RaceExitItem {
             player.containerMenu.setCarried(ItemStack.EMPTY);
     }
 
-    private static boolean isExit(ItemStack stack) {
+    static boolean isExit(ItemStack stack) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         return data != null && data.contains(TAG);
     }

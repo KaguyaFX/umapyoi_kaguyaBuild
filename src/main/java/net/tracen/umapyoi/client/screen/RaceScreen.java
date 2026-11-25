@@ -5,8 +5,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.locale.Language;
-import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
@@ -17,14 +15,16 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.client.race.RaceArt;
 import net.tracen.umapyoi.container.RaceContainer;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.UmaRaceTicketItem;
 import net.tracen.umapyoi.race.RaceMeeting;
 import net.tracen.umapyoi.race.RaceMeetingClient;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
+import net.tracen.umapyoi.race.RaceStyle;
 import net.tracen.umapyoi.registry.races.Race;
-import net.tracen.umapyoi.registry.umadata.UmaData;
+import net.tracen.umapyoi.utils.Aptitude;
 import net.tracen.umapyoi.utils.ClientUtils;
 import net.tracen.umapyoi.utils.Distance;
 import net.tracen.umapyoi.utils.Position;
@@ -192,129 +192,253 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
 
     // ---------------------------------------------------------------- the meeting page
 
-    private static final ResourceLocation PANEL_TEXTURE = ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID,
-            "textures/gui/three_goddess_blessing.png");
-    private static final int DARK = 0x404040, GRAY = 0x7A7A7A, RED = 0xB02020, GREEN = 0x2F7A12;
-    private static final int ROSTER_Y = 76, ROSTER_ROW = 11, ROSTER_ROWS = 9;
+    private static final int ROSTER_Y = 78, ROSTER_X = 7, ROSTER_W = 161;
+    /** The three pictures of a course: the stand, the finish, the far side. */
+    private static final int PICTURE_STAND = 1, PICTURE_FINISH = 39, PICTURE_FAR = 77;
+    private static final int INFO = 0xB0FFFFFF;
 
-    /** Plain panel over the picture and the slots behind it (the dotted pattern repeats every two pixels). */
-    private void panel(GuiGraphics graphic, int top, int bottom) {
-        for (int y = top; y < bottom; y += 80)
-            graphic.blit(PANEL_TEXTURE, this.leftPos + 3, this.topPos + y, 3, 14 + (top & 1), 170, Math.min(80, bottom - y), 256, 128);
+    /** Plain panel over what belongs to the quick page, and the crowd at the bottom of it. */
+    private void meetingPanel(GuiGraphics graphic, int bottom, int crowd) {
+        RaceArt.panel(graphic, this.leftPos + 3, this.topPos + 13, 170, bottom - 13);
+        graphic.blit(BACKGROUND_TEXTURE, this.leftPos + 4, this.topPos + crowd, 4, 204, 168, 52, 420, 256);
+    }
+
+    private void picture(GuiGraphics graphic, int v) {
+        graphic.blit(BACKGROUND_TEXTURE, this.leftPos + 6, this.topPos + 24, 257, v, 162, 37, 420, 256);
+    }
+
+    private void label(GuiGraphics graphic, Component text) {
+        int w = Math.min(157, this.font.width(text));
+        this.renderLabelImage(graphic, Math.max(66, w + 8));
+        RaceArt.line(graphic, text, this.leftPos + (this.imageWidth - w) / 2, this.topPos + 18, 157, RaceArt.WHITE, true);
     }
 
     private void renderMeetingBg(GuiGraphics graphic) {
-        if (RaceMeetingClient.current() == null) {
-            this.panel(graphic, 14, 117);
-            int x = this.leftPos + 10, y = this.topPos + 26;
-            graphic.fill(x, y, x + 18, y + 18, 0xFF373737);
-            graphic.fill(x + 1, y + 1, x + 18, y + 18, 0xFFFFFFFF);
-            graphic.fill(x + 1, y + 1, x + 17, y + 17, 0xFF8B8B8B);
-            return;
-        }
-        this.panel(graphic, 14, 198);
-        int x = this.leftPos + 7, y = this.topPos + ROSTER_Y - 3;
-        graphic.fill(x, y, x + 161, y + ROSTER_ROWS * ROSTER_ROW + 5, 0xFFB8B8B8);
-        graphic.fill(x + 1, y + 1, x + 160, y + ROSTER_ROWS * ROSTER_ROW + 4, 0xFFF4F4F4);
-    }
-
-    private void line(GuiGraphics graphic, Component text, int x, int y, int width, int color) {
-        FormattedCharSequence shown = text.getVisualOrderText();
-        if (this.font.width(text) > width)
-            shown = Language.getInstance().getVisualOrder(FormattedText.composite(
-                    this.font.substrByWidth(text, width - this.font.width("...")), Component.literal("...")));
-        graphic.drawString(this.font, shown, x, y, color, false);
-    }
-
-    private Component grade(int level) {
-        return Component.translatable("gui.umapyoi.meeting.level", UmaStatusUtils.getStatusLevel(level));
-    }
-
-    private void renderMeetingLabels(GuiGraphics graphic) {
         RaceMeetingPayload held = RaceMeetingClient.current();
-        if (held == null) {
+        if (held == null)
             this.renderApplication(graphic);
-            return;
-        }
-        Race race = ClientUtils.getRaceRegistry().get(held.race());
-        MutableComponent name = Component.translatable(Util.makeDescriptionId("race", held.race()) + ".name");
-        if (race != null)
-            name.withStyle(race.ranking.color == ChatFormatting.YELLOW ? ChatFormatting.GOLD : race.ranking.color);
-        this.line(graphic, name, 9, 16, 108, DARK);
-        MutableComponent what = Component.empty();
-        if (race != null)
-            what.append(Component.translatable("race.umapyoi.tier." + race.ranking.name().toLowerCase(Locale.ROOT))).append(" · ")
-                    .append(Component.translatable("race." + race.field.getNamespace() + ".field." + race.field.getPath())).append(" · ");
-        what.append(Component.translatable(held.leftHanded() ? "umapyoi.race.direction.left" : "umapyoi.race.direction.right"));
-        this.line(graphic, what, 9, 27, 158, DARK);
-        Distance distance = Distance.match(Math.round(held.meters()));
-        MutableComponent how = Component.empty();
-        how.append(Component.translatable("race.umapyoi.surface." + held.surfaceNow().name().toLowerCase(Locale.ROOT))).append(" " + Math.round(held.meters()) + "m (")
-                .append(Component.translatable("tooltip.umapyoi.race.distance." + (distance == null ? Distance.ADAPTIVE : distance).name().toLowerCase(Locale.ROOT))).append(")");
-        this.line(graphic, how, 9, 38, 158, DARK);
-        this.line(graphic, Component.translatable("gui.umapyoi.meeting.conditions", Component.translatable(held.weatherNow().key()),
-                Component.translatable(held.weatherNow().ground().key()), this.grade(held.runnerLevel())), 9, 49, 158, GRAY);
-        RaceMeeting.Stage stage = held.stageNow();
-        Component state = stage == RaceMeeting.Stage.OPEN || stage == RaceMeeting.Stage.CLOSED
-                ? Component.translatable("gui.umapyoi.meeting.state", Component.translatable(stage.key()), RaceMeetingClient.clock())
-                : Component.translatable(stage.key());
-        this.line(graphic, state, 9, 60, 158, stage == RaceMeeting.Stage.OPEN ? GREEN : RED);
-        Component applicant = Component.literal(held.applicant());
-        this.line(graphic, applicant, 167 - Math.min(46, this.font.width(applicant)), 16, 46, GRAY);
-        String me = this.minecraft == null || this.minecraft.player == null ? "" : this.minecraft.player.getScoreboardName();
-        int half = (held.rows().size() + 1) / 2;
-        for (int i = 0; i < held.rows().size() && i < ROSTER_ROWS * 2; i++) {
-            RaceMeetingPayload.Row row = held.rows().get(i);
-            int x = 9 + i / half * 80, y = ROSTER_Y + i % half * ROSTER_ROW;
-            boolean player = !row.player().isEmpty();
-            int color = row.scratched() ? 0xB0B0B0 : row.player().equals(me) && player ? GREEN : player ? 0x2A5DB0 : DARK;
-            graphic.drawString(this.font, String.valueOf(row.gate()), x + 10 - this.font.width(String.valueOf(row.gate())), y, GRAY, false);
-            MutableComponent who = player ? Component.literal(row.player()) : this.umaName(row.uma());
-            if (row.scratched())
-                who.withStyle(ChatFormatting.STRIKETHROUGH);
-            this.line(graphic, who, x + 13, y, 65, color);
-        }
+        else
+            this.renderHeld(graphic, held);
     }
 
-    /** Her own name: there's no room for the outfit's. */
-    private MutableComponent umaName(ResourceLocation uma) {
-        ResourceLocation name = ClientUtils.getClientUmaDataRegistry().getOptional(uma).map(UmaData::identifier).orElse(uma);
-        return UmaSoulUtils.getTranslatedUmaName(name).copy();
+    private static Component levelTag(int level) {
+        return Component.translatable("gui.umapyoi.meeting.level", RaceArt.grade(level));
     }
 
     private void renderApplication(GuiGraphics graphic) {
+        this.meetingPanel(graphic, 117, 64);
+        this.picture(graphic, PICTURE_STAND);
+        int x = this.leftPos, y = this.topPos;
+        graphic.fill(x + 7, y + 63, x + 168, y + 86, INFO);
+        graphic.blit(RaceArt.PHONE, x + 9, y + 66, 76, 238, 18, 18, 256, 256);
         Race race = this.ticketRace();
         if (race == null) {
-            int y = 27;
-            for (FormattedCharSequence hint : this.font.split(Component.translatable("gui.umapyoi.meeting.hint"), 130)) {
-                graphic.drawString(this.font, hint, 34, y, GRAY, false);
-                y += 10;
-            }
+            this.label(graphic, Component.translatable("gui.umapyoi.meeting.apply"));
+            List<FormattedCharSequence> hint = this.font.split(Component.translatable("gui.umapyoi.meeting.hint"), 136);
+            for (int i = 0; i < Math.min(2, hint.size()); i++)
+                graphic.drawString(this.font, hint.get(i), x + 31, y + 66 + i * 10, RaceArt.DARK, false);
             return;
         }
-        MutableComponent name = getRaceNameInRawComponent(this.menu.getMeetingTicket()).withStyle(race.ranking.color == ChatFormatting.YELLOW ? ChatFormatting.GOLD : race.ranking.color);
-        this.line(graphic, name, 34, 22, 132, DARK);
-        MutableComponent what = Component.empty().append(Component.translatable("race.umapyoi.tier." + race.ranking.name().toLowerCase(Locale.ROOT))).append(" ")
-                .append(Component.translatable("race." + race.field.getNamespace() + ".field." + race.field.getPath()));
-        this.line(graphic, what, 34, 33, 132, DARK);
-        MutableComponent how = Component.empty().append(Component.translatable("race.umapyoi.surface." + race.surface.name().toLowerCase(Locale.ROOT))).append(" ");
+        this.label(graphic, getRaceNameInRawComponent(this.menu.getMeetingTicket()));
+        int at = x + 31;
+        at += RaceArt.tag(graphic, RaceArt.tier(race.ranking), at, y + 64, RaceArt.tierColor(race.ranking));
+        at += RaceArt.tag(graphic, RaceArt.field(race), at, y + 64, RaceArt.TAG_PLAIN);
+        RaceArt.tag(graphic, Component.translatable("race.umapyoi.surface." + race.surface.name().toLowerCase(Locale.ROOT)), at, y + 64, RaceArt.surfaceColor(race.surface));
+        at = x + 31;
+        MutableComponent distance = Component.empty();
         if (race.distance != Distance.ADAPTIVE)
-            how.append(race.length + "m (").append(Component.translatable("tooltip.umapyoi.race.distance." + race.distance.name().toLowerCase(Locale.ROOT))).append(")");
-        else
-            how.append(Component.translatable("tooltip.umapyoi.race.distance.adaptive"));
-        this.line(graphic, how, 34, 44, 132, DARK);
-        this.line(graphic, this.grade(RaceMeeting.runnerLevel(race)), 34, 55, 132, GRAY);
+            distance.append(RaceArt.meters(race.length) + " ");
+        distance.append(Component.translatable("tooltip.umapyoi.race.distance." + race.distance.name().toLowerCase(Locale.ROOT)));
+        at += RaceArt.tag(graphic, distance, at, y + 75, RaceArt.surfaceColor(race.surface));
+        RaceArt.tag(graphic, levelTag(RaceMeeting.runnerLevel(race)), at, y + 75, RaceArt.TAG_LEVEL);
+        // Why this player can't run in it, over the picture.
         Component problem = this.runProblem(race);
         if (problem != null) {
-            int y = 68;
-            List<FormattedCharSequence> lines = this.font.split(Component.translatable("gui.umapyoi.meeting.cannot_run", problem), 156);
-            for (int i = 0; i < Math.min(2, lines.size()); i++)
-                graphic.drawString(this.font, lines.get(i), 10, y + i * 10, RED, false);
+            List<FormattedCharSequence> lines = this.font.split(Component.translatable("gui.umapyoi.meeting.cannot_run", problem), 153);
+            int shown = Math.min(2, lines.size());
+            graphic.fill(x + 7, y + 58 - shown * 10, x + 167, y + 60, 0xB0000000);
+            for (int i = 0; i < shown; i++)
+                graphic.drawString(this.font, lines.get(i), x + 11, y + 60 - (shown - i) * 10, 0xFFFF9A80, false);
         }
+    }
+
+    private void renderHeld(GuiGraphics graphic, RaceMeetingPayload held) {
+        RaceMeeting.Stage stage = held.stageNow();
+        Race race = ClientUtils.getRaceRegistry().get(held.race());
+        int x = this.leftPos, y = this.topPos;
+        this.meetingPanel(graphic, 198, 146);
+        this.picture(graphic, stage == RaceMeeting.Stage.RUNNING ? PICTURE_FAR : stage.ordinal() > RaceMeeting.Stage.RUNNING.ordinal() ? PICTURE_FINISH : PICTURE_STAND);
+        this.renderScene(graphic, held, stage);
+        this.label(graphic, RaceArt.raceName(held.race()));
+
+        // What's going on.
+        graphic.fill(x + 7, y + 49, x + 167, y + 60, 0x98000000);
+        Component clock = switch (stage) {
+            case OPEN, CLOSED -> Component.translatable("gui.umapyoi.meeting.starts", RaceMeetingClient.clock());
+            case RUNNING -> Component.literal(RaceMeetingClient.watching() && RaceMeetingClient.home() ? "" : RaceMeetingClient.raceClockText());
+            case LEAVING -> Component.translatable("gui.umapyoi.meeting.leaves", RaceMeetingClient.clock());
+            default -> Component.empty();
+        };
+        int color = stage == RaceMeeting.Stage.OPEN ? 0xFFB8F060 : stage == RaceMeeting.Stage.LEAVING ? 0xFFFFE08A : 0xFFFF9A80;
+        RaceArt.line(graphic, Component.translatable(stage.key()), x + 10, y + 51, 152 - this.font.width(clock), color);
+        RaceArt.right(graphic, clock, x + 165, y + 51, RaceArt.WHITE);
+
+        // What race it is.
+        int at = x + 7;
+        if (race != null) {
+            at += RaceArt.smallTag(graphic, RaceArt.tier(race.ranking), at, y + 64, RaceArt.tierColor(race.ranking));
+            at += RaceArt.smallTag(graphic, RaceArt.field(race), at, y + 64, RaceArt.TAG_PLAIN);
+        }
+        at += RaceArt.smallTag(graphic, Component.empty().append(RaceArt.surface(held)).append(" " + RaceArt.meters(held.meters())), at, y + 64, RaceArt.surfaceColor(held.surfaceNow()));
+        List<Component> rest = List.of(RaceArt.direction(held), Component.translatable(held.weatherNow().key()), Component.translatable(held.weatherNow().ground().key()));
+        for (int i = 0; i < rest.size(); i++)
+            if (at + this.font.width(rest.get(i)) + 3 <= x + 168)
+                at += RaceArt.smallTag(graphic, rest.get(i), at, y + 64, i == 0 ? RaceArt.TAG_PLAIN : RaceArt.TAG_SKY);
+
+        // Who runs.
+        List<RaceMeetingPayload.Row> rows = this.roster(held);
+        int half = this.rosterColumn(rows), rowH = this.rosterRow(rows), h = half * rowH + 5;
+        RaceArt.box(graphic, x + ROSTER_X, y + ROSTER_Y, ROSTER_W, h, RaceArt.BOX, RaceArt.BOX_EDGE);
+        graphic.fill(x + 87, y + ROSTER_Y + 2, x + 88, y + ROSTER_Y + h - 2, 0xFFD8D8D8);
+        for (int i = 0; i < rows.size(); i++)
+            this.renderRow(graphic, held, rows.get(i), x + 9 + i / half * 80, y + ROSTER_Y + 3 + i % half * rowH, Math.min(10, rowH));
+        if (rows.isEmpty())
+            RaceArt.center(graphic, Component.translatable(stage.key()), x + ROSTER_X, ROSTER_W, y + ROSTER_Y + 34, RaceArt.GRAY, false);
+
+        // And what else there is to say.
+        int info = y + ROSTER_Y + h + 3;
+        int lines = info + 18 <= y + 177 ? 2 : 1;
+        graphic.fill(x + 7, info, x + 168, info + lines * 9 + 1, INFO);
+        Component level = levelTag(held.runnerLevel());
+        RaceArt.line(graphic, Component.translatable("gui.umapyoi.meeting.applicant", held.applicant()), x + 10, info + 1, 150 - this.font.width(level), RaceArt.GRAY);
+        RaceArt.right(graphic, level, x + 165, info + 1, RaceArt.GRAY);
+        if (lines > 1 && !rows.isEmpty())
+            RaceArt.line(graphic, Component.translatable(stage == RaceMeeting.Stage.LEAVING ? "gui.umapyoi.meeting.hint.leaving"
+                    : stage.ordinal() >= RaceMeeting.Stage.RUNNING.ordinal() ? "gui.umapyoi.meeting.hint.running" : "gui.umapyoi.meeting.hint.entries"), x + 10, info + 10, 156, RaceArt.GRAY);
+    }
+
+    /** What is seen in the picture. */
+    private void renderScene(GuiGraphics graphic, RaceMeetingPayload held, RaceMeeting.Stage stage) {
+        int x = this.leftPos, y = this.topPos;
+        long time = Util.getMillis() / 180;
+        DummyUmaDefinition[] umas = DummyUmaDefinition.values();
+        if (stage == RaceMeeting.Stage.RUNNING) {
+            for (int i = 0; i < umas.length; i++)
+                this.renderFigure(graphic, umas[(i + 2) % umas.length], x + 32 + i * 19, y + 50 - (int) ((time + i) % 2));
+            graphic.blit(BACKGROUND_TEXTURE, x + 112, y + 31, 208, 81 + 24 * (int) (time % 4), 17, 19, 420, 256);
+            return;
+        }
+        RaceMeetingPayload.Row winner = held.rows().stream().filter(row -> row.place() == 1).findFirst().orElse(null);
+        if (winner != null) {
+            graphic.blit(BACKGROUND_TEXTURE, x + 147, y + 27, 232, 82 + 26 * 4, 19, 23, 420, 256);
+            graphic.blit(BACKGROUND_TEXTURE, x + 8, y + 30, 182, 81 + 24 * (int) (time % 4), 17, 19, 420, 256);
+            graphic.blit(BACKGROUND_TEXTURE, x + 24, y + 26, 262, 159, 128, 22, 420, 256);
+            RaceArt.line(graphic, Component.translatable("gui.umapyoi.meeting.winner", RaceArt.name(winner)),
+                    x + 88 - Math.min(66, this.font.width(Component.translatable("gui.umapyoi.meeting.winner", RaceArt.name(winner)))) / 2, y + 35, 66, RaceArt.WHITE, true);
+            return;
+        }
+        if (stage == RaceMeeting.Stage.RESULTS) {
+            graphic.blit(BACKGROUND_TEXTURE, x + 147, y + 27, 232, 82, 19, 23, 420, 256);
+            return;
+        }
+        // Waiting for the start.
+        graphic.blit(BACKGROUND_TEXTURE, x + 13, y + 31, 346, 225, 22, 24, 420, 256);
+        for (int i = 0; i < 3; i++)
+            this.renderFigure(graphic, umas[i * 3 % umas.length], x + 46 + i * 25, y + 50);
+    }
+
+    private void renderFigure(GuiGraphics graphic, DummyUmaDefinition figure, int x, int bottom) {
+        graphic.blit(figure.texture, x, bottom - figure.height, figure.uOffset, figure.vOffset, figure.width, figure.height, figure.textureWidth, figure.textureHeight);
+    }
+
+    /** The field by stall, or as they came in. */
+    private List<RaceMeetingPayload.Row> roster(RaceMeetingPayload held) {
+        if (!held.announced())
+            return held.rows();
+        List<RaceMeetingPayload.Row> rows = new ArrayList<>(held.rows());
+        rows.sort(Comparator.comparingInt(row -> row.place() > 0 ? row.place() : 100 + row.gate()));
+        return rows;
+    }
+
+    /** Twelve runners in two columns of six; with more, the rows get narrower. */
+    private int rosterColumn(List<RaceMeetingPayload.Row> rows) {
+        return Math.max(6, (rows.size() + 1) / 2);
+    }
+
+    private int rosterRow(List<RaceMeetingPayload.Row> rows) {
+        int half = this.rosterColumn(rows);
+        return half <= 6 ? 12 : half <= 7 ? 11 : 9;
+    }
+
+    private void renderRow(GuiGraphics graphic, RaceMeetingPayload held, RaceMeetingPayload.Row row, int x, int y, int h) {
+        int back = RaceArt.rowColor(row);
+        if (back != 0)
+            graphic.fill(x, y - 1, x + 77, y + h + 1, back);
+        MutableComponent name = RaceArt.name(row);
+        if (row.scratched())
+            name.withStyle(ChatFormatting.STRIKETHROUGH);
+        int field = held.rows().size();
+        int text = y + (h - 7) / 2;
+        if (held.announced()) {
+            RaceArt.place(graphic, x, y, h, row.place(), RaceArt.DARK);
+            RaceArt.chip(graphic, x + 13, y, 12, h, row.gate(), field, row.scratched());
+            RaceArt.line(graphic, name, x + 28, text, 49, RaceArt.nameColor(row));
+            return;
+        }
+        RaceArt.chip(graphic, x + 1, y, 13, h, row.gate(), field, row.scratched());
+        RaceArt.line(graphic, name, x + 17, text, 48, RaceArt.nameColor(row));
+        if (row.popularity() > 0)
+            RaceArt.place(graphic, x + 65, y, h, row.popularity(), RaceArt.GRAY);
+    }
+
+    /** The runner under the mouse. */
+    @Nullable
+    private RaceMeetingPayload.Row hoveredRow(RaceMeetingPayload held, int mouseX, int mouseY) {
+        List<RaceMeetingPayload.Row> rows = this.roster(held);
+        int half = this.rosterColumn(rows), rowH = this.rosterRow(rows);
+        for (int i = 0; i < rows.size(); i++)
+            if (this.isHovering(9 + i / half * 80, ROSTER_Y + 2 + i % half * rowH, 77, rowH, mouseX, mouseY))
+                return rows.get(i);
+        return null;
+    }
+
+    /** All there is to know about her. */
+    private List<Component> rowTooltip(RaceMeetingPayload held, RaceMeetingPayload.Row row) {
+        RaceMeetingPayload.Form form = row.form();
+        List<Component> lines = new ArrayList<>();
+        MutableComponent name = UmaSoulUtils.getTranslatedUmaName(row.uma()).copy();
+        if (!row.player().isEmpty())
+            name.append(Component.literal("  " + row.player()).withStyle(RaceArt.mine(row) ? ChatFormatting.GREEN : ChatFormatting.AQUA));
+        lines.add(name);
+        if (row.popularity() > 0)
+            lines.add(Component.translatable("gui.umapyoi.phone.popularity").append(" ").append(Component.translatable("gui.umapyoi.phone.popularity.place", row.popularity())).withStyle(ChatFormatting.GRAY));
+        MutableComponent stats = Component.empty();
+        String[] names = { "speed", "stamina", "strength", "guts", "wisdom" };
+        for (int i = 0; i < names.length; i++) {
+            if (i == 3) {
+                lines.add(stats);
+                stats = Component.empty();
+            }
+            stats.append(Component.translatable("gui.umapyoi.phone.stat." + names[i]).withStyle(ChatFormatting.GRAY)).append(" ")
+                    .append(UmaStatusUtils.getStatusLevel(form.stat(i))).append("  ");
+        }
+        lines.add(stats);
+        lines.add(aptitude(RaceArt.surface(held), form.aptitude(RaceMeetingPayload.Form.SURFACE))
+                .append(aptitude(RaceArt.distance(Math.round(held.meters())), form.aptitude(RaceMeetingPayload.Form.DISTANCE))));
+        MutableComponent styles = Component.empty();
+        for (int i = 0; i < 4; i++)
+            styles.append(aptitude(Component.translatable(RaceStyle.key(Position.values()[i])), form.style(Position.values()[i])));
+        lines.add(styles);
+        return lines;
+    }
+
+    private static MutableComponent aptitude(Component label, Aptitude aptitude) {
+        return Component.empty().append(label.copy().withStyle(ChatFormatting.GRAY)).append(" ").append(aptitude.styledComponent()).append("  ");
     }
 
     @Override
     public void render(@Nonnull GuiGraphics graphic, final int mouseX, final int mouseY, float partialTicks) {
+        this.refreshButtons();
         super.render(graphic, mouseX, mouseY, partialTicks);
         this.renderTooltip(graphic, mouseX, mouseY);
     }
@@ -325,11 +449,8 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         graphic.drawString(this.font, heading,
                 (this.imageWidth / 2) - (this.font.width(heading.getVisualOrderText()) / 2),
                 this.titleLabelY - 3, 0xFFFFFF);
-        if (this.onMeetingPage()) {
-            this.renderMeetingLabels(graphic);
-            if (RaceMeetingClient.current() != null)
-                return;
-        }
+        if (this.onMeetingPage() && RaceMeetingClient.current() != null)
+            return;
         graphic.drawString(this.font, this.playerInventoryTitle, 8, this.imageHeight - 96 + 2, 4210752, false);
     }
 
@@ -387,6 +508,13 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
     @Override
     protected void renderTooltip(GuiGraphics pGuiGraphics, int pX, int pY) {
         super.renderTooltip(pGuiGraphics, pX, pY);
+        RaceMeetingPayload held = RaceMeetingClient.current();
+        if (this.onMeetingPage() && held != null) {
+            RaceMeetingPayload.Row row = this.hoveredRow(held, pX, pY);
+            if (row != null)
+                pGuiGraphics.renderComponentTooltip(this.font, this.rowTooltip(held, row), pX, pY);
+            return;
+        }
         // Full text of a long reason when hovering the overlay.
         if (this.unavailableReason != null && this.menu.getCarried().isEmpty()
                 && this.isHovering(TRACK_X, TRACK_Y, TRACK_W, TRACK_H, pX, pY)) {

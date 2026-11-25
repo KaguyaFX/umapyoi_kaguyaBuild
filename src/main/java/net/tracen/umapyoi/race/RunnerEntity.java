@@ -97,6 +97,11 @@ public class RunnerEntity extends LivingEntity {
         stand(progress, offset);
     }
 
+    /** Only to look at: an Umamusume who isn't anywhere. */
+    public void showSoul(ItemStack soul) {
+        entityData.set(SOUL, soul.copy());
+    }
+
     /** The soul of the Umamusume this is. */
     public ItemStack soul() {
         return entityData.get(SOUL);

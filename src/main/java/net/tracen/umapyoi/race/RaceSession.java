@@ -286,6 +286,23 @@ final class RaceSession {
         return places;
     }
 
+    /** Where everyone is. */
+    List<RaceLivePayload.Spot> spots() {
+        List<RaceLivePayload.Spot> spots = new ArrayList<>();
+        for (Racer racer : racers)
+            spots.add(new RaceLivePayload.Spot(racer.lane + 1, (float) racer.runner.progress(), (float) racer.offset,
+                    racer.out ? RaceLivePayload.OUT : racer.time >= 0 ? RaceLivePayload.HOME : RaceLivePayload.RUNNING));
+        for (RaceOpponent opponent : opponents)
+            spots.add(new RaceLivePayload.Spot(opponent.lane(track) + 1, (float) opponent.runner().progress(), (float) opponent.offset(),
+                    opponent.finished() ? RaceLivePayload.HOME : RaceLivePayload.RUNNING));
+        return spots;
+    }
+
+    /** Ticks since the gates opened. */
+    int raceTicks() {
+        return openTick < 0 ? 0 : ticks - openTick;
+    }
+
     private int fieldSize() {
         return racers.size() + opponents.size();
     }

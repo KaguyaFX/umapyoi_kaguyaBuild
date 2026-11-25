@@ -186,7 +186,7 @@ public class RaceContainer extends AbstractContainerMenu {
         }
 
         // Added last so the other slots keep their numbers.
-        this.addSlot(new Slot(meetingTicket, 0, 11, 27) {
+        this.addSlot(new Slot(meetingTicket, 0, 10, 67) {
             @Override
             public boolean mayPlace(@Nonnull ItemStack stack) {
                 return stack.is(ItemRegistry.UMA_RACE_TICKET.get());

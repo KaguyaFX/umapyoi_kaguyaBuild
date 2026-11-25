@@ -49,7 +49,7 @@ public class UmapyoiCreativeGroup {
                                 fillFactorContainer(output);
                                 return;
                             }
-                            if (item == ItemRegistry.CAREER_KEEPSAKE) // hidden: only given at the end of a career
+                            if (item == ItemRegistry.CAREER_KEEPSAKE || item == ItemRegistry.RACE_PHONE) // hidden: only given at the end of a career, lent at races
                                 return;
                             if (item == ItemRegistry.UMA_SOUL || item == ItemRegistry.UMA_SOUL_DISPLAY) {
 //                                fillUmaSoul(features, output);

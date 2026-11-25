@@ -72,7 +72,7 @@ public class UmapyoiItemTagsProvider extends ItemTagsProvider {
         tag(UmapyoiItemTags.EAR_FRIENDLY_HEADWEAR);
         ItemRegistry.ITEMS.getEntries().stream().filter(item -> item.get() instanceof TrainingItem)
                 .forEach(item -> tag(UmapyoiItemTags.NOTEBOOKS).add(item.get()));
-        tag(Tags.Items.HIDDEN_FROM_RECIPE_VIEWERS).add(ItemRegistry.CAREER_KEEPSAKE.get());
+        tag(Tags.Items.HIDDEN_FROM_RECIPE_VIEWERS).add(ItemRegistry.CAREER_KEEPSAKE.get(), ItemRegistry.RACE_PHONE.get());
 
         tag(UmapyoiItemTags.SLOW_METABOLISM)
                 .add(ItemRegistry.HACHIMI_BIG.get()).add(ItemRegistry.SWEET_CUPCAKE.get());

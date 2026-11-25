@@ -220,6 +220,10 @@ final class RaceOpponent {
         return runner;
     }
 
+    double offset() {
+        return offset;
+    }
+
     ItemStack soul() {
         return soul;
     }

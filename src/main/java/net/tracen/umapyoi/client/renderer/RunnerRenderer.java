@@ -43,6 +43,12 @@ public class RunnerRenderer extends LivingEntityRenderer<RunnerEntity, PlayerMod
         return null;
     }
 
+    /** Not on a figure that is only looked at in a menu. */
+    @Override
+    protected boolean shouldShowName(RunnerEntity entity) {
+        return entity.hasCustomName() && super.shouldShowName(entity);
+    }
+
     private static class UmaLayer extends RenderLayer<RunnerEntity, PlayerModel<RunnerEntity>> {
         /** One per Umamusume: a renderer reloads its model whenever it draws someone else. */
         private final Map<ResourceLocation, UmaSoulRenderer> renderers = new HashMap<>();

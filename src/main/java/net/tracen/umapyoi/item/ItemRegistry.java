@@ -34,6 +34,9 @@ public class ItemRegistry {
     public static final DeferredItem<Item> CAREER_KEEPSAKE = register("career_keepsake",
             () -> new CareerKeepsakeItem(BlockRegistry.CAREER_KEEPSAKE.get()));
     
+    /** Hidden too: everyone who comes to a race is lent one. */
+    public static final DeferredItem<Item> RACE_PHONE = register("race_phone", RacePhoneItem::new);
+
     public static final DeferredItem<Item> THREE_GODDESS = register("three_goddess",
             () -> new BlockItem(BlockRegistry.THREE_GODDESS.get(), Umapyoi.defaultItemProperties()));
 

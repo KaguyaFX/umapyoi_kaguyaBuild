@@ -5,6 +5,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.race.RaceLivePayload;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
 import net.tracen.umapyoi.race.RaceStatePayload;
 
@@ -44,6 +45,11 @@ public class NetPacketHandler {
                          RaceMeetingPayload.TYPE,
                          RaceMeetingPayload.STREAM_CODEC,
                          RaceMeetingPayload::handle
+                 )
+                 .playToClient(
+                         RaceLivePayload.TYPE,
+                         RaceLivePayload.STREAM_CODEC,
+                         RaceLivePayload::handle
                  );
     }
 }

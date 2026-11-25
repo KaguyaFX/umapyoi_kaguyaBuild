@@ -55,6 +55,7 @@ import net.tracen.umapyoi.registry.races.Race;
 import net.tracen.umapyoi.registry.races.RaceLoot;
 import net.tracen.umapyoi.registry.races.RaceRegistry;
 import net.tracen.umapyoi.registry.races.field.RaceField;
+import net.tracen.umapyoi.utils.Aptitude;
 import net.tracen.umapyoi.utils.Distance;
 import net.tracen.umapyoi.utils.Surface;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
@@ -90,6 +91,8 @@ public final class RaceMeeting {
     /** Fireworks go up this long, one every so many ticks. */
     private static final int FIREWORK_TICKS = 20 * 20;
     private static final int FIREWORK_EVERY = 8;
+    /** Those who watch are told where everyone is every so many ticks. */
+    static final int LIVE_EVERY = 2;
     /** Computer runners start walking up to the stalls this long before the players are put in. */
     private static final int WALK_IN_SECONDS = 15;
     /** Runners arrive this many blocks before the line. */
@@ -102,14 +105,15 @@ public final class RaceMeeting {
         @Nullable
         private UUID player;
         private String playerName = "";
-        private ResourceLocation uma;
+        /** The runner's soul: the player's, as far as known, or hers. */
+        private ItemStack soul;
         /** The player gave up after entries closed: the stall stays empty. */
         private boolean scratched;
 
         private Slot(int lane, RaceOpponent opponent) {
             this.lane = lane;
             this.opponent = opponent;
-            this.uma = UmaSoulUtils.getName(opponent.soul());
+            this.soul = opponent.soul();
         }
     }
 
@@ -144,6 +148,8 @@ public final class RaceMeeting {
     private boolean called;
     private boolean loaded;
     private boolean awarded;
+    /** The result, once it's announced. */
+    private List<RaceSession.Place> result = List.of();
     @Nullable
     private RaceSession session;
 
@@ -348,9 +354,9 @@ public final class RaceMeeting {
                 return Component.translatable("umapyoi.meeting.problem.full");
             slot.player = player.getUUID();
             slot.playerName = player.getScoreboardName();
-            slot.uma = UmaSoulUtils.getName(soul);
+            slot.soul = soul.copy();
             session.remove(slot.opponent);
-            tell(Component.translatable("umapyoi.meeting.entered", player.getDisplayName(), UmaSoulUtils.getTranslatedUmaName(slot.uma), slot.lane + 1));
+            tell(Component.translatable("umapyoi.meeting.entered", player.getDisplayName(), UmaSoulUtils.getTranslatedUmaName(slot.soul), slot.lane + 1));
             player.sendSystemMessage(Component.translatable("umapyoi.meeting.entered_self", slot.lane + 1, minutes(closeTicks())).withStyle(ChatFormatting.GREEN));
             sync();
         }
@@ -392,7 +398,7 @@ public final class RaceMeeting {
     private void free(Slot slot) {
         slot.player = null;
         slot.playerName = "";
-        slot.uma = UmaSoulUtils.getName(slot.opponent.soul());
+        slot.soul = slot.opponent.soul();
         session.add(slot.opponent);
     }
 
@@ -457,7 +463,7 @@ public final class RaceMeeting {
         visitors.add(player.getUUID());
         RaceWorld.visit(player, level, new Vec3(origin.getX() + at.x(), origin.getY() + height, origin.getZ() + at.z()), at.yaw());
         if (RaceWorld.isRaceWorld(player.level()) && !bound(player))
-            RaceExitItem.give(player);
+            RaceKit.give(player);
     }
 
     @SubscribeEvent
@@ -543,7 +549,10 @@ public final class RaceMeeting {
                 session.tick(); // opens the gates and moves on to RUNNING
             }
             case RUNNING -> {
-                if (session.tick())
+                boolean over = session.tick();
+                if (age % LIVE_EVERY == 0)
+                    showLive();
+                if (over)
                     finish();
                 else if (level.players().isEmpty() && finishers.isEmpty()) {
                     end(Component.translatable("umapyoi.meeting.nobody", name()));
@@ -610,7 +619,7 @@ public final class RaceMeeting {
             else {
                 session.add(player, slot.lane);
                 bound.add(slot.player);
-                RaceExitItem.take(player);
+                RaceKit.take(player);
             }
         }
         session.begin(left);
@@ -629,6 +638,7 @@ public final class RaceMeeting {
         stage = Stage.LEAVING;
         left = UmapyoiConfig.RACE_MEETING_LEAVE_SECONDS.get() * 20;
         List<RaceSession.Place> places = session.places();
+        result = places;
         MutableComponent top = Component.empty();
         for (int i = 0; i < Math.min(3, places.size()) && places.get(i).time() >= 0; i++)
             top.append(i == 0 ? "" : "  ").append(Component.translatable("umapyoi.meeting.place", i + 1)).append(" ").append(places.get(i).name());
@@ -647,7 +657,7 @@ public final class RaceMeeting {
         bound.clear();
         for (ServerPlayer player : level.players())
             if (visitors.contains(player.getUUID()))
-                RaceExitItem.give(player);
+                RaceKit.give(player);
         sync();
     }
 
@@ -803,6 +813,14 @@ public final class RaceMeeting {
         }
     }
 
+    /** To those who watch; the runners have better things to do. */
+    private void showLive() {
+        RaceLivePayload live = new RaceLivePayload(session.raceTicks(), session.spots());
+        for (ServerPlayer player : level.players())
+            if (!bound.contains(player.getUUID()))
+                PacketDistributor.sendToPlayer(player, live);
+    }
+
     private void firework() {
         RacecourseData data = RacecourseData.get(level);
         TrackGeometry track = data.track();
@@ -849,10 +867,56 @@ public final class RaceMeeting {
     }
 
     private RaceMeetingPayload payload() {
-        List<RaceMeetingPayload.Row> rows = slots.stream().sorted((a, b) -> Integer.compare(a.lane, b.lane))
-                .map(slot -> new RaceMeetingPayload.Row(slot.lane + 1, slot.uma, slot.playerName, slot.scratched)).toList();
-        return new RaceMeetingPayload(true, race.id(), applicantName, stage.ordinal(), left,
+        RaceMeetingPayload.Course course = RaceMeetingPayload.Course.NONE;
+        if (session != null) {
+            TrackGeometry track = RacecourseData.get(level).track();
+            course = new RaceMeetingPayload.Course((float) track.straight(), (float) track.radius(), (float) track.width(),
+                    (float) track.finish(), (float) session.distance(), (float) session.layout().finalFrom());
+        }
+        return new RaceMeetingPayload(true, race.id(), applicantName, stage.ordinal(), stage == Stage.RUNNING ? session.raceTicks() : left,
                 UmapyoiConfig.RACE_MEETING_CLOSE_SECONDS.get() * 20, (float) setup.distanceMeters(), setup.surface().ordinal(),
-                setup.leftHanded(), setup.weather().ordinal(), runnerLevel, rows);
+                setup.leftHanded(), setup.weather().ordinal(), runnerLevel, course, rows());
+    }
+
+    private List<RaceMeetingPayload.Row> rows() {
+        List<Slot> all = slots.stream().sorted((a, b) -> Integer.compare(a.lane, b.lane)).toList();
+        for (Slot slot : all) {
+            ServerPlayer player = slot.player == null ? null : server.getPlayerList().getPlayer(slot.player);
+            ItemStack soul = player == null ? ItemStack.EMPTY : UmapyoiAPI.getUmaSoul(player);
+            if (stage.ordinal() < Stage.RUNNING.ordinal() && UmaSoulUtils.hasSoulData(soul))
+                slot.soul = soul.copy();
+        }
+        List<Slot> running = all.stream().filter(slot -> !slot.scratched).toList();
+        List<RacePopularity.Rating> ratings = RacePopularity.rate(running.stream().map(slot -> UmaSoulUtils.getProperty(slot.soul).toArray()).toList());
+        List<RaceMeetingPayload.Row> rows = new ArrayList<>();
+        for (Slot slot : all) {
+            int rated = running.indexOf(slot);
+            int place = 0;
+            float time = 0;
+            for (int i = 0; i < result.size(); i++)
+                if (result.get(i).lane() == slot.lane) {
+                    place = result.get(i).time() < 0 ? -1 : i + 1;
+                    time = (float) result.get(i).time();
+                }
+            rows.add(new RaceMeetingPayload.Row(slot.lane + 1, UmaSoulUtils.getName(slot.soul), slot.playerName, slot.scratched, form(slot),
+                    rated < 0 ? 0 : ratings.get(rated).place(), rated < 0 ? new byte[RacePopularity.COLUMNS] : ratings.get(rated).tips(),
+                    !result.isEmpty() && place == 0 ? -1 : place, time));
+        }
+        return rows;
+    }
+
+    private RaceMeetingPayload.Form form(Slot slot) {
+        int[] stats = UmaSoulUtils.getProperty(slot.soul).toArray();
+        byte[] grades = new byte[RaceMeetingPayload.Form.STATS];
+        for (int i = 0; i < grades.length; i++)
+            grades[i] = (byte) Mth.clamp(stats[i], 0, 39);
+        byte[] aptitudes = new byte[RaceMeetingPayload.Form.APTITUDES];
+        Distance distance = setup.category();
+        aptitudes[RaceMeetingPayload.Form.SURFACE] = (byte) UmaSoulUtils.getSurfaceAptitude(slot.soul)[setup.surface().ordinal()].ordinal();
+        aptitudes[RaceMeetingPayload.Form.DISTANCE] = (byte) (distance == null ? Aptitude.C : UmaSoulUtils.getDistanceAptitude(slot.soul)[distance.ordinal()]).ordinal();
+        Aptitude[] styles = RaceStyle.aptitudes(slot.soul, level);
+        for (int i = 0; i < styles.length; i++)
+            aptitudes[RaceMeetingPayload.Form.STYLES + i] = (byte) styles[i].ordinal();
+        return new RaceMeetingPayload.Form(grades, aptitudes, slot.player == null ? List.of() : List.copyOf(UmaSoulUtils.getSkills(slot.soul)));
     }
 }
