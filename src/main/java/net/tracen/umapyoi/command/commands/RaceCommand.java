@@ -70,7 +70,7 @@ public class RaceCommand {
                 .then(Commands.literal("enter").executes(ctx -> answer(ctx.getSource(), RaceMeeting.enter(ctx.getSource().getPlayerOrException()))))
                 .then(Commands.literal("watch").executes(ctx -> answer(ctx.getSource(), RaceMeeting.watch(ctx.getSource().getPlayerOrException()))))
                 .then(Commands.literal("withdraw").executes(ctx -> answer(ctx.getSource(), RaceMeeting.withdraw(ctx.getSource().getPlayerOrException()))))
-                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource()))));
+                .then(Commands.literal("leave").executes(ctx -> answer(ctx.getSource(), RaceMeeting.leave(ctx.getSource().getPlayerOrException())))));
         return builder.then(Commands.literal("racetrack").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("rebuild")
                         .executes(ctx -> rebuild(ctx.getSource(), RaceWorld.configuredTrack()))

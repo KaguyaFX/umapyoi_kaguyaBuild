@@ -125,6 +125,7 @@ final class RaceSession {
     private int firstTick = -1;
     private int allTick = -1;
     private boolean over;
+    private boolean gathered;
 
     /** @param stragglerTicks how long the rest get once the winner is in; 0 = as long as they like */
     RaceSession(ServerLevel level, TrackGeometry track, BlockPos origin, RaceSetup setup, int stragglerTicks, Listener listener) {
@@ -212,7 +213,20 @@ final class RaceSession {
 
     void add(RaceOpponent opponent) {
         opponents.add(opponent);
-        opponent.appear(level, track, origin, START);
+        if (gathered)
+            opponent.appear(level, track, origin, START);
+    }
+
+    /** The computer runners turn up: in their stalls, or walking up to them. */
+    void gather(boolean walk) {
+        if (gathered)
+            return;
+        gathered = true;
+        for (RaceOpponent opponent : opponents)
+            if (walk)
+                opponent.comeUp(level, track, origin, START);
+            else
+                opponent.appear(level, track, origin, START);
     }
 
     void remove(RaceOpponent opponent) {
@@ -309,6 +323,8 @@ final class RaceSession {
                 if (opponent.plan(setup, PLAIN_SPRINT, track) && countdown != 0)
                     break;
         if (openTick < 0) {
+            for (RaceOpponent opponent : opponents)
+                opponent.walkIn(START);
             if (countdown >= 0)
                 countdown();
             return false;

@@ -331,6 +331,8 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.meeting.nobody", "%s: nobody came, so it's off.");
         add("umapyoi.meeting.stopped", "%s has been called off.");
         add("umapyoi.meeting.off_the_track", "Spectators stay off the track during a race.");
+        add("umapyoi.meeting.off_the_grounds", "That's outside the racecourse.");
+        add("umapyoi.meeting.exit.racing", "There's no leaving during the race. You get your way out back once the result is announced.");
         add("umapyoi.meeting.bar.open", "%s - entries open, starts in %s");
         add("umapyoi.meeting.bar.closed", "%s - entries closed, starts in %s");
         add("umapyoi.meeting.bar.running", "%s - %s leads, %s m to go");

@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.state.properties.SlabType;
  *          ___/     _/|       |
  *   __concourse       |       |   concourse: a walkway between the tiers
  *  /lower tier        |       |   lower tier: one block up per two rows (seat + floor)
- * |front wall ... tunnels under everything at ground level, every 36 blocks, barred at the track end
+ * |front wall ... tunnels under everything at ground level, every 36 blocks, closed at the back
  * </pre>
  * Seats are coloured; every 12 blocks along the stand (and beside each end wall) a white aisle
  * runs from front to back, like a cinema.
@@ -55,7 +55,6 @@ final class Grandstand {
             .setValue(SlabBlock.TYPE, SlabType.BOTTOM);
     private static final BlockState ROOF_EDGE = Blocks.SMOOTH_QUARTZ.defaultBlockState();
     private static final BlockState LIGHT = Blocks.SEA_LANTERN.defaultBlockState();
-    private static final BlockState BARS = Blocks.IRON_BARS.defaultBlockState();
 
     private static final int UPPER_TOP = seatHeight(UPPER_LAST);
 
@@ -70,8 +69,8 @@ final class Grandstand {
      */
     static BlockState blockAt(int row, int h, int along, int length) {
         boolean end = along == 0 || along == length - 1;
-        if (!end && h <= 3 && tunnel(along, length))
-            return row == 0 ? BARS : AIR;
+        if (!end && h <= 3 && row < DEPTH - 1 && tunnel(along, length))
+            return AIR;
 
         if (h == ROOF && row >= ROOF_FRONT) {
             boolean light = (row == 8 || row == 14 || row == 20) && along % 6 == 3;
@@ -140,7 +139,7 @@ final class Grandstand {
         return Math.floorMod(along - length / 2, AISLE_SPACING) == AISLE_SPACING / 2;
     }
 
-    /** Three-wide passages through the stand at ground level, spaced out from the middle. */
+    /** Three-wide passages into the stand at ground level, spaced out from the middle. The back wall ends them: there's only open country behind. */
     private static boolean tunnel(int along, int length) {
         if (along < 3 || along > length - 4)
             return false;
@@ -150,6 +149,6 @@ final class Grandstand {
 
     /** True for blocks that join their neighbours (glass panes) and need a second pass. */
     static boolean connects(BlockState state) {
-        return state.is(Blocks.GLASS_PANE) || state.is(Blocks.IRON_BARS);
+        return state.is(Blocks.GLASS_PANE);
     }
 }

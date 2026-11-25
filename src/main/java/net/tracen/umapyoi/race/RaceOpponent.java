@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -47,6 +48,11 @@ final class RaceOpponent {
     private static final double KEEP_LANE = 30;
     /** They like to run up to this far off the innermost lane: further out is further to run. */
     private static final double LANE_SPREAD = 1;
+    /** On the way to her stall: blocks per second, from how many blocks behind it, and how many ticks later even numbers go. */
+    private static final double WALK = 2.2;
+    private static final double WALK_FROM = 14;
+    private static final double WALK_FROM_SPREAD = 5;
+    private static final int EVEN_LATER = 40;
     /** Blocks sideways per tick. */
     private static final double SIDESTEP = 0.06;
     /** Beside her: within this along the course. */
@@ -81,6 +87,9 @@ final class RaceOpponent {
     private RunnerEntity entity;
     /** Seconds since the gates opened; below zero while still running. */
     private double time = -1;
+    /** Where she is on the way to her stall, and how many ticks until she sets off. */
+    private double walkedTo;
+    private int walkIn;
 
     private RaceOpponent(RaceRunner runner, RaceAi ai, ItemStack soul, double lane, double stallOffset, int delay) {
         this.runner = runner;
@@ -170,8 +179,31 @@ final class RaceOpponent {
         entity.place(soul, track, origin);
         entity.setCustomName(name());
         entity.setCustomNameVisible(true);
+        walkedTo = progress;
         entity.show(progress, offset, 0);
         level.addFreshEntity(entity);
+    }
+
+    /** Appears some way behind her stall, to walk up to it; odd numbers go first. */
+    void comeUp(ServerLevel level, TrackGeometry track, BlockPos origin, double stall) {
+        RandomSource random = level.getRandom();
+        walkedTo = stall - WALK_FROM - random.nextDouble() * WALK_FROM_SPREAD;
+        walkIn = (lane(track) % 2 == 0 ? 0 : EVEN_LATER) + random.nextInt(EVEN_LATER);
+        appear(level, track, origin, walkedTo);
+        if (entity != null)
+            level.sendParticles(ParticleTypes.CLOUD, entity.getX(), entity.getY() + 0.8, entity.getZ(), 8, 0.3, 0.5, 0.3, 0.02);
+    }
+
+    /** One tick on the way to her stall. */
+    void walkIn(double stall) {
+        if (entity == null || entity.isRemoved() || walkedTo >= stall)
+            return;
+        if (walkIn > 0) {
+            walkIn--;
+            return;
+        }
+        walkedTo = Math.min(stall, walkedTo + WALK / 20);
+        entity.show(walkedTo, offset, walkedTo >= stall ? 0 : WALK);
     }
 
     void disappear() {

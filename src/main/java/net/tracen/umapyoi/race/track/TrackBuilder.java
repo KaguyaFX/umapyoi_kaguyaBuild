@@ -116,6 +116,16 @@ public final class TrackBuilder {
     /** How high above the ground (the origin's height) people stand at the stand's entrance. */
     public static final int STAND_ENTRANCE_HEIGHT = Grandstand.entranceHeight();
 
+    /** Beyond the outer rail people may go this far (where there's no stand). */
+    private static final double GROUNDS = 12;
+
+    /** Whether a place (in the course's own coordinates) is on the racecourse's grounds: not behind the stand, nor far out. */
+    public static boolean onGrounds(TrackGeometry track, double x, double z) {
+        CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
+        double limit = layout.besideStand(Mth.floor(x), z) ? layout.standStart() + Grandstand.DEPTH : track.outer() + GROUNDS;
+        return track.locate(x, z).offset() < limit;
+    }
+
     /** Where people come into the stand, facing the course; {@code aside} blocks from its middle. */
     public static TrackGeometry.Point standEntrance(TrackGeometry track, int aside) {
         CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);

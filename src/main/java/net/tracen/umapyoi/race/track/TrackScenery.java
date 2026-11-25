@@ -36,6 +36,10 @@ final class TrackScenery {
     private static final BlockState LAMP_POST = Blocks.POLISHED_BLACKSTONE_WALL.defaultBlockState();
     private static final BlockState LAMP = Blocks.LANTERN.defaultBlockState();
     private static final BlockState LILY_PAD = Blocks.LILY_PAD.defaultBlockState();
+    /** Unseen, so races at night can be seen. */
+    private static final BlockState FLOODLIGHT = Blocks.LIGHT.defaultBlockState();
+    private static final double FLOODLIGHT_SPACING = 8;
+    private static final int FLOODLIGHT_HEIGHT = 5;
 
     private TrackScenery() {
     }
@@ -44,6 +48,7 @@ final class TrackScenery {
         RandomSource random = RandomSource.create(layout.origin().asLong());
         poles(level, layout, poleSpacing);
         lamps(level, layout, connect);
+        floodlights(level, layout);
         lilyPads(level, layout, random);
         outsideTrees(level, layout, random);
         infieldTrees(level, layout, random);
@@ -104,6 +109,16 @@ final class TrackScenery {
             }
             TrackBuilder.place(level, layout.world(i, 4, k), LAMP);
         }
+    }
+
+    /** Three rows of light over the running surface. */
+    private static void floodlights(ServerLevel level, CourseLayout layout) {
+        TrackGeometry track = layout.track();
+        for (double p = 0; p < track.lap(); p += FLOODLIGHT_SPACING)
+            for (double offset : new double[] { track.inner() + 3, track.middle(), track.outer() - 3 }) {
+                TrackGeometry.Point at = track.pointAt(p, offset);
+                TrackBuilder.place(level, layout.world(Mth.floor(at.x()), FLOODLIGHT_HEIGHT, Mth.floor(at.z())), FLOODLIGHT);
+            }
     }
 
     private static void lilyPads(ServerLevel level, CourseLayout layout, RandomSource random) {

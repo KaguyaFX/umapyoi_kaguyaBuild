@@ -1131,6 +1131,8 @@
   "umapyoi.meeting.nobody": "%s：没有人到场，比赛结束。",
   "umapyoi.meeting.stopped": "%s：比赛取消。",
   "umapyoi.meeting.off_the_track": "比赛期间观众不能进入赛道。",
+  "umapyoi.meeting.off_the_grounds": "那里不是赛场范围。",
+  "umapyoi.meeting.exit.racing": "比赛中不能离开，公布成绩后会再给你离场的门。",
   "umapyoi.meeting.bar.open": "%s — 报名中，%s 后开赛",
   "umapyoi.meeting.bar.closed": "%s — 报名截止，%s 后开赛",
   "umapyoi.meeting.bar.running": "%s — %s 领先，剩 %s 米",

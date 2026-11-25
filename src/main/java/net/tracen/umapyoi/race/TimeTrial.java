@@ -110,6 +110,7 @@ public final class TimeTrial {
         for (RaceOpponent opponent : RaceOpponent.field(level, track, setup, session.layout(), session.distance(), RaceSession.PLAIN_SPRINT,
                 statsAround(statLevel, soul), theirs, soul, random))
             session.add(opponent);
+        session.gather(false);
         session.add(player, own);
         session.begin(UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get() * 20);
         current = new Run(player, session, draw.size() + 1);

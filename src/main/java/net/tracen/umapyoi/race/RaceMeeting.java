@@ -90,6 +90,8 @@ public final class RaceMeeting {
     /** Fireworks go up this long, one every so many ticks. */
     private static final int FIREWORK_TICKS = 20 * 20;
     private static final int FIREWORK_EVERY = 8;
+    /** Computer runners start walking up to the stalls this long before the players are put in. */
+    private static final int WALK_IN_SECONDS = 15;
     /** Runners arrive this many blocks before the line. */
     private static final double ARRIVE_BEFORE_LINE = 14;
 
@@ -131,11 +133,15 @@ public final class RaceMeeting {
     /** Who came through the meeting, as opposed to an operator who was there anyway. */
     private final Set<UUID> visitors = new HashSet<>();
     private final Map<UUID, Finisher> finishers = new LinkedHashMap<>();
+    /** Runners from the stalls until the result is out: there's no leaving for them. */
+    private final Set<UUID> bound = new HashSet<>();
     private Stage stage = Stage.PREPARING;
     private int preparedPercent;
     /** Ticks to the start, then (RESULTS, LEAVING) to the end of the stage. */
     private int left;
     private int age;
+    /** The runners are on their way to the stalls; the players are in them. */
+    private boolean called;
     private boolean loaded;
     private boolean awarded;
     @Nullable
@@ -403,9 +409,17 @@ public final class RaceMeeting {
         return null;
     }
 
-    /** Sends a player home. @return false if they aren't in the race world */
-    public static boolean leave(ServerPlayer player) {
-        return RaceWorld.leave(player);
+    /** Sends a player home. @return why not, or null */
+    @Nullable
+    public static Component leave(ServerPlayer player) {
+        if (bound(player))
+            return Component.translatable("umapyoi.meeting.exit.racing");
+        return RaceWorld.leave(player) ? null : Component.translatable("umapyoi.command.race.not_there");
+    }
+
+    /** Whether a player is in a race and has to stay until the result is out. */
+    static boolean bound(ServerPlayer player) {
+        return current != null && current.bound.contains(player.getUUID());
     }
 
     /** Whether leaving now would be giving up a race. */
@@ -442,7 +456,7 @@ public final class RaceMeeting {
     private void arrive(ServerPlayer player, TrackGeometry.Point at, BlockPos origin, int height) {
         visitors.add(player.getUUID());
         RaceWorld.visit(player, level, new Vec3(origin.getX() + at.x(), origin.getY() + height, origin.getZ() + at.z()), at.yaw());
-        if (RaceWorld.isRaceWorld(player.level()))
+        if (RaceWorld.isRaceWorld(player.level()) && !bound(player))
             RaceExitItem.give(player);
     }
 
@@ -467,6 +481,7 @@ public final class RaceMeeting {
     /** Someone isn't in the race world any more. */
     private void gone(ServerPlayer player) {
         bar.removePlayer(player);
+        bound.remove(player.getUUID());
         Slot slot = slot(player.getUUID());
         if (slot == null || slot.scratched)
             return;
@@ -517,7 +532,13 @@ public final class RaceMeeting {
             }
             case CLOSED -> {
                 left--;
-                if (!loaded && left <= UmapyoiConfig.RACE_MEETING_GATE_SECONDS.get() * 20 && !load())
+                int gate = UmapyoiConfig.RACE_MEETING_GATE_SECONDS.get();
+                if (!called && left <= (gate + WALK_IN_SECONDS) * 20) {
+                    called = true;
+                    session.gather(true);
+                    tell(Component.translatable("umapyoi.meeting.loading"));
+                }
+                if (!loaded && left <= gate * 20 && !load())
                     return;
                 session.tick(); // opens the gates and moves on to RUNNING
             }
@@ -547,7 +568,7 @@ public final class RaceMeeting {
         if (age % 10 == 0) {
             for (ServerPlayer player : level.players())
                 bar.addPlayer(player);
-            keepOffTheTrack();
+            keepInPlace();
             updateBar();
         }
     }
@@ -586,11 +607,13 @@ public final class RaceMeeting {
             ServerPlayer player = server.getPlayerList().getPlayer(slot.player);
             if (player == null || player.level() != level)
                 slot.scratched = true;
-            else
+            else {
                 session.add(player, slot.lane);
+                bound.add(slot.player);
+                RaceExitItem.take(player);
+            }
         }
         session.begin(left);
-        tell(Component.translatable("umapyoi.meeting.loading"));
         sync();
         return true;
     }
@@ -621,6 +644,10 @@ public final class RaceMeeting {
         }
         session.cleanUp();
         award();
+        bound.clear();
+        for (ServerPlayer player : level.players())
+            if (visitors.contains(player.getUUID()))
+                RaceExitItem.give(player);
         sync();
     }
 
@@ -717,20 +744,26 @@ public final class RaceMeeting {
 
     // ---- showing it
 
-    /** Those who came to watch stay off the course while it's in use. */
-    private void keepOffTheTrack() {
-        if (stage == Stage.RESULTS || stage == Stage.LEAVING)
-            return;
+    /** Those who came to watch stay off the course while it's in use, and nobody strays from the grounds: there's only open country out there. */
+    private void keepInPlace() {
         RacecourseData data = RacecourseData.get(level);
         TrackGeometry track = data.track();
         for (ServerPlayer player : List.copyOf(level.players())) {
             if (!visitors.contains(player.getUUID()))
                 continue;
-            Slot slot = slot(player.getUUID());
-            if (slot != null && !slot.scratched)
+            if (session.running(player))
                 continue;
-            TrackGeometry.Spot spot = track.locate(player.getX() - data.origin().getX(), player.getZ() - data.origin().getZ());
-            if (spot.offset() < track.outer() + 1) {
+            Slot slot = slot(player.getUUID());
+            boolean runner = slot != null && !slot.scratched;
+            double x = player.getX() - data.origin().getX();
+            double z = player.getZ() - data.origin().getZ();
+            if (!TrackBuilder.onGrounds(track, x, z)) {
+                player.displayClientMessage(Component.translatable("umapyoi.meeting.off_the_grounds").withStyle(ChatFormatting.RED), true);
+                if (runner && stage.ordinal() < Stage.RUNNING.ordinal())
+                    sendToTrack(player);
+                else
+                    sendToStand(player);
+            } else if (!runner && stage.ordinal() <= Stage.RUNNING.ordinal() && track.locate(x, z).offset() < track.outer() + 1) {
                 player.displayClientMessage(Component.translatable("umapyoi.meeting.off_the_track").withStyle(ChatFormatting.RED), true);
                 sendToStand(player);
             }

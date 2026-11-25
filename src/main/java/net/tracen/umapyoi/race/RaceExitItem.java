@@ -20,7 +20,8 @@ import net.tracen.umapyoi.Umapyoi;
 
 /**
  * The way out, in the last hotbar slot of everyone who came to a race: right-clicking with it goes home.
- * For a runner whose race is settled that is giving up, so it takes sneaking too.
+ * For a runner whose entry is settled that is giving up, so it takes sneaking too; and from the stalls until
+ * the result is out, runners don't have it at all.
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 final class RaceExitItem {
@@ -41,6 +42,15 @@ final class RaceExitItem {
         stack.set(DataComponents.CUSTOM_NAME, Component.translatable("umapyoi.meeting.exit").withStyle(style -> style.withItalic(false).withColor(ChatFormatting.YELLOW)));
         stack.set(DataComponents.LORE, new ItemLore(List.of(Component.translatable("umapyoi.meeting.exit.hint").withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GRAY)))));
         player.getInventory().setItem(SLOT, stack);
+    }
+
+    /** Takes it off a player. */
+    static void take(ServerPlayer player) {
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++)
+            if (isExit(player.getInventory().getItem(slot)))
+                player.getInventory().setItem(slot, ItemStack.EMPTY);
+        if (isExit(player.containerMenu.getCarried()))
+            player.containerMenu.setCarried(ItemStack.EMPTY);
     }
 
     private static boolean isExit(ItemStack stack) {
@@ -68,6 +78,10 @@ final class RaceExitItem {
             block.setCancellationResult(InteractionResult.SUCCESS);
         if (!(event.getEntity() instanceof ServerPlayer player))
             return;
+        if (RaceMeeting.bound(player)) {
+            player.displayClientMessage(Component.translatable("umapyoi.meeting.exit.racing").withStyle(ChatFormatting.RED), true);
+            return;
+        }
         if (RaceMeeting.committed(player) && !player.isShiftKeyDown()) {
             player.displayClientMessage(Component.translatable("umapyoi.meeting.exit.sneak").withStyle(ChatFormatting.RED), true);
             return;
