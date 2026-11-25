@@ -1157,6 +1157,8 @@
   "umapyoi.motivation.perfect": "Great",
   "umapyoi.no_umasoul_equiped": "Please equip Umamusume Soul first.",
   "umapyoi.not_enough_ap": "Not enough action points.",
+  "umapyoi.race.charge": "saved %s%%",
+  "umapyoi.race.charge.lost": "saved %s%% (lost touch)",
   "umapyoi.race.direction.left": "left-handed",
   "umapyoi.race.direction.right": "right-handed",
   "umapyoi.race.ground.firm": "firm",

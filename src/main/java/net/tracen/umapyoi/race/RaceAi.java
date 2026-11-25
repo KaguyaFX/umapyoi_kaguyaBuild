@@ -20,10 +20,12 @@ final class RaceAi {
     /** ...unless the finish is this close. */
     private static final double HOLD_UNTIL = 12;
     private static final int SEARCH_STEPS = 9;
+    /** However far they like to sprint right away, it's not more than this much of their stamina. */
+    private static final double EARLY_STAMINA = 0.4;
 
     private final double distance;
     /** Sprinting from the start until here. */
-    private final double earlyUntil;
+    private double earlyUntil;
     /** How far the last sprint's start is from the best place, in blocks (below zero = early). */
     private final double error;
     /** Sprinting from here to the finish. */
@@ -61,6 +63,7 @@ final class RaceAi {
      */
     void plan(Supplier<RaceRunner> fresh, TrackGeometry track, double offset) {
         planned = true;
+        earlyUntil = Math.min(earlyUntil, fresh.get().stats().stamina() * EARLY_STAMINA);
         double low = earlyUntil;
         double high = distance;
         if (lasts(fresh.get(), track, offset, low)) {

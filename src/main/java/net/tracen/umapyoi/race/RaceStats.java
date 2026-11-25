@@ -16,7 +16,7 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * <li>Speed: a race sprint is the plain player's sprint plus the Umamusume bonus: the body (the same
  * +5% as in survival) and the speed stat, capped at {@code race_speed_max_bonus} instead of
  * survival's 0.84, times the aptitude for the race's distance.</li>
- * <li>Stamina: blocks of sprinting, from the stamina stat, times the running style's coefficient.</li>
+ * <li>Stamina: blocks of sprinting, from the stamina stat.</li>
  * <li>Power: acceleration, in blocks per second per second, times the aptitude for the surface.</li>
  * <li>Guts: how much of the speed bonus is left when stamina runs out.</li>
  * <li>Wisdom: how fast skill action points come back in the race world.</li>
@@ -44,15 +44,14 @@ public record RaceStats(Position style, double bonusRatio, double stamina, doubl
         double lowBonus = UmapyoiConfig.RACE_LOW_BONUS_END.get();
         double apMin = UmapyoiConfig.RACE_ACTION_POINT_REGEN.get();
         if (!UmaSoulUtils.hasSoulData(soul))
-            return new RaceStats(style, 0, UmapyoiConfig.RACE_STAMINA_BASE.get() * RaceStyle.stamina(style),
+            return new RaceStats(style, 0, UmapyoiConfig.RACE_STAMINA_BASE.get(),
                     UmapyoiConfig.RACE_ACCEL_BASE.get(), apMin, lowBonus, 1, 1, 1);
         double distanceFactor = distance == null ? 1 : distance.GetMultiplier(soul);
         double surfaceFactor = surface.GetMultiplier(soul);
         double mood = mood(soul);
         double bonus = ((1 + UmapyoiConfig.UMA_BASE_SPEED.get())
                 * (1 + UmapyoiConfig.RACE_SPEED_MAX_BONUS.get() * boost * curve(soul, SPEED)) - 1) * distanceFactor;
-        double stamina = (UmapyoiConfig.RACE_STAMINA_BASE.get() + UmapyoiConfig.RACE_STAMINA_SCALE.get() * boost * curve(soul, STAMINA))
-                * RaceStyle.stamina(style);
+        double stamina = UmapyoiConfig.RACE_STAMINA_BASE.get() + UmapyoiConfig.RACE_STAMINA_SCALE.get() * boost * curve(soul, STAMINA);
         double accel = (UmapyoiConfig.RACE_ACCEL_BASE.get() + UmapyoiConfig.RACE_ACCEL_SCALE.get() * boost * curve(soul, POWER)) * surfaceFactor;
         double floorMax = UmapyoiConfig.RACE_GUTS_FLOOR_MAX.get();
         double emptyFloor = lowBonus + (floorMax - lowBonus) * Math.min(1, boost * curve(soul, GUTS) / curveMax());

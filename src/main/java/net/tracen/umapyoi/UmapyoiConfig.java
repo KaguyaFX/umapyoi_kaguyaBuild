@@ -200,6 +200,9 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_COAST_DECEL;
     public static ModConfigSpec.DoubleValue RACE_STOP_DECEL;
     public static ModConfigSpec.DoubleValue RACE_STYLE_STRENGTH;
+    public static ModConfigSpec.DoubleValue RACE_CHARGE_BLOCKS;
+    public static ModConfigSpec.DoubleValue RACE_CHARGE_SPEED;
+    public static ModConfigSpec.DoubleValue RACE_CHARGE_GAP;
     public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_MOOD_MULTIPLIERS;
     public static ModConfigSpec.DoubleValue RACE_GUTS_FLOOR_MAX;
     public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_GROUND_ACCEL;
@@ -609,8 +612,16 @@ public class UmapyoiConfig {
         RACE_MOMENTUM_MARGIN = COMMON_BUILDER.comment("Race: after being slowed down (a wall, a stop), speed can't be more than this far above how fast you're really moving,",
                 "as a fraction of the plain player's sprint, so you have to accelerate again.")
                 .defineInRange("race_momentum_margin", 0.25, 0.0, 10.0);
-        RACE_STYLE_STRENGTH = COMMON_BUILDER.comment("Running styles: how strongly the original game's per-phase speed, acceleration and stamina coefficients apply (1 = as in the original, 0 = off).")
+        RACE_STYLE_STRENGTH = COMMON_BUILDER.comment("Running styles: how strongly the original game's per-phase speed and acceleration coefficients apply (1 = as in the original, 0 = off).")
                 .defineInRange("race_style_strength", 1.0, 0.0, 10.0);
+        RACE_CHARGE_BLOCKS = COMMON_BUILDER.comment("Saving up for the last leg: until the final third, runners save up by their place in the field (nothing in front,",
+                "the most at the very back, times their aptitude for running there). Used while sprinting in the final third, a full one is worth",
+                "this many blocks (0 = off).")
+                .defineInRange("race_charge_blocks", 24.0, 0.0, 1000.0);
+        RACE_CHARGE_SPEED = COMMON_BUILDER.comment("Saving up for the last leg: how much faster the sprint is while it is used, as a fraction.")
+                .defineInRange("race_charge_speed", 0.14, 0.0, 10.0);
+        RACE_CHARGE_GAP = COMMON_BUILDER.comment("Saving up for the last leg: not while further than this many blocks behind the runner just in front.")
+                .defineInRange("race_charge_gap", 10.0, 0.0, 10000.0);
         RACE_COAST_SECONDS = COMMON_BUILDER.comment("Race: after letting go of all movement keys you keep rolling for this long, slowing gently,",
                 "so you can settle into cruising without losing your speed; after that you stop quickly.")
                 .defineInRange("race_coast_seconds", 1.0, 0.0, 10.0);

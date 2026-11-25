@@ -22,10 +22,13 @@ import net.tracen.umapyoi.Umapyoi;
  * @param exhausted   stamina ran out: no jumping (the speeds here already allow for it)
  * @param limit       the most the runner in front allows (a big number when nobody is there)
  * @param limitDecel  deceleration down to that
+ * @param charge      saved up for the last leg, 0 to 1
+ * @param releasing   it is being used (the speeds here already allow for it)
+ * @param lostTouch   too far behind to save anything up
  */
 public record RaceStatePayload(boolean active, float stamina, float maxStamina, float sprintSpeed, float cruiseSpeed,
         float accel, float decel, float dash, float kick, float startSpeed, boolean exhausted,
-        float limit, float limitDecel) implements CustomPacketPayload {
+        float limit, float limitDecel, float charge, boolean releasing, boolean lostTouch) implements CustomPacketPayload {
     public static final Type<RaceStatePayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "race_state"));
     public static final StreamCodec<ByteBuf, RaceStatePayload> STREAM_CODEC = StreamCodec.of(
             (buf, p) -> {
@@ -42,12 +45,15 @@ public record RaceStatePayload(boolean active, float stamina, float maxStamina, 
                 buf.writeBoolean(p.exhausted);
                 buf.writeFloat(p.limit);
                 buf.writeFloat(p.limitDecel);
+                buf.writeFloat(p.charge);
+                buf.writeBoolean(p.releasing);
+                buf.writeBoolean(p.lostTouch);
             },
             buf -> new RaceStatePayload(buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                     buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(),
-                    buf.readFloat(), buf.readFloat()));
+                    buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readBoolean()));
 
-    public static final RaceStatePayload INACTIVE = new RaceStatePayload(false, 0, 0, 1, 1, 0, 0, 0, 0, 0, false, 1000, 0);
+    public static final RaceStatePayload INACTIVE = new RaceStatePayload(false, 0, 0, 1, 1, 0, 0, 0, 0, 0, false, 1000, 0, 0, false, false);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

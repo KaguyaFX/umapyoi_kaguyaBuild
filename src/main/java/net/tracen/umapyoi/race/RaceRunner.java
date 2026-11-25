@@ -3,6 +3,8 @@ package net.tracen.umapyoi.race;
 import org.jetbrains.annotations.Nullable;
 
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.utils.Aptitude;
+import net.tracen.umapyoi.utils.Position;
 
 /**
  * One runner in a race: how far they are, how fast they go and what stamina they have left. Players
@@ -26,13 +28,73 @@ final class RaceRunner {
     private double stamina;
     private boolean exhausted;
     private int stillTicks;
+    /** How well they run in front, with the pace, from behind and from the very back. */
+    private final Aptitude[] styles;
+    /** Saved up for the last leg, 0 to 1, and how far that has been counted. */
+    private double charge;
+    private double chargedTo;
+    /** The style they run in right now: where they are in the field. */
+    private Position zone = Position.FRONT_RUNNER;
+    /** Too far behind the one just in front to save anything up. */
+    private boolean lostTouch;
+    /** The full speed without what was saved up, as a fraction of the plain sprint. */
+    private double baseSprint;
 
-    RaceRunner(RaceSetup setup, RaceStats stats, RaceLayout layout, double plainSprint) {
+    RaceRunner(RaceSetup setup, RaceStats stats, RaceLayout layout, double plainSprint, Aptitude[] styles) {
         this.setup = setup;
         this.stats = stats;
         this.layout = layout;
         this.plainSprint = plainSprint;
         this.stamina = stats.stamina();
+        this.styles = styles;
+    }
+
+    Aptitude[] styles() {
+        return styles;
+    }
+
+    double charge() {
+        return charge;
+    }
+
+    boolean lostTouch() {
+        return lostTouch;
+    }
+
+    Position zone() {
+        return zone;
+    }
+
+    /** The aptitude that counts right now. */
+    Aptitude zoneAptitude() {
+        return styles[zone.ordinal()];
+    }
+
+    /** On to the last leg: what was saved up is used while sprinting. */
+    boolean releasing() {
+        RacePhase phase = phase();
+        return charge > 0 && !exhausted && (phase == RacePhase.FINAL || phase == RacePhase.LAST_SPURT);
+    }
+
+    /**
+     * Until the final leg, whoever isn't in front saves something up for it: the further back in the field the
+     * more, all of it for the last one all the way, times their aptitude for running there. There's only so much
+     * of it in a field, since somebody has to be in front. Not for someone who has lost touch.
+     *
+     * @param rank  1 = first
+     * @param field how many are running
+     * @param gap   blocks to the one just in front
+     */
+    void chargeUp(int rank, int field, double gap) {
+        double done = Math.max(0, progress - chargedTo);
+        chargedTo = Math.max(chargedTo, progress);
+        zone = RaceStyle.zone(rank, field);
+        RacePhase phase = phase();
+        boolean over = phase == RacePhase.FINAL || phase == RacePhase.LAST_SPURT;
+        lostTouch = !over && gap > UmapyoiConfig.RACE_CHARGE_GAP.get();
+        if (field < 2 || over || lostTouch || UmapyoiConfig.RACE_CHARGE_BLOCKS.get() <= 0)
+            return;
+        charge = Math.min(1, charge + done / layout.finalFrom() * (rank - 1) / (field - 1) * zoneAptitude().distanceFactor);
     }
 
     /** The gates open: off from just behind (or on) the line. */
@@ -112,6 +174,9 @@ final class RaceRunner {
             sprint = cruise * UmapyoiConfig.RACE_EXHAUSTED_SPRINT.get();
             accel *= UmapyoiConfig.RACE_EXHAUSTED_ACCEL.get();
         }
+        baseSprint = sprint;
+        if (releasing())
+            sprint *= 1 + UmapyoiConfig.RACE_CHARGE_SPEED.get();
         double perTick = 1 / (plainSprint * 20);
         return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(), (float) sprint, (float) cruise,
                 (float) (accel * perTick),
@@ -121,7 +186,8 @@ final class RaceRunner {
                 UmapyoiConfig.RACE_START_SPEED.get().floatValue(),
                 exhausted,
                 (float) (limit / plainSprint),
-                (float) (UmapyoiConfig.RACE_BLOCK_DECEL.get() * perTick));
+                (float) (UmapyoiConfig.RACE_BLOCK_DECEL.get() * perTick),
+                (float) charge, releasing(), lostTouch);
     }
 
     /** How fast they would like to go, in blocks per second, if nobody were in the way. */
@@ -132,7 +198,8 @@ final class RaceRunner {
     /**
      * Speed above cruising costs stamina: one point per block at full speed, less while still
      * accelerating, and a little while slowing back down. Running wide costs more (more blocks), and
-     * so does soft ground. Resting brings a little back.
+     * so does soft ground. Resting brings a little back. What goes beyond full speed comes out of what was
+     * saved up instead.
      *
      * @param moved blocks moved on the ground this tick
      * @return true if this is the moment they ran out
@@ -140,10 +207,12 @@ final class RaceRunner {
     boolean useStamina(RaceStatePayload state, double moved) {
         if (motion == null)
             return false;
-        double span = state.sprintSpeed() - state.cruiseSpeed();
+        double span = baseSprint - state.cruiseSpeed();
         double effort = span <= 0 ? 0 : Math.max(0, Math.min(1, (motion.speed() - state.cruiseSpeed()) / span));
         if (moved <= MAX_STEP)
             stamina -= moved * effort * setup.ground().drain();
+        if (releasing() && motion.speed() > baseSprint)
+            charge = Math.max(0, charge - Math.min(moved, (motion.speed() - baseSprint) * plainSprint / 20) / UmapyoiConfig.RACE_CHARGE_BLOCKS.get());
         stillTicks = moved < 0.01 ? stillTicks + 1 : 0;
         if (stillTicks >= UmapyoiConfig.RACE_REST_SECONDS.get() * 20)
             stamina += stats.stamina() * UmapyoiConfig.RACE_STAMINA_REGEN_PERCENT.get() / 100 / 20;

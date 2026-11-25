@@ -2,6 +2,7 @@ package net.tracen.umapyoi.race;
 
 import java.util.List;
 
+import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 import net.tracen.umapyoi.race.track.TrackGeometry.Section;
 
@@ -43,6 +44,11 @@ public final class RaceLayout {
         }
         this.finalStraightFrom = best;
         this.finalStraightTo = Math.min(best + track.straight(), distance);
+    }
+
+    /** Where the final leg starts. */
+    public double finalFrom() {
+        return Math.max(1, distance * UmapyoiConfig.RACE_PHASE_FINAL_FROM.get());
     }
 
     public RacePhase phase(double progress) {

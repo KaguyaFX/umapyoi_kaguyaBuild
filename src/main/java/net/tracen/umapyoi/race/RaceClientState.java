@@ -131,6 +131,19 @@ public final class RaceClientState {
         return state != null && state.exhausted();
     }
 
+    /** Saved up for the last leg, 0 to 1. */
+    public static float charge() {
+        return state == null ? 0 : state.charge();
+    }
+
+    public static boolean lostTouch() {
+        return state != null && state.lostTouch();
+    }
+
+    public static boolean releasing() {
+        return state != null && state.releasing();
+    }
+
     public static float stamina() {
         return state == null ? 0 : state.stamina();
     }

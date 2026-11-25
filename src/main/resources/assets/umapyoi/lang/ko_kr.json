@@ -1187,6 +1187,8 @@
   "umapyoi.race.weather.thunder": "뇌우",
   "umapyoi.race.motion.accelerating": "가속 중",
   "umapyoi.race.motion.blocked": "앞이 막힘",
+  "umapyoi.race.charge": "각력 비축 %s%%",
+  "umapyoi.race.charge.lost": "각력 비축 %s%% (뒤처짐)",
   "umapyoi.race.motion.cruising": "순항",
   "umapyoi.race.motion.decelerating": "감속 중",
   "umapyoi.race.motion.exhausted": "탈진",

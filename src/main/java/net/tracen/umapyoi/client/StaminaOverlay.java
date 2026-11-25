@@ -23,10 +23,21 @@ public class StaminaOverlay implements LayeredDraw.Layer {
     public static final StaminaOverlay INSTANCE = new StaminaOverlay();
     private static final ResourceLocation HUD = ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "textures/gui/stamina_bar.png");
     private static final int HEIGHT = 128;
+    private static final int CHARGE_X = 2;
+    private static final int CHARGE_WIDTH = 3;
 
     private final Minecraft minecraft = Minecraft.getInstance();
 
     private StaminaOverlay() {
+    }
+
+    /** What is saved up for the last leg: a thin golden bar beside the stamina, bright while it's being used, dull when too far behind. */
+    private static void charge(GuiGraphics graphics, int y) {
+        int bar = Math.round(Math.max(0, Math.min(1, RaceClientState.charge())) * HEIGHT);
+        graphics.fill(CHARGE_X - 1, y - HEIGHT - 1, CHARGE_X + CHARGE_WIDTH + 1, y + 1, 0xFF2A2A2A);
+        graphics.fill(CHARGE_X, y - HEIGHT, CHARGE_X + CHARGE_WIDTH, y, 0xFF5A5A5A);
+        boolean flash = RaceClientState.releasing() && (System.currentTimeMillis() / 120) % 2 == 0;
+        graphics.fill(CHARGE_X, y - bar, CHARGE_X + CHARGE_WIDTH, y, flash ? 0xFFFFF6B0 : RaceClientState.lostTouch() ? 0xFF9A8040 : 0xFFFFC020);
     }
 
     @Override
@@ -54,6 +65,8 @@ public class StaminaOverlay implements LayeredDraw.Layer {
 
         int lowY = y - (int) Math.round(low * HEIGHT);
         graphics.fill(x - 1, lowY, x + 6, lowY + 1, 0xCCFFFFFF);
+
+        charge(graphics, y);
 
         if (RaceClientState.exhausted())
             graphics.drawString(minecraft.font, net.minecraft.network.chat.Component.translatable("umapyoi.race.motion.exhausted"),

@@ -141,7 +141,7 @@ final class RaceOpponent {
                     stat(stats[1], random), stat(stats[2], random), stat(stats[3], random), stat(stats[4], random)));
             RaceStats worth = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category(),
                     UmapyoiConfig.RACE_AI_BOOST.get());
-            RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint);
+            RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint, RaceStyle.aptitudes(soul, level));
             field.add(new RaceOpponent(runner, new RaceAi(worth.style(), distance, random), soul,
                     track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stalls.get(i), random.nextInt(6)));
         }
@@ -167,7 +167,7 @@ final class RaceOpponent {
     boolean plan(RaceSetup setup, double plainSprint, TrackGeometry track) {
         if (ai.planned())
             return false;
-        ai.plan(() -> new RaceRunner(setup, runner.stats(), runner.layout(), plainSprint), track, lane);
+        ai.plan(() -> new RaceRunner(setup, runner.stats(), runner.layout(), plainSprint, runner.styles()), track, lane);
         return true;
     }
 

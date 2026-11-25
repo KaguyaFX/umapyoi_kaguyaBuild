@@ -302,6 +302,25 @@ final class RaceSession {
         return bodies;
     }
 
+    private List<RaceRunner> runners() {
+        List<RaceRunner> runners = new ArrayList<>();
+        for (Racer racer : racers)
+            if (racer.running())
+                runners.add(racer.runner);
+        for (RaceOpponent opponent : opponents)
+            if (!opponent.finished() && opponent.runner().started())
+                runners.add(opponent.runner());
+        return runners;
+    }
+
+    /** Everyone saves up for the last leg, by their place in the field. */
+    static void chargeUp(List<RaceRunner> running) {
+        List<RaceRunner> order = new ArrayList<>(running);
+        order.sort(Comparator.comparingDouble(RaceRunner::progress).reversed());
+        for (int i = 0; i < order.size(); i++)
+            order.get(i).chargeUp(i + 1, order.size(), i == 0 ? 0 : order.get(i - 1).progress() - order.get(i).progress());
+    }
+
     // ---- running it
 
     /** Starts the countdown to the gates opening. */
@@ -337,6 +356,7 @@ final class RaceSession {
             showFinishLine();
 
         List<RaceTraffic.Body> everyone = bodies();
+        chargeUp(runners());
         for (RaceOpponent opponent : opponents)
             opponent.tick(track, distance, sinceOpen, START, everyone);
         for (Racer racer : racers)
@@ -505,7 +525,7 @@ final class RaceSession {
             ItemStack soul = UmapyoiAPI.getUmaSoul(player);
             this.stats = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category());
             this.plainSprint = PLAIN_SPRINT;
-            this.runner = new RaceRunner(setup, stats, layout, plainSprint);
+            this.runner = new RaceRunner(setup, stats, layout, plainSprint, RaceStyle.aptitudes(soul, level));
             if (UmaSoulUtils.hasSoulData(soul))
                 UmaSoulUtils.setActionPoint(soul, UmaSoulUtils.getMaxActionPoint(soul));
             TrackGeometry.Point stall = track.pointAt(track.lap() - 0.5, stallOffset(track, lane));
@@ -641,9 +661,9 @@ final class RaceSession {
         }
 
         /**
-         * The action bar, with what helps while testing: phase and place on the course, running
-         * style and its speed coefficient now, whether the runner is speeding up or slowing down,
-         * and the speed being aimed at, then distance left and time.
+         * The action bar, with what helps while testing: phase and place on the course, the style
+         * they run in now, their aptitude for it and what they've saved up, whether they are speeding up
+         * or slowing down, and the speed being aimed at, then distance left and time.
          */
         private void showHud(RaceStatePayload state, int sinceOpen) {
             RacePhase phase = runner.phase();
@@ -659,8 +679,8 @@ final class RaceSession {
                     : Component.translatable("umapyoi.race.rank", rank(), fieldSize()).append(" | ");
             player.displayClientMessage(place.append(Component.translatable(phase.key()))
                     .append(" · ").append(Component.translatable(layout.sectionKey(runner.progress())))
-                    .append(" | ").append(Component.translatable(RaceStyle.key(stats.style())))
-                    .append(String.format(" ×%.3f", RaceStyle.speed(stats.style(), phase)))
+                    .append(" | ").append(Component.translatable(RaceStyle.key(runner.zone()))).append(" ").append(runner.zoneAptitude().styledComponent())
+                    .append(" ").append(Component.translatable(runner.lostTouch() ? "umapyoi.race.charge.lost" : "umapyoi.race.charge", Math.round(runner.charge() * 100)))
                     .append(" | ").append(Component.translatable(motionKey))
                     .append(" → ").append(Component.translatable("umapyoi.race.speed", String.format("%.2f", target)))
                     .append(" | ").append(Component.translatable("umapyoi.race.trial.hud",
