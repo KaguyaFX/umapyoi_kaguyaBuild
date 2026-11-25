@@ -13,6 +13,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 import net.tracen.umapyoi.registry.races.RaceRegistry;
+import net.tracen.umapyoi.registry.umadata.Motivations;
 import net.tracen.umapyoi.utils.Aptitude;
 import net.tracen.umapyoi.utils.Position;
 import net.tracen.umapyoi.utils.Surface;
@@ -58,9 +59,10 @@ public record RaceMeetingPayload(boolean active, ResourceLocation race, String a
      * @param stats     grades: speed, stamina, power, guts, wisdom
      * @param aptitudes for the surface and the distance, then for running in front, with the pace, from behind and
      *                  from the very back
+     * @param mood      a {@link Motivations}
      * @param skills    a player's; computer runners have none
      */
-    public record Form(byte[] stats, byte[] aptitudes, List<ResourceLocation> skills) {
+    public record Form(byte[] stats, byte[] aptitudes, byte mood, List<ResourceLocation> skills) {
         public static final int STATS = 5, SURFACE = 0, DISTANCE = 1, STYLES = 2, APTITUDES = 6;
 
         public int stat(int index) {
@@ -75,20 +77,25 @@ public record RaceMeetingPayload(boolean active, ResourceLocation race, String a
             return aptitude(STYLES + style.ordinal());
         }
 
+        public Motivations motivation() {
+            return Motivations.values()[Math.floorMod(mood, Motivations.values().length)];
+        }
+
         private static Form read(FriendlyByteBuf buf) {
-            return new Form(buf.readByteArray(STATS), buf.readByteArray(APTITUDES), buf.readCollection(ArrayList::new, FriendlyByteBuf::readResourceLocation));
+            return new Form(buf.readByteArray(STATS), buf.readByteArray(APTITUDES), buf.readByte(), buf.readCollection(ArrayList::new, FriendlyByteBuf::readResourceLocation));
         }
 
         private static void write(FriendlyByteBuf buf, Form form) {
             buf.writeByteArray(form.stats);
             buf.writeByteArray(form.aptitudes);
+            buf.writeByte(form.mood);
             buf.writeCollection(form.skills, FriendlyByteBuf::writeResourceLocation);
         }
     }
 
     /**
      * @param player     the name of the player who runs, or empty for a computer runner
-     * @param popularity 1 = the favourite; 0 = not running any more
+     * @param popularity 1 = the favourite, by the odds; 0 = not running any more
      * @param tips       one per column, 1 (best) to 4, or 0
      * @param place      how she came in; 0 = not announced, -1 = didn't finish
      * @param time       seconds, if she finished

@@ -33,11 +33,19 @@ final class RaceAi {
     private boolean planned;
 
     RaceAi(Position style, double distance, RandomSource random) {
+        this(style, distance, distance * Mth.clamp(random.nextGaussian(), -2.5, 2.5) * UmapyoiConfig.RACE_AI_ERROR.get());
+    }
+
+    private RaceAi(Position style, double distance, double error) {
         this.distance = distance;
         this.earlyUntil = distance * early(style);
-        double spread = UmapyoiConfig.RACE_AI_ERROR.get();
-        this.error = distance * Mth.clamp(random.nextGaussian() * spread, -2.5 * spread, 2.5 * spread);
+        this.error = error;
         this.sprintFrom = distance * 0.6;
+    }
+
+    /** One that times her last sprint just right. */
+    static RaceAi exact(Position style, double distance) {
+        return new RaceAi(style, distance, 0);
     }
 
     /** The part of the race sprinted right away. */

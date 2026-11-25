@@ -20,9 +20,12 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.tracen.umapyoi.client.race.RaceArt;
 import net.tracen.umapyoi.client.race.RaceMap;
 import net.tracen.umapyoi.item.ItemRegistry;
+import net.tracen.umapyoi.race.RaceBetClient;
+import net.tracen.umapyoi.race.RaceBetPayload;
 import net.tracen.umapyoi.race.RaceEntities;
 import net.tracen.umapyoi.race.RaceLivePayload;
 import net.tracen.umapyoi.race.RaceMeeting;
@@ -30,6 +33,7 @@ import net.tracen.umapyoi.race.RaceMeetingClient;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
 import net.tracen.umapyoi.race.RaceMeetingPayload.Form;
 import net.tracen.umapyoi.race.RaceMeetingPayload.Row;
+import net.tracen.umapyoi.race.RaceOddsPayload;
 import net.tracen.umapyoi.race.RaceStyle;
 import net.tracen.umapyoi.race.RunnerEntity;
 import net.tracen.umapyoi.registry.UmaSkillRegistry;
@@ -50,14 +54,20 @@ public class RacePhoneScreen extends Screen {
     private static final int MAP_Y = BODY_Y, ORDER_X = 65;
     private static final String[] STATS = { "speed", "stamina", "strength", "guts", "wisdom" };
 
-    private static final int TAB_ENTRIES = 0, TAB_COURSE = 1;
+    private static final int TAB_ENTRIES = 0, TAB_COURSE = 1, TAB_TICKETS = 2, TABS = 3;
     /** Kept while it's in the pocket. */
     private static int tab = TAB_ENTRIES;
     private static boolean byGate;
+    /** The betting slips instead of the odds. */
+    private static boolean showSlips;
 
     /** The stall of the runner being looked at; 0 = the table. */
     private int selected;
     private int scroll;
+    /** The stall of the runner being bet on; 0 = none, and what kind of bet, and how much. */
+    private int betOn;
+    private boolean betPlace;
+    private long stake;
     private int left, top;
     @Nullable
     private RunnerEntity figure;
@@ -122,6 +132,8 @@ public class RacePhoneScreen extends Screen {
             this.status(graphics, held);
             if (tab == TAB_COURSE)
                 this.course(graphics, held, mouseX, mouseY);
+            else if (tab == TAB_TICKETS)
+                this.tickets(graphics, held, mouseX, mouseY);
             else if (row != null)
                 this.runner(graphics, held, row, mouseX, mouseY);
             else if (held.rows().isEmpty())
@@ -198,24 +210,32 @@ public class RacePhoneScreen extends Screen {
         int y = this.top + H - TABS_H;
         graphics.fill(this.left, y, this.left + W, y + TABS_H, RaceArt.WHITE);
         graphics.fill(this.left, y, this.left + W, y + 1, RaceArt.BOX_EDGE);
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < TABS; i++) {
             boolean on = tab == i;
-            int x = this.left + i * W / 2;
+            int x = this.left + i * W / TABS, w = W / TABS;
             if (on)
-                graphics.fill(x, y, x + W / 2, y + 2, 0xFF7DC10E);
+                graphics.fill(x, y, x + w, y + 2, 0xFF7DC10E);
             int color = on ? RaceArt.GREEN : 0xFF9A9A9A;
-            Component name = Component.translatable(i == TAB_COURSE ? "gui.umapyoi.phone.course" : held.announced() ? "gui.umapyoi.phone.results" : "gui.umapyoi.phone.entries");
-            int at = x + (W / 2 - this.font.width(name) - 13) / 2;
-            if (i == TAB_ENTRIES)
+            Component name = Component.translatable(i == TAB_COURSE ? "gui.umapyoi.phone.course" : i == TAB_TICKETS ? "gui.umapyoi.phone.tickets"
+                    : held.announced() ? "gui.umapyoi.phone.results" : "gui.umapyoi.phone.entries");
+            int icon = 11 + i;
+            boolean room = this.font.width(name) + icon <= w;
+            int at = x + (w - this.font.width(name) - (room ? icon : 0)) / 2;
+            if (room && i == TAB_ENTRIES) {
                 for (int k = 0; k < 3; k++) {
                     graphics.fill(at, y + 6 + k * 3, at + 2, y + 8 + k * 3, color);
                     graphics.fill(at + 3, y + 6 + k * 3, at + 9, y + 8 + k * 3, color);
                 }
-            else {
+            } else if (room && i == TAB_COURSE) {
                 RaceArt.roundBox(graphics, at, y + 6, 10, 8, RaceArt.WHITE, color);
                 graphics.fill(at + 3, y + 9, at + 7, y + 11, color);
+            } else if (room) {
+                RaceArt.roundBox(graphics, at, y + 6, 11, 8, RaceArt.WHITE, color);
+                graphics.fill(at + 3, y + 7, at + 4, y + 13, color);
+                graphics.fill(at + 5, y + 8, at + 9, y + 9, color);
+                graphics.fill(at + 5, y + 11, at + 8, y + 12, color);
             }
-            graphics.drawString(this.font, name, at + 13, y + 6, color, false);
+            graphics.drawString(this.font, name, at + (room ? icon : 0), y + 6, color, false);
         }
     }
 
@@ -226,8 +246,14 @@ public class RacePhoneScreen extends Screen {
         if (held.announced())
             rows.sort(Comparator.comparingInt(row -> row.place() > 0 ? row.place() : 100 + row.gate()));
         else if (!byGate)
-            rows.sort(Comparator.comparingInt(row -> row.popularity() > 0 ? row.popularity() : 100 + row.gate()));
+            rows.sort(Comparator.comparingInt(row -> popularity(row) > 0 ? popularity(row) : 100 + row.gate()));
         return rows;
+    }
+
+    /** By the odds as they are now, if they are known. */
+    private static int popularity(Row row) {
+        int now = RaceBetClient.favourite(row.gate());
+        return row.popularity() == 0 || now == 0 ? row.popularity() : now;
     }
 
     private void table(GuiGraphics graphics, RaceMeetingPayload held, int mouseX, int mouseY) {
@@ -244,12 +270,13 @@ public class RacePhoneScreen extends Screen {
         int head = y + TABLE_Y;
         graphics.fill(x, head, x + W, head + ROW_H, 0xFFDCECC4);
         graphics.drawString(this.font, Component.translatable(results ? "gui.umapyoi.phone.place" : "gui.umapyoi.phone.gate"), x + 2, head + 2, RaceArt.GREEN, false);
-        graphics.drawString(this.font, Component.translatable("gui.umapyoi.phone.runner"), x + (results ? 30 : 18), head + 2, RaceArt.GREEN, false);
+        graphics.drawString(this.font, Component.translatable("gui.umapyoi.phone.runner"), x + (results ? 30 : 17), head + 2, RaceArt.GREEN, false);
         if (results) {
             RaceArt.right(graphics, Component.translatable("gui.umapyoi.phone.time"), x + 108, head + 2, RaceArt.GREEN);
             RaceArt.right(graphics, Component.translatable("gui.umapyoi.phone.popularity"), x + W - 2, head + 2, RaceArt.GREEN);
         } else {
-            RaceArt.center(graphics, Component.translatable("gui.umapyoi.phone.tips"), x + 73, 31, head + 2, RaceArt.GREEN, false);
+            RaceArt.center(graphics, Component.translatable("gui.umapyoi.phone.mood"), x + 63, 9, head + 2, RaceArt.GREEN, false);
+            RaceArt.center(graphics, Component.translatable("gui.umapyoi.phone.tips"), x + 75, 29, head + 2, RaceArt.GREEN, false);
             RaceArt.center(graphics, Component.translatable("gui.umapyoi.phone.popularity"), x + 106, 19, head + 2, RaceArt.GREEN, false);
             int at = x + (byGate ? 12 : 126);
             for (int i = 0; i < 3; i++)
@@ -269,7 +296,7 @@ public class RacePhoneScreen extends Screen {
             if (row.scratched())
                 name.withStyle(ChatFormatting.STRIKETHROUGH);
             if (over)
-                this.tooltip = this.fullName(row, results ? 45 : 53);
+                this.tooltip = this.fullName(row, results ? 45 : 46);
             int field = held.rows().size();
             if (results) {
                 RaceArt.place(graphics, x + 1, at + 1, 9, row.place(), RaceArt.DARK);
@@ -281,12 +308,14 @@ public class RacePhoneScreen extends Screen {
                 continue;
             }
             RaceArt.chip(graphics, x + 2, at + 1, 13, 9, row.gate(), field, row.scratched());
-            RaceArt.line(graphics, name, x + 18, at + 2, 53, RaceArt.nameColor(row));
-            if (row.popularity() == 0)
+            RaceArt.line(graphics, name, x + 17, at + 2, 46, RaceArt.nameColor(row));
+            int popularity = popularity(row);
+            if (popularity == 0)
                 continue;
+            RaceArt.mood(graphics, x + 63, at + 1, row.form().motivation());
             for (int k = 0; k < row.tips().length; k++)
-                RaceArt.tip(graphics, x + 73 + k * 11, at + 1, row.tips()[k]);
-            RaceArt.place(graphics, x + 110, at + 1, 9, row.popularity(), RaceArt.DARK);
+                RaceArt.tip(graphics, x + 75 + k * 10, at + 1, row.tips()[k]);
+            RaceArt.place(graphics, x + 110, at + 1, 9, popularity, RaceArt.DARK);
         }
         this.scrollbar(graphics, rows.size(), head + ROW_H);
     }
@@ -327,17 +356,26 @@ public class RacePhoneScreen extends Screen {
         int tx = x + 57;
         RaceArt.line(graphics, row.player().isEmpty() ? Component.translatable("gui.umapyoi.phone.computer") : Component.literal(row.player()), tx, y + 28, 72,
                 row.player().isEmpty() ? RaceArt.GRAY : RaceArt.nameColor(row));
-        if (row.popularity() > 0) {
+        RaceArt.moodBar(graphics, tx, y + 38, form.motivation());
+        int popularity = popularity(row);
+        if (popularity > 0) {
             Component label = Component.translatable("gui.umapyoi.phone.popularity");
-            graphics.drawString(this.font, label, tx, y + 41, RaceArt.GRAY, false);
-            graphics.drawString(this.font, Component.translatable("gui.umapyoi.phone.popularity.place", row.popularity()), tx + this.font.width(label) + 4, y + 41, RaceArt.DARK, false);
+            graphics.drawString(this.font, label, tx, y + 56, RaceArt.GRAY, false);
+            graphics.drawString(this.font, String.valueOf(popularity), tx + this.font.width(label) + 4, y + 56, RaceArt.DARK, false);
+            double odds = RaceBetClient.odds(row.gate(), false, 0);
+            if (odds > 0) {
+                Component pays = Component.literal(RaceArt.odds(odds));
+                Component win = Component.translatable("gui.umapyoi.ticket.win");
+                RaceArt.right(graphics, pays, x + W - 4, y + 56, RaceArt.DARK);
+                RaceArt.right(graphics, win, x + W - 7 - this.font.width(pays), y + 56, RaceArt.GRAY);
+            }
             Component tips = Component.translatable("gui.umapyoi.phone.tips");
-            graphics.drawString(this.font, tips, tx, y + 54, RaceArt.GRAY, false);
+            graphics.drawString(this.font, tips, tx, y + 67, RaceArt.GRAY, false);
             for (int k = 0; k < row.tips().length; k++)
-                RaceArt.tip(graphics, tx + this.font.width(tips) + 4 + k * 12, y + 53, row.tips()[k]);
+                RaceArt.tip(graphics, tx + this.font.width(tips) + 4 + k * 12, y + 66, row.tips()[k]);
         }
-        int used = this.aptitude(graphics, RaceArt.surface(held), form.aptitude(Form.SURFACE), tx, y + 67, RaceArt.GRAY);
-        this.aptitude(graphics, RaceArt.distance(Math.round(held.meters())), form.aptitude(Form.DISTANCE), tx + Math.max(36, used + 4), y + 67, RaceArt.GRAY);
+        int used = this.aptitude(graphics, RaceArt.surface(held), form.aptitude(Form.SURFACE), tx, y + 78, RaceArt.GRAY);
+        this.aptitude(graphics, RaceArt.distance(Math.round(held.meters())), form.aptitude(Form.DISTANCE), tx + Math.max(36, used + 4), y + 78, RaceArt.GRAY);
         Aptitude best = Aptitude.G;
         for (int i = 0; i < 4; i++)
             if (form.style(Position.values()[i]).compareTo(best) > 0)
@@ -345,7 +383,7 @@ public class RacePhoneScreen extends Screen {
         int second = 36;
         for (int i = 0; i < 4; i++) {
             Position style = Position.values()[i];
-            int w = this.aptitude(graphics, Component.translatable(RaceStyle.key(style)), form.style(style), tx + i % 2 * second, y + 80 + i / 2 * 11,
+            int w = this.aptitude(graphics, Component.translatable(RaceStyle.key(style)), form.style(style), tx + i % 2 * second, y + 87 + i / 2 * 9,
                     form.style(style) == best ? RaceArt.DARK : RaceArt.GRAY);
             if (i == 0)
                 second = Math.max(second, Math.max(w, this.font.width(Component.translatable(RaceStyle.key(Position.LATE_SURGER))) + 9) + 3);
@@ -566,6 +604,279 @@ public class RacePhoneScreen extends Screen {
         }
     }
 
+    // ---------------------------------------------------------------- the tickets
+
+    private static final int ODDS_Y = 39, SLIPS_Y = 42, SLIP_H = 28, SLIP_STEP = 31, SLIPS = 4;
+    /** The stake's buttons: where they are and how wide. */
+    private static final int[][] STAKE = { { 4, 28 }, { 33, 21 }, { 55, 21 }, { 77, 28 }, { 106, 22 } };
+
+    private void tickets(GuiGraphics graphics, RaceMeetingPayload held, int mouseX, int mouseY) {
+        Row row = this.betOn == 0 ? null : held.row(this.betOn);
+        if (row == null || !RaceBetClient.odds().open() || !RaceBetClient.running(row.gate()))
+            this.betOn = 0;
+        boolean bet = this.betOn != 0 && row != null;
+        int x = this.left, y = this.top;
+        RaceArt.bar(graphics, x, y + HEADER_Y, W, HEADER_H);
+        Component balance = Component.literal(RaceArt.tickets(RaceBetClient.account().balance()));
+        RaceArt.line(graphics, Component.translatable(bet ? "gui.umapyoi.ticket.bet" : "gui.umapyoi.phone.tickets"), x + (bet ? 16 : 5), y + HEADER_Y + 3, W - 24 - this.font.width(balance), RaceArt.WHITE, true);
+        graphics.drawString(this.font, balance, x + W - 4 - this.font.width(balance), y + HEADER_Y + 3, 0xFFFFF3B0);
+        if (bet) {
+            graphics.blit(RaceArt.PANEL, x + 2, y + HEADER_Y + 2, 200, 0, 10, 10, 256, 128);
+            this.betting(graphics, row, mouseX, mouseY);
+            return;
+        }
+        int at = x + 3;
+        for (int i = 0; i < 2; i++) {
+            Component name = this.pill(i);
+            int w = this.font.width(name) + 6;
+            boolean on = (i == 1) == showSlips;
+            RaceArt.roundBox(graphics, at, y + 26, w, 11, on ? 0xFF7DC10E : 0xFFD4D4D4, on ? 0xFF3F7A06 : 0xFFB0B0B0);
+            graphics.drawString(this.font, name, at + 3, y + 28, on ? RaceArt.WHITE : RaceArt.GRAY, on);
+            at += w + 2;
+        }
+        RaceOddsPayload odds = RaceBetClient.odds();
+        Component state = !odds.ready() ? Component.translatable(odds.open() ? "gui.umapyoi.ticket.counting" : "gui.umapyoi.ticket.closed")
+                : odds.open() ? Component.translatable("gui.umapyoi.ticket.closes", RaceBetClient.clock())
+                : held.announced() ? Component.empty() : Component.translatable("gui.umapyoi.ticket.closed");
+        if (at + this.font.width(state) > x + W - 3 && odds.open() && odds.ready())
+            state = Component.literal(RaceBetClient.clock());
+        if (at + this.font.width(state) <= x + W - 3)
+            RaceArt.right(graphics, state, x + W - 4, y + 28, RaceArt.RED);
+        if (showSlips)
+            this.slips(graphics, held);
+        else
+            this.odds(graphics, held, mouseX, mouseY);
+    }
+
+    private Component pill(int index) {
+        return index == 0 ? Component.translatable("gui.umapyoi.ticket.odds") : Component.translatable("gui.umapyoi.ticket.mine", RaceBetClient.odds().mine().size());
+    }
+
+    private void odds(GuiGraphics graphics, RaceMeetingPayload held, int mouseX, int mouseY) {
+        int x = this.left, head = this.top + ODDS_Y;
+        graphics.fill(x, head, x + W, head + ROW_H, 0xFFDCECC4);
+        graphics.drawString(this.font, Component.translatable("gui.umapyoi.phone.gate"), x + 2, head + 2, RaceArt.GREEN, false);
+        graphics.drawString(this.font, Component.translatable("gui.umapyoi.phone.runner"), x + 17, head + 2, RaceArt.GREEN, false);
+        RaceArt.right(graphics, Component.translatable("gui.umapyoi.ticket.win"), x + 98, head + 2, RaceArt.GREEN);
+        RaceArt.right(graphics, Component.translatable("gui.umapyoi.ticket.place"), x + 127, head + 2, RaceArt.GREEN);
+        List<Row> rows = this.byOdds(held);
+        this.scroll = Mth.clamp(this.scroll, 0, Math.max(0, rows.size() - ROWS));
+        for (int n = 0; n < Math.min(ROWS, rows.size()); n++) {
+            Row row = rows.get(n + this.scroll);
+            int at = head + ROW_H + n * ROW_H;
+            boolean open = RaceBetClient.odds().open() && RaceBetClient.running(row.gate());
+            boolean over = mouseX >= x && mouseX < x + W && mouseY >= at && mouseY < at + ROW_H;
+            int back = RaceArt.rowColor(row);
+            graphics.fill(x, at, x + W, at + ROW_H, over && open ? 0xFFDDF0C0 : back != 0 ? back : n % 2 == 0 ? RaceArt.WHITE : 0xFFF1F1F1);
+            MutableComponent name = RaceArt.name(row);
+            boolean off = row.scratched() || RaceBetClient.odds().ready() && !RaceBetClient.running(row.gate());
+            if (off)
+                name.withStyle(ChatFormatting.STRIKETHROUGH);
+            if (over)
+                this.tooltip = this.fullName(row, 46);
+            RaceArt.chip(graphics, x + 2, at + 1, 13, 9, row.gate(), held.rows().size(), off);
+            RaceArt.line(graphics, name, x + 17, at + 2, 46, off ? 0xFFB0B0B0 : RaceArt.nameColor(row));
+            if (off)
+                continue;
+            RaceArt.mood(graphics, x + 64, at + 1, row.form().motivation());
+            double win = RaceBetClient.odds(row.gate(), false, 0), place = RaceBetClient.odds(row.gate(), true, 0);
+            RaceArt.right(graphics, Component.literal(RaceArt.odds(win)), x + 98, at + 2, win > 0 && win < 5 ? RaceArt.RED : RaceArt.DARK);
+            RaceArt.right(graphics, Component.literal(RaceArt.odds(place)), x + 124, at + 2, place > 0 && place < 2 ? RaceArt.RED : RaceArt.DARK);
+            if (RaceBetClient.staked(row.gate()) > 0)
+                RaceArt.roundBox(graphics, x + 126, at + 3, 5, 5, 0xFFE0B020, 0xFFA87A10);
+        }
+        this.scrollbar(graphics, rows.size(), head + ROW_H);
+    }
+
+    private List<Row> byOdds(RaceMeetingPayload held) {
+        List<Row> rows = new ArrayList<>(held.rows());
+        rows.sort(Comparator.comparingInt(row -> popularity(row) > 0 ? popularity(row) : 100 + row.gate()));
+        return rows;
+    }
+
+    private void betting(GuiGraphics graphics, Row row, int mouseX, int mouseY) {
+        int x = this.left, y = this.top;
+        RaceArt.box(graphics, x + 4, y + 27, W - 8, 22, RaceArt.WHITE, RaceArt.BOX_EDGE);
+        RaceMeetingPayload held = RaceMeetingClient.current();
+        RaceArt.chip(graphics, x + 8, y + 33, 13, 10, row.gate(), held == null ? 12 : held.rows().size(), false);
+        Component name = RaceArt.name(row);
+        Component popular = Component.translatable("gui.umapyoi.phone.popularity").append(" " + popularity(row));
+        int room = W - 52 - this.font.width(popular);
+        RaceArt.line(graphics, name, x + 25, y + 34, room, RaceArt.nameColor(row));
+        RaceArt.mood(graphics, x + 28 + Math.min(room, this.font.width(name)), y + 34, row.form().motivation());
+        RaceArt.right(graphics, popular, x + W - 8, y + 35, RaceArt.GRAY);
+
+        int places = RaceBetClient.odds().places();
+        if (places == 0)
+            this.betPlace = false;
+        for (int k = 0; k < 2; k++) {
+            boolean place = k == 1, on = place == this.betPlace;
+            int bx = x + 4 + k * 63;
+            RaceArt.roundBox(graphics, bx, y + 53, 61, 30, on ? 0xFFF2FBE0 : 0xFFECECEC, on ? 0xFF5FAE0A : RaceArt.BOX_EDGE);
+            graphics.drawString(this.font, Component.translatable(place ? "gui.umapyoi.ticket.place" : "gui.umapyoi.ticket.win"), bx + 5, y + 57, on ? RaceArt.GREEN : RaceArt.GRAY, false);
+            RaceArt.right(graphics, place ? Component.translatable("gui.umapyoi.ticket.place.what", places) : Component.translatable("gui.umapyoi.ticket.win.what"), bx + 57, y + 57, RaceArt.GRAY);
+            Component pays = place && places == 0 ? Component.translatable("gui.umapyoi.ticket.no_place")
+                    : Component.translatable("gui.umapyoi.ticket.times", RaceArt.odds(RaceBetClient.odds(row.gate(), place, 0)));
+            RaceArt.center(graphics, pays, bx, 61, y + 70, on ? RaceArt.DARK : RaceArt.GRAY, false);
+        }
+
+        this.stake = Mth.clamp(this.stake, 0, this.most());
+        graphics.drawString(this.font, Component.translatable("gui.umapyoi.ticket.amount"), x + 4, y + 88, RaceArt.GRAY, false);
+        RaceArt.box(graphics, x + 30, y + 86, 76, 12, RaceArt.WHITE, RaceArt.BOX_EDGE);
+        RaceArt.right(graphics, Component.literal(String.format("%,d", this.stake)), x + 88, y + 88, RaceArt.DARK);
+        graphics.drawString(this.font, "HT", x + 91, y + 88, RaceArt.GRAY, false);
+        RaceArt.roundBox(graphics, x + 109, y + 86, 19, 12, 0xFFE8E8E8, 0xFFB0B0B0);
+        RaceArt.center(graphics, Component.translatable("gui.umapyoi.ticket.clear"), x + 109, 20, y + 88, RaceArt.GRAY, false);
+        for (int k = 0; k < STAKE.length; k++) {
+            int bx = x + STAKE[k][0];
+            boolean over = mouseX >= bx && mouseX < bx + STAKE[k][1] && mouseY >= y + 101 && mouseY < y + 114;
+            Component text = k == 4 ? Component.translatable("gui.umapyoi.ticket.all") : Component.literal((k < 2 ? "-" : "+") + Math.abs(this.step(k)));
+            RaceArt.smallButton(graphics, bx, y + 101, STAKE[k][1], 13, text, true, over);
+        }
+
+        RaceArt.box(graphics, x + 4, y + 118, W - 8, 38, RaceArt.BOX, RaceArt.BOX_EDGE);
+        double odds = RaceBetClient.odds(row.gate(), this.betPlace, this.stake);
+        String[] labels = { "gui.umapyoi.ticket.after", "gui.umapyoi.ticket.would_pay", "gui.umapyoi.ticket.left" };
+        Component[] values = { Component.translatable("gui.umapyoi.ticket.about", Component.translatable("gui.umapyoi.ticket.times", RaceArt.odds(odds))),
+                Component.translatable("gui.umapyoi.ticket.about", RaceArt.tickets((long) Math.floor(odds * this.stake + 1e-6))),
+                Component.literal(RaceArt.tickets(RaceBetClient.account().balance() - this.stake)) };
+        for (int k = 0; k < 3; k++) {
+            RaceArt.line(graphics, Component.translatable(labels[k]), x + 8, y + 122 + k * 11, W - 22 - this.font.width(values[k]), RaceArt.GRAY);
+            RaceArt.right(graphics, values[k], x + W - 8, y + 122 + k * 11, k == 1 ? RaceArt.GREEN : RaceArt.DARK);
+        }
+        boolean over = mouseX >= x + 32 && mouseX < x + 100 && mouseY >= y + 160 && mouseY < y + 177;
+        RaceArt.button(graphics, x + 32, y + 160, 68, Component.translatable("gui.umapyoi.ticket.bet"), this.stake > 0, over);
+    }
+
+    /** The most one can stake: what's on the account, in whole units. */
+    private long most() {
+        int unit = Math.max(1, RaceBetClient.odds().unit());
+        return RaceBetClient.account().balance() / unit * unit;
+    }
+
+    /** What one of the stake's buttons adds. */
+    private long step(int button) {
+        long unit = Math.max(1, RaceBetClient.odds().unit());
+        return switch (button) {
+            case 0 -> -unit * 10;
+            case 1 -> -unit;
+            case 2 -> unit;
+            default -> unit * 10;
+        };
+    }
+
+    private void slips(GuiGraphics graphics, RaceMeetingPayload held) {
+        List<RaceOddsPayload.Slip> mine = RaceBetClient.odds().mine();
+        int x = this.left, y = this.top + SLIPS_Y;
+        if (mine.isEmpty()) {
+            this.centered(graphics, Component.translatable("gui.umapyoi.ticket.none"), 100);
+            return;
+        }
+        this.scroll = Mth.clamp(this.scroll, 0, Math.max(0, mine.size() - SLIPS));
+        long staked = 0, paid = 0;
+        boolean done = true;
+        for (RaceOddsPayload.Slip slip : mine) {
+            staked += slip.amount();
+            paid += slip.paid();
+            done &= slip.state() != RaceOddsPayload.OPEN;
+        }
+        for (int n = 0; n < Math.min(SLIPS, mine.size()); n++)
+            this.slip(graphics, held, mine.get(n + this.scroll), x, y + n * SLIP_STEP);
+        if (mine.size() < SLIPS) {
+            int below = y + mine.size() * SLIP_STEP + 3;
+            graphics.drawString(this.font, done ? Component.translatable("gui.umapyoi.ticket.sum.result", String.format("%,d", staked), String.format("%,d", paid))
+                    : Component.translatable("gui.umapyoi.ticket.sum", String.format("%,d", staked)), x + 5, below, RaceArt.GRAY, false);
+        }
+    }
+
+    /** A betting slip, with a stamp on it if it was right. */
+    private void slip(GuiGraphics graphics, RaceMeetingPayload held, RaceOddsPayload.Slip slip, int x, int y) {
+        boolean lost = slip.state() == RaceOddsPayload.LOST;
+        graphics.fill(x + 4, y, x + W - 4, y + SLIP_H, lost ? RaceArt.BOX_EDGE : 0xFFD8B860);
+        graphics.fill(x + 5, y + 1, x + W - 5, y + SLIP_H - 1, lost ? 0xFFE6E6E6 : 0xFFFFFBE8);
+        for (int k = 0; k < SLIP_H; k += 4) {
+            graphics.fill(x + 3, y + k + 1, x + 5, y + k + 3, 0xFFE4E4E4);
+            graphics.fill(x + W - 5, y + k + 1, x + W - 3, y + k + 3, 0xFFE4E4E4);
+        }
+        Row row = held.row(slip.gate());
+        int at = x + 9 + RaceArt.tag(graphics, Component.translatable(slip.place() ? "gui.umapyoi.ticket.place" : "gui.umapyoi.ticket.win"), x + 9, y + 3,
+                lost ? 0xFF9A9A9A : slip.place() ? 0xFF2F66C8 : 0xFFC8402A);
+        RaceArt.chip(graphics, at + 1, y + 3, 13, 10, slip.gate(), held.rows().size(), lost);
+        // After a change somebody else may be in that stall.
+        if (row != null && slip.state() != RaceOddsPayload.BACK)
+            RaceArt.line(graphics, RaceArt.name(row), at + 17, y + 5, x + W - 26 - at - 17, lost ? 0xFF9A9A9A : RaceArt.nameColor(row));
+        Component amount = Component.literal(RaceArt.tickets(slip.amount()));
+        graphics.drawString(this.font, amount, x + 9, y + 17, RaceArt.GRAY, false);
+        double odds = RaceBetClient.odds(slip.gate(), slip.place(), 0);
+        Component text = switch (slip.state()) {
+            case RaceOddsPayload.WON -> Component.literal("+" + String.format("%,d", slip.paid()));
+            case RaceOddsPayload.LOST -> Component.translatable("gui.umapyoi.ticket.lost");
+            case RaceOddsPayload.BACK -> Component.translatable("gui.umapyoi.ticket.back");
+            default -> Component.translatable("gui.umapyoi.ticket.times", RaceArt.odds(odds)).append(" = " + String.format("%,d", (long) Math.floor(odds * slip.amount() + 1e-6)));
+        };
+        RaceArt.line(graphics, text, Math.max(x + 12 + this.font.width(amount), x + W - 10 - this.font.width(text)), y + 17, W - 22 - this.font.width(amount),
+                slip.state() == RaceOddsPayload.WON ? RaceArt.GREEN : slip.state() == RaceOddsPayload.OPEN ? RaceArt.DARK : RaceArt.GRAY);
+        if (slip.state() == RaceOddsPayload.WON) {
+            graphics.blit(RaceArt.PHONE, x + W - 26, y + 1, 96, 238, 15, 15, 256, 256);
+            RaceArt.center(graphics, Component.translatable("gui.umapyoi.ticket.won"), x + W - 26, 16, y + 5, 0xFFD8362E, false);
+        }
+    }
+
+    private void touchTickets(RaceMeetingPayload held, double x, double y) {
+        if (this.betOn != 0) {
+            this.touchBetting(x, y);
+            return;
+        }
+        if (y >= 26 && y < 37) {
+            int at = 3;
+            for (int i = 0; i < 2; i++) {
+                int w = this.font.width(this.pill(i)) + 6;
+                if (x >= at && x < at + w) {
+                    showSlips = i == 1;
+                    this.scroll = 0;
+                    this.click();
+                }
+                at += w + 2;
+            }
+            return;
+        }
+        if (showSlips || y < ODDS_Y + ROW_H || !RaceBetClient.odds().open())
+            return;
+        int index = (int) ((y - ODDS_Y - ROW_H) / ROW_H) + this.scroll;
+        List<Row> rows = this.byOdds(held);
+        if (index < Math.min(rows.size(), ROWS + this.scroll) && RaceBetClient.running(rows.get(index).gate())) {
+            this.betOn = rows.get(index).gate();
+            this.betPlace = false;
+            this.stake = Math.min(this.most(), 10L * RaceBetClient.odds().unit());
+            this.click();
+        }
+    }
+
+    private void touchBetting(double x, double y) {
+        if (y >= HEADER_Y && y < HEADER_Y + HEADER_H && x < 16) {
+            this.betOn = 0;
+            this.click();
+        } else if (y >= 53 && y < 83 && x >= 4 && x < 128) {
+            this.betPlace = x >= 66 && RaceBetClient.odds().places() > 0;
+            this.click();
+        } else if (y >= 86 && y < 98 && x >= 109 && x < 128) {
+            this.stake = 0;
+            this.click();
+        } else if (y >= 101 && y < 114) {
+            for (int k = 0; k < STAKE.length; k++)
+                if (x >= STAKE[k][0] && x < STAKE[k][0] + STAKE[k][1]) {
+                    this.stake = k == 4 ? this.most() : Mth.clamp(this.stake + this.step(k), 0, this.most());
+                    this.click();
+                }
+        } else if (y >= 160 && y < 177 && x >= 32 && x < 100 && this.stake > 0) {
+            PacketDistributor.sendToServer(new RaceBetPayload(this.betOn, this.betPlace, this.stake));
+            this.betOn = 0;
+            showSlips = true;
+            this.scroll = 0;
+            this.click();
+        }
+    }
+
     // ---------------------------------------------------------------- touching it
 
     private void click() {
@@ -579,14 +890,19 @@ public class RacePhoneScreen extends Screen {
         if (button != 0 || held == null || x < 0 || x >= W || y < 0 || y >= H)
             return super.mouseClicked(mouseX, mouseY, button);
         if (y >= H - TABS_H) {
-            tab = x < W / 2.0 ? TAB_ENTRIES : TAB_COURSE;
+            tab = Mth.clamp((int) (x * TABS / W), 0, TABS - 1);
             this.selected = 0;
+            this.betOn = 0;
             this.scroll = 0;
             this.click();
             return true;
         }
         if (tab == TAB_COURSE)
             return true;
+        if (tab == TAB_TICKETS) {
+            this.touchTickets(held, x, y);
+            return true;
+        }
         if (this.selected != 0) {
             if (y >= HEADER_Y && y < HEADER_Y + HEADER_H && x < 16) {
                 this.selected = 0;
@@ -610,7 +926,10 @@ public class RacePhoneScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        this.scroll -= (int) Math.signum(scrollY);
+        if (tab == TAB_TICKETS && this.betOn != 0)
+            this.stake = Mth.clamp(this.stake + (long) Math.signum(scrollY) * RaceBetClient.odds().unit() * (hasShiftDown() ? 10 : 1), 0, this.most());
+        else
+            this.scroll -= (int) Math.signum(scrollY);
         return true;
     }
 
@@ -619,6 +938,8 @@ public class RacePhoneScreen extends Screen {
         if (this.minecraft != null && this.minecraft.options.keyInventory.matches(key, scan)) {
             if (this.selected != 0)
                 this.selected = 0;
+            else if (this.betOn != 0)
+                this.betOn = 0;
             else
                 this.onClose();
             return true;

@@ -203,6 +203,15 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_CHARGE_BLOCKS;
     public static ModConfigSpec.DoubleValue RACE_CHARGE_SPEED;
     public static ModConfigSpec.DoubleValue RACE_CHARGE_GAP;
+    public static ModConfigSpec.DoubleValue RACE_AI_FORM;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends Integer>> RACE_BET_POOLS;
+    public static ModConfigSpec.DoubleValue RACE_BET_KEEP;
+    public static ModConfigSpec.DoubleValue RACE_BET_CROWD_MAX;
+    public static ModConfigSpec.IntValue RACE_BET_CLOSE_SECONDS;
+    public static ModConfigSpec.IntValue RACE_BET_RUNS;
+    public static ModConfigSpec.IntValue RACE_BET_UNIT;
+    public static ModConfigSpec.ConfigValue<java.util.List<? extends String>> RACE_TICKET_VALUES;
+    public static ModConfigSpec.IntValue RACE_TICKET_JEWEL_PRICE;
     public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_MOOD_MULTIPLIERS;
     public static ModConfigSpec.DoubleValue RACE_GUTS_FLOOR_MAX;
     public static ModConfigSpec.ConfigValue<java.util.List<? extends Double>> RACE_GROUND_ACCEL;
@@ -551,6 +560,9 @@ public class UmapyoiConfig {
         RACE_AI_ERROR = COMMON_BUILDER.comment("Computer runners: how badly they time their last sprint, as a fraction of the race's distance (standard deviation;",
                 "0 = always perfect).")
                 .defineInRange("race_ai_error", 0.04, 0.0, 0.5);
+        RACE_AI_FORM = COMMON_BUILDER.comment("Computer runners: how they feel on the day, which nobody knows: all their stats are multiplied by 1 plus or minus",
+                "about this (standard deviation; 0 = always the same).")
+                .defineInRange("race_ai_form", 0.04, 0.0, 0.5);
         RACE_MEETING_OPEN_SECONDS = COMMON_BUILDER.comment("Race meetings: seconds from the race world opening to the start.")
                 .defineInRange("race_meeting_open_seconds", 300, 10, 7200);
         RACE_MEETING_CLOSE_SECONDS = COMMON_BUILDER.comment("Race meetings: entries close this many seconds before the start; runners who aren't there then have withdrawn.")
@@ -572,6 +584,27 @@ public class UmapyoiConfig {
                 "terminal's quick race pays for the same soul.")
                 .defineList("race_meeting_rewards", java.util.List.of(1.0, 0.4, 0.25, 0.1), () -> 0.1,
                         value -> value instanceof Number number && number.doubleValue() >= 0 && number.doubleValue() <= 100);
+        RACE_BET_POOLS = COMMON_BUILDER.comment("Betting: how many horse tickets the crowd bets on a race, for debut, pre-open, open, GIII, GII and GI races.",
+                "It's the most anybody can make out of it: whoever stakes a lot against it ruins their own odds. 0 = only what players bet.")
+                .defineList("race_bet_pools", java.util.List.of(500, 800, 1200, 2000, 3000, 5000), () -> 1000,
+                        value -> value instanceof Number number && number.intValue() >= 0);
+        RACE_BET_KEEP = COMMON_BUILDER.comment("Betting: the share of the money that is paid out again.")
+                .defineInRange("race_bet_keep", 0.8, 0.0, 1.0);
+        RACE_BET_CROWD_MAX = COMMON_BUILDER.comment("Betting: the crowd puts at most this share of its money on one runner, however sure she is to win.",
+                "The more it does, the more those make who bet against a favourite who loses on purpose.")
+                .defineInRange("race_bet_crowd_max", 0.5, 0.05, 1.0);
+        RACE_BET_CLOSE_SECONDS = COMMON_BUILDER.comment("Betting: no more bets this many seconds before the start.")
+                .defineInRange("race_bet_close_seconds", 60, 0, 7200);
+        RACE_BET_RUNS = COMMON_BUILDER.comment("Betting: how many times the race is run in the background to find out the odds.")
+                .defineInRange("race_bet_runs", 200, 30, 5000);
+        RACE_BET_UNIT = COMMON_BUILDER.comment("Betting: bets are multiples of this many tickets.")
+                .defineInRange("race_bet_unit", 10, 1, 1000000);
+        RACE_TICKET_VALUES = COMMON_BUILDER.comment("Horse tickets: what can be paid in at the race terminal, and how many tickets one of it buys.")
+                .defineList("race_ticket_values", java.util.List.of("minecraft:iron_ingot=10", "minecraft:gold_ingot=20", "minecraft:diamond=80", "umapyoi:jewel=80",
+                        "minecraft:netherite_ingot=320", "minecraft:iron_block=90", "minecraft:gold_block=180", "minecraft:diamond_block=720", "minecraft:netherite_block=2880"),
+                        () -> "minecraft:diamond=80", value -> value instanceof String);
+        RACE_TICKET_JEWEL_PRICE = COMMON_BUILDER.comment("Horse tickets: how many a jewel costs. Below what things are paid in for, tickets would turn one into the other.")
+                .defineInRange("race_ticket_jewel_price", 100, 1, 1000000);
         RACE_MEETING_RAIN_CHANCE = COMMON_BUILDER.comment("Race meetings: how often it rains.")
                 .defineInRange("race_meeting_rain_chance", 0.2, 0.0, 1.0);
         RACE_MEETING_STORM_CHANCE = COMMON_BUILDER.comment("Race meetings: how often there's a thunderstorm.")

@@ -5,8 +5,11 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.race.RaceAccountPayload;
+import net.tracen.umapyoi.race.RaceBetPayload;
 import net.tracen.umapyoi.race.RaceLivePayload;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
+import net.tracen.umapyoi.race.RaceOddsPayload;
 import net.tracen.umapyoi.race.RaceStatePayload;
 
 @EventBusSubscriber(modid = Umapyoi.MODID, bus = EventBusSubscriber.Bus.MOD)
@@ -50,6 +53,21 @@ public class NetPacketHandler {
                          RaceLivePayload.TYPE,
                          RaceLivePayload.STREAM_CODEC,
                          RaceLivePayload::handle
+                 )
+                 .playToClient(
+                         RaceAccountPayload.TYPE,
+                         RaceAccountPayload.STREAM_CODEC,
+                         RaceAccountPayload::handle
+                 )
+                 .playToClient(
+                         RaceOddsPayload.TYPE,
+                         RaceOddsPayload.STREAM_CODEC,
+                         RaceOddsPayload::handle
+                 )
+                 .playToServer(
+                         RaceBetPayload.TYPE,
+                         RaceBetPayload.STREAM_CODEC,
+                         RaceBetPayload::handle
                  );
     }
 }

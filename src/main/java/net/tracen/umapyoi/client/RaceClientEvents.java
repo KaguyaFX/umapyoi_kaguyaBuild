@@ -5,6 +5,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.tracen.umapyoi.Umapyoi;
+import net.tracen.umapyoi.race.RaceBetClient;
 import net.tracen.umapyoi.race.RaceClientState;
 import net.tracen.umapyoi.race.RaceMeetingClient;
 
@@ -18,5 +19,6 @@ public final class RaceClientEvents {
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         RaceClientState.reset();
         RaceMeetingClient.reset();
+        RaceBetClient.reset();
     }
 }

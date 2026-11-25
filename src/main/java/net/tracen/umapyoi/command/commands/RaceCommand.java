@@ -4,6 +4,7 @@ import java.util.Locale;
 
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -12,6 +13,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -21,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
+import net.tracen.umapyoi.race.RaceAccounts;
 import net.tracen.umapyoi.race.RaceMeeting;
 import net.tracen.umapyoi.race.RaceSetup;
 import net.tracen.umapyoi.race.RaceWeather;
@@ -45,6 +48,7 @@ import net.tracen.umapyoi.race.track.TrackGeometry;
  * <li>/umapyoi race start (opponents) [level] [the same]: a race against computer runners whose stats are
  * all around a level (1 to 39), or each around your own (0 or nothing).</li>
  * <li>/umapyoi race cancel: stop your race.</li>
+ * <li>/umapyoi race ticket (player) (amount): put horse tickets on somebody's account (below zero: take them off).</li>
  * <li>/umapyoi race hold (race) [run]: hold a race meeting without a ticket; skip: on to its next stage; stop: call it off.</li>
  * <li>/umapyoi racetrack rebuild [lap_m straight_m width]: rebuild the course from the config or
  * the given sizes, clearing the old one.</li>
@@ -64,6 +68,9 @@ public class RaceCommand {
                                 ctx.getSource().registryAccess().registryOrThrow(Race.REGISTRY_KEY).keySet(), suggestions))
                         .executes(ctx -> hold(ctx.getSource(), ResourceLocationArgument.getId(ctx, "race"), false))
                         .then(Commands.literal("run").executes(ctx -> hold(ctx.getSource(), ResourceLocationArgument.getId(ctx, "race"), true)))))
+                .then(Commands.literal("ticket").then(Commands.argument("player", EntityArgument.player())
+                        .then(Commands.argument("amount", LongArgumentType.longArg(-1_000_000_000L, 1_000_000_000L))
+                                .executes(ctx -> ticket(ctx.getSource(), EntityArgument.getPlayer(ctx, "player"), LongArgumentType.getLong(ctx, "amount"))))))
                 .then(Commands.literal("skip").executes(ctx -> meeting(ctx.getSource(), RaceMeeting.skip())))
                 .then(Commands.literal("stop").executes(ctx -> meeting(ctx.getSource(), RaceMeeting.stop()))));
         builder.then(Commands.literal("meeting")
@@ -95,6 +102,12 @@ public class RaceCommand {
         ItemStack ticket = new ItemStack(ItemRegistry.UMA_RACE_TICKET.get());
         ticket.set(DataComponentsTypeRegistry.RACE_DATA, race);
         return answer(source, RaceMeeting.apply(source.getPlayerOrException(), ticket, run));
+    }
+
+    private static int ticket(CommandSourceStack source, ServerPlayer player, long amount) {
+        long now = RaceAccounts.add(source.getServer(), player.getUUID(), amount);
+        source.sendSuccess(() -> Component.translatable("umapyoi.ticket.balance", player.getDisplayName(), now), true);
+        return 1;
     }
 
     private static int meeting(CommandSourceStack source, boolean done) {

@@ -16,6 +16,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
 import net.tracen.umapyoi.registry.races.Race;
+import net.tracen.umapyoi.registry.umadata.Motivations;
 import net.tracen.umapyoi.registry.umadata.UmaData;
 import net.tracen.umapyoi.utils.Aptitude;
 import net.tracen.umapyoi.utils.ClientUtils;
@@ -29,6 +30,8 @@ public final class RaceArt {
     public static final ResourceLocation PANEL = texture("three_goddess_blessing");
     public static final ResourceLocation SNAP = texture("training_snap");
     public static final ResourceLocation SKILL = texture("skill_learning");
+    private static final ResourceLocation MOODS = texture("motivations");
+    private static final ResourceLocation GODDESS = texture("three_goddess");
 
     public static final int WHITE = 0xFFFFFFFF, DARK = 0xFF404040, GRAY = 0xFF7A7A7A, FAINT = 0xFFC8C8C8;
     public static final int GREEN = 0xFF2F7A12, RED = 0xFFB02020, BLUE = 0xFF2A5DB0;
@@ -41,6 +44,10 @@ public final class RaceArt {
     private static final int[] BRACKET = { 0xFFFFFFFF, 0xFF2C2C2C, 0xFFD8362E, 0xFF2F66C8, 0xFFF2CF2E, 0xFF3A9A3A, 0xFFEF8A2A, 0xFFF08BB0 };
     private static final int[] BRACKET_TEXT = { DARK, WHITE, WHITE, WHITE, DARK, WHITE, WHITE, DARK };
     private static final int[] MEDAL = { 0xFFE0B020, 0xFFA8B0B8, 0xFFC8864A };
+    private static final int[] MOOD = { 0xFFEE5B8F, 0xFFF08A42, 0xFFF5B82E, 0xFF1890D0, 0xFF8D6CB8 };
+    private static final String[][] MOOD_ARROW = {
+            { "..#..", ".###.", "#####", "..#..", "..#.." }, { ".####", "...##", "..#.#", ".#..#", "#...." }, { "..#..", "...#.", "#####", "...#.", "..#.." },
+            { "#....", ".#..#", "..#.#", "...##", ".####" }, { "..#..", "..#..", "#####", ".###.", "..#.." } };
 
     private RaceArt() {
     }
@@ -124,6 +131,50 @@ public final class RaceArt {
         roundBox(graphics, x, y, w, 11, fill, fill);
         graphics.drawString(font(), text, x + padding, y + 2, WHITE, false);
         return w + gap;
+    }
+
+    /** The mod's green button. */
+    public static void button(GuiGraphics graphics, int x, int y, int w, Component text, boolean on, boolean over) {
+        int v = on ? 4 : 23;
+        graphics.blit(GODDESS, x, y, 181, v, w - 6, 17);
+        graphics.blit(GODDESS, x + w - 6, y, 243, v, 6, 17);
+        center(graphics, text, x, w, y + 4, !on ? 0xFFB8C8A0 : over ? 0xFFFFFFA0 : WHITE, on);
+    }
+
+    /** A little one. */
+    public static void smallButton(GuiGraphics graphics, int x, int y, int w, int h, Component text, boolean on, boolean over) {
+        roundBox(graphics, x, y, w, h, !on ? 0xFF5D7F2A : over ? 0xFFA6E61E : 0xFF8FD40A, 0xFF3F7A06);
+        center(graphics, text, x, w + 1, y + (h - 7) / 2, on ? WHITE : 0xFFB8C8A0, false);
+    }
+
+    /** A mood's arrow. */
+    public static void mood(GuiGraphics graphics, int x, int y, Motivations mood) {
+        int at = mood.ordinal();
+        roundBox(graphics, x, y, 9, 9, MOOD[at], MOOD[at]);
+        for (int dy = 0; dy < 5; dy++)
+            for (int dx = 0; dx < 5; dx++)
+                if (MOOD_ARROW[at][dy].charAt(dx) == '#')
+                    graphics.fill(x + 2 + dx, y + 2 + dy, x + 3 + dx, y + 3 + dy, WHITE);
+    }
+
+    /** The same as the mod shows one's own. */
+    public static void moodBar(GuiGraphics graphics, int x, int y, Motivations mood) {
+        graphics.blit(MOODS, x, y, 0, mood.ordinal() * 15, 64, 14, 64, 96);
+        graphics.drawString(font(), moodName(mood), x + 16, y + 3, WHITE);
+    }
+
+    public static Component moodName(Motivations mood) {
+        return Component.translatable("umapyoi.motivation." + mood.name().toLowerCase(Locale.ROOT));
+    }
+
+    /** Horse tickets. */
+    public static String tickets(long amount) {
+        return String.format("%,d HT", amount);
+    }
+
+    /** What a ticket pays, or a dash. */
+    public static String odds(double odds) {
+        return odds <= 0 ? "-" : odds < 100 ? String.format("%.1f", odds) : String.format("%.0f", odds);
     }
 
     // ---- runners

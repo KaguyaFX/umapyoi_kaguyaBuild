@@ -71,7 +71,7 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * withdrawn.</li>
  * <li>CLOSED: the field is settled; leaving now is giving up. Shortly before the start the runners
  * are put into the stalls.</li>
- * <li>RUNNING: the race ({@link RaceSession}). If nobody is there to run or watch, it's simply off.</li>
+ * <li>RUNNING: the race ({@link RaceSession}). If nobody is there to run or watch, and nobody has bet on it, it's simply off.</li>
  * <li>RESULTS: everyone is in, and it takes a moment until the result is announced.</li>
  * <li>LEAVING: fireworks, and time to go.</li>
  * </ul>
@@ -152,6 +152,10 @@ public final class RaceMeeting {
     private List<RaceSession.Place> result = List.of();
     @Nullable
     private RaceSession session;
+    @Nullable
+    private RaceBets bets;
+    /** The stalls from the favourite on, as last told. */
+    private List<Integer> favourites = List.of();
 
     private RaceMeeting(ServerPlayer applicant, ServerLevel level, Race race, RaceSetup setup, boolean applicantRuns, ItemStack ticket) {
         this.server = applicant.server;
@@ -284,8 +288,10 @@ public final class RaceMeeting {
             @Override
             public void gaveUp(ServerPlayer player) {
                 Slot slot = slot(player.getUUID());
-                if (slot != null)
+                if (slot != null && session != null && session.opened())
                     slot.scratched = true;
+                else if (slot != null)
+                    scratch(slot);
                 if (session != null && session.opened())
                     record(player, false);
                 sync();
@@ -302,6 +308,10 @@ public final class RaceMeeting {
             slots.add(new Slot(opponent.lane(track), opponent));
             session.add(opponent);
         }
+        List<? extends Integer> pools = UmapyoiConfig.RACE_BET_POOLS.get();
+        int pool = pools.isEmpty() ? 0 : pools.get(Math.min(race.ranking().ordinal(), pools.size() - 1));
+        bets = new RaceBets(server, level, track, setup, session, pool);
+        bets.field(entries());
         stage = Stage.OPEN;
         left = UmapyoiConfig.RACE_MEETING_OPEN_SECONDS.get() * 20;
         announceOpening();
@@ -352,12 +362,14 @@ public final class RaceMeeting {
             slot = freeSlot(soul);
             if (slot == null)
                 return Component.translatable("umapyoi.meeting.problem.full");
+            bets.giveBack(slot.lane);
             slot.player = player.getUUID();
             slot.playerName = player.getScoreboardName();
             slot.soul = soul.copy();
             session.remove(slot.opponent);
             tell(Component.translatable("umapyoi.meeting.entered", player.getDisplayName(), UmaSoulUtils.getTranslatedUmaName(slot.soul), slot.lane + 1));
             player.sendSystemMessage(Component.translatable("umapyoi.meeting.entered_self", slot.lane + 1, minutes(closeTicks())).withStyle(ChatFormatting.GREEN));
+            bets.field(entries());
             sync();
         }
         sendToTrack(player);
@@ -387,6 +399,7 @@ public final class RaceMeeting {
         if (current.stage != Stage.OPEN)
             return Component.translatable("umapyoi.meeting.problem.closed");
         current.free(slot);
+        current.bets.field(current.entries());
         if (RaceWorld.isRaceWorld(player.level()))
             current.sendToStand(player);
         player.sendSystemMessage(Component.translatable("umapyoi.meeting.withdrawn"));
@@ -396,10 +409,64 @@ public final class RaceMeeting {
 
     /** Gives a stall back to its computer runner. */
     private void free(Slot slot) {
+        bets.giveBack(slot.lane);
         slot.player = null;
         slot.playerName = "";
         slot.soul = slot.opponent.soul();
         session.add(slot.opponent);
+    }
+
+    /** This runner doesn't start after all. */
+    private void scratch(Slot slot) {
+        if (slot.scratched)
+            return;
+        slot.scratched = true;
+        bets.scratch(slot.lane);
+        if (!bets.closed())
+            bets.field(entries());
+    }
+
+    /** Who runs, for the odds. */
+    private List<RaceOdds.Entry> entries() {
+        refreshSouls();
+        RaceAccounts accounts = RaceAccounts.get(server);
+        return slots.stream().filter(slot -> !slot.scratched).map(slot -> new RaceOdds.Entry(slot.lane, slot.soul.copy(),
+                slot.player == null ? slot.opponent.trim() : 1, slot.player != null, slot.player == null ? 0 : accounts.edge(slot.player))).toList();
+    }
+
+    /** What the players who run look like now. @return whether anything that counts is different */
+    private boolean refreshSouls() {
+        boolean different = false;
+        for (Slot slot : slots) {
+            ServerPlayer player = slot.player == null ? null : server.getPlayerList().getPlayer(slot.player);
+            ItemStack soul = player == null ? ItemStack.EMPTY : UmapyoiAPI.getUmaSoul(player);
+            if (!UmaSoulUtils.hasSoulData(soul))
+                continue;
+            different |= !UmaSoulUtils.getName(soul).equals(UmaSoulUtils.getName(slot.soul)) || UmaSoulUtils.getMotivation(soul) != UmaSoulUtils.getMotivation(slot.soul)
+                    || !Arrays.equals(UmaSoulUtils.getProperty(soul).toArray(), UmaSoulUtils.getProperty(slot.soul).toArray());
+            slot.soul = soul.copy();
+        }
+        return different;
+    }
+
+    /** Ticks until no more bets are taken. */
+    private int betTicks() {
+        return stage.ordinal() >= Stage.RUNNING.ordinal() ? 0 : Math.max(0, left - UmapyoiConfig.RACE_BET_CLOSE_SECONDS.get() * 20);
+    }
+
+    /** A bet. @return why not, or null */
+    @Nullable
+    static Component bet(ServerPlayer player, int gate, boolean place, long amount) {
+        if (current == null || current.bets == null)
+            return none();
+        if (!RaceWorld.isRaceWorld(player.level()) || !current.visitors.contains(player.getUUID()))
+            return Component.translatable("umapyoi.ticket.problem.not_there");
+        Component problem = current.bets.bet(player, gate - 1, place, amount);
+        if (problem == null) {
+            player.displayClientMessage(Component.translatable("umapyoi.ticket.bought", amount, gate).withStyle(ChatFormatting.GREEN), true);
+            current.bets.tell(player, current.betTicks());
+        }
+        return problem;
     }
 
     /** Lets a player in to watch. @return why not, or null */
@@ -464,6 +531,7 @@ public final class RaceMeeting {
         RaceWorld.visit(player, level, new Vec3(origin.getX() + at.x(), origin.getY() + height, origin.getZ() + at.z()), at.yaw());
         if (RaceWorld.isRaceWorld(player.level()) && !bound(player))
             RaceKit.give(player);
+        bets.tell(player, betTicks());
     }
 
     @SubscribeEvent
@@ -497,7 +565,7 @@ public final class RaceMeeting {
             if (!session.giveUp(player)) {
                 if (session.finished(player))
                     return;
-                slot.scratched = true;
+                scratch(slot);
             }
             tell(Component.translatable("umapyoi.meeting.gave_up", player.getDisplayName()));
             sync();
@@ -533,11 +601,13 @@ public final class RaceMeeting {
             case OPEN -> {
                 session.tick();
                 left--;
+                takeBets();
                 if (closeTicks() <= 0)
                     close();
             }
             case CLOSED -> {
                 left--;
+                takeBets();
                 int gate = UmapyoiConfig.RACE_MEETING_GATE_SECONDS.get();
                 if (!called && left <= (gate + WALK_IN_SECONDS) * 20) {
                     called = true;
@@ -549,22 +619,26 @@ public final class RaceMeeting {
                 session.tick(); // opens the gates and moves on to RUNNING
             }
             case RUNNING -> {
+                bets.close();
+                bets.tick(0);
                 boolean over = session.tick();
                 if (age % LIVE_EVERY == 0)
                     showLive();
                 if (over)
                     finish();
-                else if (level.players().isEmpty() && finishers.isEmpty()) {
+                else if (level.players().isEmpty() && finishers.isEmpty() && !bets.any()) {
                     end(Component.translatable("umapyoi.meeting.nobody", name()));
                     return;
                 }
             }
             case RESULTS -> {
+                bets.tick(0);
                 session.coast();
                 if (--left <= 0)
                     announceResult();
             }
             case LEAVING -> {
+                bets.tick(0);
                 if (--left <= 0) {
                     end(null);
                     return;
@@ -582,9 +656,21 @@ public final class RaceMeeting {
         }
     }
 
+    private void takeBets() {
+        if (betTicks() <= 0)
+            bets.close();
+        bets.tick(betTicks());
+        List<Integer> now = bets.favourites();
+        if (age % 20 == 0 && !now.isEmpty() && !now.equals(favourites)) {
+            favourites = now;
+            sync();
+        }
+    }
+
     /** Entries close: whoever isn't there has withdrawn. */
     private void close() {
         stage = Stage.CLOSED;
+        boolean different = refreshSouls();
         for (Slot slot : slots) {
             if (slot.player == null)
                 continue;
@@ -596,9 +682,12 @@ public final class RaceMeeting {
             if (player != null && !there)
                 player.sendSystemMessage(Component.translatable("umapyoi.meeting.missed_self").withStyle(ChatFormatting.RED));
             free(slot);
+            different = true;
             if (there)
                 sendToStand(player);
         }
+        if (different)
+            bets.field(entries());
         tell(Component.translatable("umapyoi.meeting.entries_closed", minutes(left)));
         sync();
     }
@@ -615,7 +704,7 @@ public final class RaceMeeting {
                 continue;
             ServerPlayer player = server.getPlayerList().getPlayer(slot.player);
             if (player == null || player.level() != level)
-                slot.scratched = true;
+                scratch(slot);
             else {
                 session.add(player, slot.lane);
                 bound.add(slot.player);
@@ -654,6 +743,10 @@ public final class RaceMeeting {
         }
         session.cleanUp();
         award();
+        bets.settle(places);
+        learn(places);
+        for (ServerPlayer player : level.players())
+            bets.tell(player, 0);
         bound.clear();
         for (ServerPlayer player : level.players())
             if (visitors.contains(player.getUUID()))
@@ -662,6 +755,15 @@ public final class RaceMeeting {
     }
 
     // ---- what it's worth
+
+    /** The crowd has seen how the players run. */
+    private void learn(List<RaceSession.Place> places) {
+        for (RaceSession.Place place : places) {
+            double expected = bets.expected(place.lane());
+            if (place.player() != null && place.time() >= 0 && expected > 0)
+                RaceAccounts.get(server).ran(place.player().getUUID(), (place.time() - expected) / (setup.distanceMeters() / 1000));
+        }
+    }
 
     /** On the soul: the race was run, and perhaps won. */
     private void record(ServerPlayer player, boolean won) {
@@ -707,6 +809,7 @@ public final class RaceMeeting {
                 return false;
             }
         }
+        current.bets.touch();
         current.sync();
         return true;
     }
@@ -726,6 +829,8 @@ public final class RaceMeeting {
 
     private void end(@Nullable Component announcement) {
         current = null;
+        if (bets != null)
+            bets.cancel();
         if (session != null)
             session.cleanUp();
         bar.removeAllPlayers();
@@ -747,6 +852,8 @@ public final class RaceMeeting {
             meeting.refund();
         else
             meeting.award();
+        if (meeting.bets != null)
+            meeting.bets.cancel();
         if (meeting.session != null)
             meeting.session.cleanUp();
         meeting.bar.removeAllPlayers();
@@ -880,12 +987,9 @@ public final class RaceMeeting {
 
     private List<RaceMeetingPayload.Row> rows() {
         List<Slot> all = slots.stream().sorted((a, b) -> Integer.compare(a.lane, b.lane)).toList();
-        for (Slot slot : all) {
-            ServerPlayer player = slot.player == null ? null : server.getPlayerList().getPlayer(slot.player);
-            ItemStack soul = player == null ? ItemStack.EMPTY : UmapyoiAPI.getUmaSoul(player);
-            if (stage.ordinal() < Stage.RUNNING.ordinal() && UmaSoulUtils.hasSoulData(soul))
-                slot.soul = soul.copy();
-        }
+        if (stage.ordinal() < Stage.RUNNING.ordinal())
+            refreshSouls();
+        List<Integer> favourites = bets == null ? List.of() : bets.favourites();
         List<Slot> running = all.stream().filter(slot -> !slot.scratched).toList();
         List<RacePopularity.Rating> ratings = RacePopularity.rate(running.stream().map(slot -> UmaSoulUtils.getProperty(slot.soul).toArray()).toList());
         List<RaceMeetingPayload.Row> rows = new ArrayList<>();
@@ -899,7 +1003,7 @@ public final class RaceMeeting {
                     time = (float) result.get(i).time();
                 }
             rows.add(new RaceMeetingPayload.Row(slot.lane + 1, UmaSoulUtils.getName(slot.soul), slot.playerName, slot.scratched, form(slot),
-                    rated < 0 ? 0 : ratings.get(rated).place(), rated < 0 ? new byte[RacePopularity.COLUMNS] : ratings.get(rated).tips(),
+                    rated < 0 ? 0 : favourites.contains(slot.lane) ? favourites.indexOf(slot.lane) + 1 : ratings.get(rated).place(), rated < 0 ? new byte[RacePopularity.COLUMNS] : ratings.get(rated).tips(),
                     !result.isEmpty() && place == 0 ? -1 : place, time));
         }
         return rows;
@@ -917,6 +1021,6 @@ public final class RaceMeeting {
         Aptitude[] styles = RaceStyle.aptitudes(slot.soul, level);
         for (int i = 0; i < styles.length; i++)
             aptitudes[RaceMeetingPayload.Form.STYLES + i] = (byte) styles[i].ordinal();
-        return new RaceMeetingPayload.Form(grades, aptitudes, slot.player == null ? List.of() : List.copyOf(UmaSoulUtils.getSkills(slot.soul)));
+        return new RaceMeetingPayload.Form(grades, aptitudes, (byte) UmaSoulUtils.getMotivation(slot.soul).ordinal(), slot.player == null ? List.of() : List.copyOf(UmaSoulUtils.getSkills(slot.soul)));
     }
 }

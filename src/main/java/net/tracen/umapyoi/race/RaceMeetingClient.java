@@ -35,6 +35,8 @@ public final class RaceMeetingClient {
     static void set(RaceMeetingPayload payload) {
         current = payload.active() ? payload : null;
         since = Util.getMillis();
+        if (current == null)
+            RaceBetClient.forgetOdds();
         if (current == null || current.stageNow().ordinal() < RaceMeeting.Stage.RUNNING.ordinal())
             forgetLive();
     }

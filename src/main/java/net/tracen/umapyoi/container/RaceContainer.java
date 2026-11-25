@@ -19,6 +19,7 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 import net.tracen.umapyoi.block.BlockRegistry;
 import net.tracen.umapyoi.block.entity.RaceRegisterBlockEntity;
 import net.tracen.umapyoi.item.ItemRegistry;
+import net.tracen.umapyoi.race.RaceAccounts;
 import net.tracen.umapyoi.race.RaceMeeting;
 import net.tracen.umapyoi.race.RaceMeetingClient;
 import net.tracen.umapyoi.utils.Position;
@@ -52,17 +53,22 @@ public class RaceContainer extends AbstractContainerMenu {
 
     // ---------------------------------------------------------------- pages
 
-    /** The quick race in the terminal, and the race meeting. */
+    /** The quick race in the terminal, the race meeting, and the ticket counter. */
     public static final int PAGE_QUICK = 0;
     public static final int PAGE_MEETING = 1;
-    /** Button ids (0 and 1 show a page). */
-    public static final int BUTTON_CREATE = 10, BUTTON_CREATE_RUN = 11, BUTTON_ENTER = 12, BUTTON_WATCH = 13, BUTTON_WITHDRAW = 14;
+    public static final int PAGE_COUNTER = 2;
+    /** Button ids (the first few show a page; from TAKE_OUT on, that many jewels are taken out). */
+    public static final int BUTTON_CREATE = 10, BUTTON_CREATE_RUN = 11, BUTTON_ENTER = 12, BUTTON_WATCH = 13, BUTTON_WITHDRAW = 14, BUTTON_PAY_IN = 15, BUTTON_TAKE_OUT = 100;
+    public static final int MAX_JEWELS = 64;
     private static final int QUICK_SLOTS = 6;
     private static final int PLAYER_SLOTS = 36;
     /** Where the ticket for a meeting goes; whatever is in it goes back to the player when they close the menu. */
     public static final int MEETING_SLOT = QUICK_SLOTS + PLAYER_SLOTS;
+    /** Where things to be paid in go; the same. */
+    public static final int COUNTER_SLOT = MEETING_SLOT + 1;
 
     private final Container meetingTicket = new SimpleContainer(1);
+    private final Container payIn = new SimpleContainer(1);
     private int page = PAGE_QUICK;
 
     public int getPage() {
@@ -79,13 +85,17 @@ public class RaceContainer extends AbstractContainerMenu {
         return page == PAGE_MEETING && tileEntity.getLevel() != null && tileEntity.getLevel().isClientSide() && RaceMeetingClient.current() != null;
     }
 
+    public ItemStack getPayIn() {
+        return payIn.getItem(0);
+    }
+
     public ItemStack getMeetingTicket() {
         return meetingTicket.getItem(0);
     }
 
     @Override
     public boolean clickMenuButton(@Nonnull Player player, int id) {
-        if (id == PAGE_QUICK || id == PAGE_MEETING) {
+        if (id >= PAGE_QUICK && id <= PAGE_COUNTER) {
             this.page = id;
             return true;
         }
@@ -106,8 +116,15 @@ public class RaceContainer extends AbstractContainerMenu {
             case BUTTON_ENTER -> problem = RaceMeeting.enter(serverPlayer);
             case BUTTON_WATCH -> problem = RaceMeeting.watch(serverPlayer);
             case BUTTON_WITHDRAW -> problem = RaceMeeting.withdraw(serverPlayer);
+            case BUTTON_PAY_IN -> {
+                if (RaceAccounts.payIn(serverPlayer, getPayIn()) <= 0)
+                    return false;
+                payIn.setChanged();
+            }
             default -> {
-                return false;
+                if (id <= BUTTON_TAKE_OUT || id > BUTTON_TAKE_OUT + MAX_JEWELS)
+                    return false;
+                problem = RaceAccounts.takeOut(serverPlayer, id - BUTTON_TAKE_OUT);
             }
         }
         if (problem != null)
@@ -118,8 +135,10 @@ public class RaceContainer extends AbstractContainerMenu {
     @Override
     public void removed(@Nonnull Player player) {
         super.removed(player);
-        if (!player.level().isClientSide())
+        if (!player.level().isClientSide()) {
             this.clearContainer(player, meetingTicket);
+            this.clearContainer(player, payIn);
+        }
     }
 
     public static class UmaSoulSlot extends SlotItemHandler {
@@ -203,6 +222,18 @@ public class RaceContainer extends AbstractContainerMenu {
             }
         });
 
+        this.addSlot(new Slot(payIn, 0, 12, 72) {
+            @Override
+            public boolean mayPlace(@Nonnull ItemStack stack) {
+                return RaceAccounts.value(stack) > 0;
+            }
+
+            @Override
+            public boolean isActive() {
+                return page == PAGE_COUNTER;
+            }
+        });
+
         this.addDataSlots(containerData);
     }
 
@@ -228,7 +259,7 @@ public class RaceContainer extends AbstractContainerMenu {
             ItemStack stack1 = slot.getItem();
             stack = stack1.copy();
 
-            if (pIndex >= 0 && pIndex < 6 || pIndex == MEETING_SLOT) {
+            if (pIndex >= 0 && pIndex < 6 || pIndex >= MEETING_SLOT) {
                 // from container to player inventory
                 if (!this.moveItemStackTo(stack1, 6, 6 + 36, true)) {
                     return ItemStack.EMPTY;
@@ -240,6 +271,7 @@ public class RaceContainer extends AbstractContainerMenu {
                 if (pIndex < 6 + 36) {
                     // only move from 0 to 1
                     if (!(page == PAGE_MEETING ? this.moveItemStackTo(stack1, MEETING_SLOT, MEETING_SLOT + 1, false)
+                            : page == PAGE_COUNTER ? this.moveItemStackTo(stack1, COUNTER_SLOT, COUNTER_SLOT + 1, false)
                             : this.moveItemStackTo(stack1, 0, 2, false))) {
                         return ItemStack.EMPTY;
                     }

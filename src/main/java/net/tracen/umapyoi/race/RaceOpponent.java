@@ -22,10 +22,8 @@ import net.minecraft.world.item.ItemStack;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.ItemRegistry;
-import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 import net.tracen.umapyoi.registry.umadata.UmaData;
-import net.tracen.umapyoi.registry.umadata.UmaDataBasicStatus;
 import net.tracen.umapyoi.utils.GachaRanking;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
 
@@ -39,8 +37,6 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * into someone beside her, and she doesn't tuck in behind someone slower.
  */
 final class RaceOpponent {
-    /** Each stat is the one asked for plus or minus up to this. */
-    private static final int STAT_SPREAD = 2;
     /** Well suited: aptitude A or better for the race's surface and distance. Suited: B. */
     private static final double WELL_SUITED = 1.0;
     private static final double SUITED = 0.9;
@@ -76,6 +72,7 @@ final class RaceOpponent {
     private final RaceRunner runner;
     private final RaceAi ai;
     private final ItemStack soul;
+    private final double trim;
     private final double lane;
     private final double stallOffset;
     private final int delay;
@@ -91,10 +88,11 @@ final class RaceOpponent {
     private double walkedTo;
     private int walkIn;
 
-    private RaceOpponent(RaceRunner runner, RaceAi ai, ItemStack soul, double lane, double stallOffset, int delay) {
+    private RaceOpponent(RaceRunner runner, RaceAi ai, ItemStack soul, double trim, double lane, double stallOffset, int delay) {
         this.runner = runner;
         this.ai = ai;
         this.soul = soul;
+        this.trim = trim;
         this.lane = lane;
         this.stallOffset = stallOffset;
         this.offset = stallOffset;
@@ -105,7 +103,7 @@ final class RaceOpponent {
     /**
      * Picks the field: different Umamusume, the best suited to the race first.
      *
-     * @param stats  what each one's stats are around: speed, stamina, power, guts, wisdom
+     * @param stats  what their stats are around ({@link RaceCast}): speed, stamina, power, guts, wisdom
      * @param stalls where each starts, as an offset from the course's reference line
      * @param except the player's own soul: she doesn't run against herself, in whatever outfit
      */
@@ -134,28 +132,33 @@ final class RaceOpponent {
         if (UmaSoulUtils.hasSoulData(except))
             taken.add(identifier(registry, except));
         souls.removeIf(soul -> !taken.add(identifier(registry, soul)));
+        List<RaceCast.Part> cast = new RaceCast(level, track, setup, layout, distance, plainSprint)
+                .cast(souls.subList(0, Math.min(stalls.size(), souls.size())), stats, random);
         List<RaceOpponent> field = new ArrayList<>();
-        for (int i = 0; i < stalls.size() && i < souls.size(); i++) {
-            ItemStack soul = souls.get(i);
-            soul.set(DataComponentsTypeRegistry.UMADATA_BASIC_STATUS.get(), new UmaDataBasicStatus(stat(stats[0], random),
-                    stat(stats[1], random), stat(stats[2], random), stat(stats[3], random), stat(stats[4], random)));
-            RaceStats worth = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category(),
-                    UmapyoiConfig.RACE_AI_BOOST.get());
-            RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint, RaceStyle.aptitudes(soul, level));
-            field.add(new RaceOpponent(runner, new RaceAi(worth.style(), distance, random), soul,
-                    track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stalls.get(i), random.nextInt(6)));
-        }
+        for (int i = 0; i < cast.size(); i++)
+            field.add(of(level, track, setup, layout, distance, plainSprint, cast.get(i).soul(), cast.get(i).trim(), stalls.get(i), random));
         return field;
+    }
+
+    /** One of them. How she feels on the day ({@code race_ai_form}) is something nobody knows. */
+    static RaceOpponent of(ServerLevel level, TrackGeometry track, RaceSetup setup, RaceLayout layout, double distance, double plainSprint,
+            ItemStack soul, double trim, double stall, RandomSource random) {
+        double form = 1 + UmapyoiConfig.RACE_AI_FORM.get() * Mth.clamp(random.nextGaussian(), -2, 2);
+        return of(level, track, setup, layout, distance, plainSprint, soul, trim, UmapyoiConfig.RACE_AI_BOOST.get() * trim * form, stall, random);
+    }
+
+    /** @param boost what her stats are multiplied by */
+    static RaceOpponent of(ServerLevel level, TrackGeometry track, RaceSetup setup, RaceLayout layout, double distance, double plainSprint,
+            ItemStack soul, double trim, double boost, double stall, RandomSource random) {
+        RaceStats worth = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category(), boost);
+        RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint, RaceStyle.aptitudes(soul, level));
+        return new RaceOpponent(runner, new RaceAi(worth.style(), distance, random), soul, trim,
+                track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stall, random.nextInt(6));
     }
 
     static ResourceLocation identifier(Registry<UmaData> registry, ItemStack soul) {
         ResourceLocation name = UmaSoulUtils.getName(soul);
         return registry.getOptional(name).map(UmaData::identifier).orElse(name);
-    }
-
-    /** Not capped at the highest grade, so the strongest field isn't a little weak on average. */
-    private static int stat(int around, RandomSource random) {
-        return Math.max(1, around + random.nextInt(STAT_SPREAD * 2 + 1) - STAT_SPREAD);
     }
 
     private static <T> void shuffle(List<T> list, RandomSource random) {
@@ -218,6 +221,11 @@ final class RaceOpponent {
 
     RaceRunner runner() {
         return runner;
+    }
+
+    /** What her stats are multiplied by besides ({@link RaceCast.Part}). */
+    double trim() {
+        return trim;
     }
 
     double offset() {

@@ -19,6 +19,9 @@ import net.tracen.umapyoi.client.race.RaceArt;
 import net.tracen.umapyoi.container.RaceContainer;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.UmaRaceTicketItem;
+import net.tracen.umapyoi.race.RaceAccountPayload;
+import net.tracen.umapyoi.race.RaceAccounts;
+import net.tracen.umapyoi.race.RaceBetClient;
 import net.tracen.umapyoi.race.RaceMeeting;
 import net.tracen.umapyoi.race.RaceMeetingClient;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
@@ -91,16 +94,29 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
 
     // ---------------------------------------------------------------- pages and their buttons
 
-    private StyledButton toMeeting, toQuick, createButton, createRunButton, enterButton, watchButton, withdrawButton;
+    private StyledButton previousPage, nextPage, createButton, createRunButton, enterButton, watchButton, withdrawButton;
+    private StyledButton payInButton, fewerButton, moreButton, takeOutButton;
+    /** How many jewels are to be taken out at the counter. */
+    private int jewels = 1;
 
     @Override
     protected void init() {
         super.init();
         int x = this.leftPos, y = this.topPos;
-        this.toMeeting = this.addRenderableWidget(new StyledButton(x + 162, y + 1, 10, 10, StyledButton.Style.ARROW_RIGHT, Component::empty,
-                () -> this.showPage(RaceContainer.PAGE_MEETING)));
-        this.toQuick = this.addRenderableWidget(new StyledButton(x + 162, y + 1, 10, 10, StyledButton.Style.ARROW_LEFT, Component::empty,
-                () -> this.showPage(RaceContainer.PAGE_QUICK)));
+        this.previousPage = this.addRenderableWidget(new StyledButton(x + 3, y + 1, 10, 10, StyledButton.Style.ARROW_LEFT, Component::empty,
+                () -> this.showPage(this.menu.getPage() - 1)));
+        this.nextPage = this.addRenderableWidget(new StyledButton(x + 162, y + 1, 10, 10, StyledButton.Style.ARROW_RIGHT, Component::empty,
+                () -> this.showPage(this.menu.getPage() + 1)));
+        this.payInButton = this.addRenderableWidget(new StyledButton(x + 11, y + 90, 71, 13, StyledButton.Style.SMALL,
+                () -> Component.translatable("gui.umapyoi.ticket.pay_in.do"), () -> this.send(RaceContainer.BUTTON_PAY_IN))
+                .enabledWhen(() -> RaceAccounts.value(this.menu.getPayIn()) > 0));
+        this.fewerButton = this.addRenderableWidget(new StyledButton(x + 111, y + 73, 11, 13, StyledButton.Style.SMALL, () -> Component.literal("-"),
+                () -> this.changeJewels(hasShiftDown() ? -10 : -1)).enabledWhen(() -> this.jewels > 1));
+        this.moreButton = this.addRenderableWidget(new StyledButton(x + 154, y + 73, 11, 13, StyledButton.Style.SMALL, () -> Component.literal("+"),
+                () -> this.changeJewels(hasShiftDown() ? 10 : 1)).enabledWhen(() -> this.jewels < this.affordable()));
+        this.takeOutButton = this.addRenderableWidget(new StyledButton(x + 93, y + 90, 71, 13, StyledButton.Style.SMALL,
+                () -> Component.translatable("gui.umapyoi.ticket.take_out.do", String.format("%,d", (long) this.jewels * RaceBetClient.account().jewelPrice())),
+                () -> this.send(RaceContainer.BUTTON_TAKE_OUT + this.jewels)).enabledWhen(() -> this.jewels <= this.affordable()));
         this.createButton = this.addRenderableWidget(this.bigButton(x + 18, y + 87, "gui.umapyoi.meeting.create", RaceContainer.BUTTON_CREATE)
                 .enabledWhen(() -> this.ticketRace() != null && !RaceMeeting.adaptive(this.ticketRace())));
         this.createRunButton = this.addRenderableWidget(this.bigButton(x + 92, y + 87, "gui.umapyoi.meeting.create_run", RaceContainer.BUTTON_CREATE_RUN)
@@ -124,7 +140,19 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
             this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, id);
     }
 
+    private void changeJewels(int by) {
+        this.jewels = Mth.clamp(this.jewels + by, 1, Math.max(1, this.affordable()));
+        this.refreshButtons();
+    }
+
+    /** How many jewels the account is good for. */
+    private int affordable() {
+        int price = RaceBetClient.account().jewelPrice();
+        return price <= 0 ? 0 : (int) Math.min(RaceContainer.MAX_JEWELS, RaceBetClient.account().balance() / price);
+    }
+
     private void showPage(int page) {
+        page = Mth.clamp(page, RaceContainer.PAGE_QUICK, RaceContainer.PAGE_COUNTER);
         this.menu.setPage(page);
         this.send(page);
         this.refreshButtons();
@@ -134,18 +162,26 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         return this.menu.getPage() == RaceContainer.PAGE_MEETING;
     }
 
+    private boolean onCounterPage() {
+        return this.menu.getPage() == RaceContainer.PAGE_COUNTER;
+    }
+
     private void refreshButtons() {
         boolean page = this.onMeetingPage();
+        boolean counter = this.onCounterPage();
         boolean held = page && RaceMeetingClient.current() != null;
-        this.toMeeting.visible = !page;
-        this.toQuick.visible = page;
+        this.previousPage.visible = this.menu.getPage() > RaceContainer.PAGE_QUICK;
+        this.nextPage.visible = this.menu.getPage() < RaceContainer.PAGE_COUNTER;
+        for (StyledButton button : List.of(this.payInButton, this.fewerButton, this.moreButton, this.takeOutButton))
+            button.visible = counter;
         this.createButton.visible = page && !held;
         this.createRunButton.visible = page && !held;
         boolean withdraw = held && this.entered() && this.stage() == RaceMeeting.Stage.OPEN;
         this.enterButton.visible = held;
         this.watchButton.visible = held && !withdraw;
         this.withdrawButton.visible = withdraw;
-        for (StyledButton button : List.of(this.createButton, this.createRunButton, this.enterButton, this.watchButton, this.withdrawButton))
+        for (StyledButton button : List.of(this.createButton, this.createRunButton, this.enterButton, this.watchButton, this.withdrawButton,
+                this.payInButton, this.fewerButton, this.moreButton, this.takeOutButton))
             button.refresh();
     }
 
@@ -211,6 +247,46 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         int w = Math.min(157, this.font.width(text));
         this.renderLabelImage(graphic, Math.max(66, w + 8));
         RaceArt.line(graphic, text, this.leftPos + (this.imageWidth - w) / 2, this.topPos + 18, 157, RaceArt.WHITE, true);
+    }
+
+    /** The ticket counter: what's on the account, what can be paid in, and jewels to take out. */
+    private void renderCounter(GuiGraphics graphic) {
+        this.meetingPanel(graphic, 117, 64);
+        int x = this.leftPos, y = this.topPos;
+        RaceAccountPayload account = RaceBetClient.account();
+        RaceArt.box(graphic, x + 7, y + 17, 161, 36, 0xFFFFFBE8, 0xFFD8B860);
+        graphic.blit(BACKGROUND_TEXTURE, x + 11, y + 23, 273, 225, 19, 27, 420, 256);
+        graphic.drawString(this.font, Component.translatable("gui.umapyoi.phone.tickets"), x + 36, y + 21, RaceArt.GRAY, false);
+        String balance = String.format("%,d", account.balance());
+        // Large, unless it's too long for that.
+        float scale = this.font.width(balance) * 2 > 84 ? 1 : 2;
+        graphic.pose().pushPose();
+        graphic.pose().translate(x + 36, y + (scale == 2 ? 33 : 38), 0);
+        graphic.pose().scale(scale, scale, 1);
+        graphic.drawString(this.font, balance, 0, 0, RaceArt.DARK, false);
+        graphic.pose().popPose();
+        graphic.drawString(this.font, "HT", x + 39 + (int) (this.font.width(balance) * scale), y + 40, RaceArt.GRAY, false);
+        if (account.staked() > 0) {
+            RaceArt.right(graphic, Component.translatable("gui.umapyoi.ticket.staked"), x + 163, y + 21, RaceArt.GRAY);
+            RaceArt.right(graphic, Component.literal(RaceArt.tickets(account.staked())), x + 163, y + 31, RaceArt.DARK);
+        }
+        if (account.last() != 0)
+            RaceArt.right(graphic, Component.translatable("gui.umapyoi.ticket.last", String.format("%+,d", account.last())), x + 163, y + 42, account.last() > 0 ? RaceArt.GREEN : RaceArt.RED);
+
+        RaceArt.box(graphic, x + 7, y + 57, 79, 48, RaceArt.WHITE, RaceArt.BOX_EDGE);
+        RaceArt.bar(graphic, x + 8, y + 58, 77, 11);
+        RaceArt.center(graphic, Component.translatable("gui.umapyoi.ticket.pay_in"), x + 7, 79, y + 60, RaceArt.WHITE, true);
+        graphic.blit(RaceArt.PHONE, x + 11, y + 71, 112, 238, 18, 18, 256, 256);
+        long worth = (long) RaceAccounts.value(this.menu.getPayIn()) * this.menu.getPayIn().getCount();
+        if (worth > 0)
+            RaceArt.line(graphic, Component.literal("+" + RaceArt.tickets(worth)), x + 32, y + 77, 52, RaceArt.GREEN);
+
+        RaceArt.box(graphic, x + 89, y + 57, 79, 48, RaceArt.WHITE, RaceArt.BOX_EDGE);
+        RaceArt.bar(graphic, x + 90, y + 58, 77, 11);
+        RaceArt.center(graphic, Component.translatable("gui.umapyoi.ticket.take_out"), x + 89, 79, y + 60, RaceArt.WHITE, true);
+        graphic.renderFakeItem(ItemRegistry.JEWEL.get().getDefaultInstance(), x + 92, y + 72);
+        RaceArt.box(graphic, x + 123, y + 73, 30, 13, RaceArt.WHITE, RaceArt.BOX_EDGE);
+        RaceArt.center(graphic, Component.literal(String.valueOf(this.jewels)), x + 123, 31, y + 76, RaceArt.DARK, false);
     }
 
     private void renderMeetingBg(GuiGraphics graphic) {
@@ -412,6 +488,7 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         lines.add(name);
         if (row.popularity() > 0)
             lines.add(Component.translatable("gui.umapyoi.phone.popularity").append(" ").append(Component.translatable("gui.umapyoi.phone.popularity.place", row.popularity())).withStyle(ChatFormatting.GRAY));
+        lines.add(Component.translatable("gui.umapyoi.phone.mood.full").append(" ").append(RaceArt.moodName(form.motivation())).withStyle(ChatFormatting.GRAY));
         MutableComponent stats = Component.empty();
         String[] names = { "speed", "stamina", "strength", "guts", "wisdom" };
         for (int i = 0; i < names.length; i++) {
@@ -432,6 +509,16 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         return lines;
     }
 
+    private List<Component> valuesTooltip() {
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.translatable("gui.umapyoi.ticket.values"));
+        RaceAccounts.values().forEach((item, value) -> lines.add(item.getDescription().copy().withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("  " + value).withStyle(ChatFormatting.GOLD))));
+        lines.add(Component.translatable("gui.umapyoi.ticket.jewel_price").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("  " + RaceBetClient.account().jewelPrice()).withStyle(ChatFormatting.GOLD)));
+        return lines;
+    }
+
     private static MutableComponent aptitude(Component label, Aptitude aptitude) {
         return Component.empty().append(label.copy().withStyle(ChatFormatting.GRAY)).append(" ").append(aptitude.styledComponent()).append("  ");
     }
@@ -445,7 +532,8 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
 
     @Override
     protected void renderLabels(GuiGraphics graphic, int mouseX, int mouseY) {
-        Component heading = this.onMeetingPage() ? Component.translatable("gui.umapyoi.meeting.title") : this.title;
+        Component heading = this.onMeetingPage() ? Component.translatable("gui.umapyoi.meeting.title")
+                : this.onCounterPage() ? Component.translatable("gui.umapyoi.ticket.counter") : this.title;
         graphic.drawString(this.font, heading,
                 (this.imageWidth / 2) - (this.font.width(heading.getVisualOrderText()) / 2),
                 this.titleLabelY - 3, 0xFFFFFF);
@@ -463,10 +551,13 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         // Background image (with slot)
         graphic.blit(BACKGROUND_TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth,
                 this.imageHeight, 420, 256);
-        if (this.onMeetingPage()) {
+        if (this.onMeetingPage() || this.onCounterPage()) {
             this.raceLabel = null;
             this.unavailableReason = null;
-            this.renderMeetingBg(graphic);
+            if (this.onCounterPage())
+                this.renderCounter(graphic);
+            else
+                this.renderMeetingBg(graphic);
             return;
         }
         this.renderDetail(graphic);
@@ -508,6 +599,11 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
     @Override
     protected void renderTooltip(GuiGraphics pGuiGraphics, int pX, int pY) {
         super.renderTooltip(pGuiGraphics, pX, pY);
+        if (this.onCounterPage()) {
+            if (this.isHovering(7, 57, 79, 13, pX, pY))
+                pGuiGraphics.renderComponentTooltip(this.font, this.valuesTooltip(), pX, pY);
+            return;
+        }
         RaceMeetingPayload held = RaceMeetingClient.current();
         if (this.onMeetingPage() && held != null) {
             RaceMeetingPayload.Row row = this.hoveredRow(held, pX, pY);
