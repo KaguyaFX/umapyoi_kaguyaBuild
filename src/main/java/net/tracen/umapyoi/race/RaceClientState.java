@@ -23,6 +23,9 @@ public final class RaceClientState {
     private static RaceStatePayload state;
     @Nullable
     private static RaceMotion motion;
+    /** How the selected skill stands, while in a race (from the stalls on). */
+    @Nullable
+    private static RaceSkillPayload skill;
     private static double lastX = Double.NaN;
     private static double lastZ;
     /** Whether the player has pressed a movement key since the gates opened. */
@@ -52,6 +55,7 @@ public final class RaceClientState {
     public static void reset() {
         state = null;
         motion = null;
+        skill = null;
         lastX = Double.NaN;
         resetCoast();
     }
@@ -101,6 +105,16 @@ public final class RaceClientState {
 
     public static boolean active() {
         return state != null;
+    }
+
+    static void skill(RaceSkillPayload payload) {
+        skill = payload;
+    }
+
+    /** How the selected skill stands in the race; null when not in one. */
+    @Nullable
+    public static RaceSkillPayload skill() {
+        return skill;
     }
 
     /** The last state, or null when not racing. */

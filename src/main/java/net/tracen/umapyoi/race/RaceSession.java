@@ -576,8 +576,12 @@ final class RaceSession {
         private boolean told;
         private boolean out;
         private boolean released;
-        /** When each skill they used may be used again, in session ticks. */
+        /** When each skill they used may be used again, in session ticks; and how long it ran (0 = all at once). */
         private final Map<ResourceLocation, Integer> readyAt = new HashMap<>();
+        private final Map<ResourceLocation, Integer> ran = new HashMap<>();
+        /** What the client was last told about the selected skill. */
+        @Nullable
+        private RaceSkillPayload toldSkill;
         /** How many the last hindering skill caught; below zero if it wasn't one. */
         private int caught = -1;
 
@@ -612,6 +616,7 @@ final class RaceSession {
 
         /** Stay in the stall: the back of it is open. */
         void hold() {
+            tellSkill();
             if (Math.hypot(player.getX() - stallX, player.getZ() - stallZ) > 0.35)
                 player.connection.teleport(stallX, origin.getY() + 1, stallZ, player.getYRot(), player.getXRot());
         }
@@ -654,6 +659,7 @@ final class RaceSession {
             if (runner.useStamina(state, moved))
                 gasp();
             PacketDistributor.sendToPlayer(player, state);
+            tellSkill();
 
             if (runner.progress() >= distance && step > 0) {
                 // Crossed during this tick: work out when, between the last tick and this one.
@@ -715,6 +721,36 @@ final class RaceSession {
             return Math.hypot(progress - runner.progress(), otherOffset - offset) <= RaceSkills.REACH;
         }
 
+        /** Tells the client how the selected skill stands, if that changed. */
+        private void tellSkill() {
+            RaceSkillPayload now = selectedSkill();
+            if (now != null && !now.equals(toldSkill))
+                PacketDistributor.sendToPlayer(player, now);
+            toldSkill = now;
+        }
+
+        @Nullable
+        private RaceSkillPayload selectedSkill() {
+            ItemStack soul = soul();
+            if (soul.isEmpty() || UmaSoulUtils.getSkills(soul).isEmpty())
+                return null;
+            ResourceLocation id = UmaSoulUtils.getSelectedSkill(soul);
+            UmaSkill skill = UmaSkillRegistry.REGISTRY.get(id);
+            boolean passive = RaceSkills.passive(id);
+            int cost = skill == null || passive ? 0 : skill.getActionPoint();
+            if (passive && openTick >= 0)
+                return new RaceSkillPayload(RaceSkillPayload.READY, cost, 0, 0);
+            RaceSkills.Active active = RaceSkills.active(id);
+            if (openTick < 0 || active == null)
+                return new RaceSkillPayload(RaceSkillPayload.NOT_NOW, cost, 0, 0);
+            int left = readyAt.getOrDefault(id, 0) - ticks;
+            int lasts = ran.getOrDefault(id, 0);
+            if (left > 0 && lasts > 0)
+                return new RaceSkillPayload(RaceSkillPayload.RUNNING, cost, left, lasts);
+            boolean ready = left <= 0 && active.when().holds(this) && UmaSoulUtils.getActionPoint(soul) >= cost;
+            return new RaceSkillPayload(ready ? RaceSkillPayload.READY : RaceSkillPayload.NOT_NOW, cost, 0, 0);
+        }
+
         /** Uses a skill the race way: only when it may be, while there are action points for it. */
         void useSkill(ResourceLocation id, int cost) {
             UmaSkill skill = UmaSkillRegistry.REGISTRY.get(id);
@@ -754,6 +790,7 @@ final class RaceSession {
             caught = -1;
             int lasts = active.effect().apply(this);
             readyAt.put(id, ticks + Math.max(20, lasts));
+            ran.put(id, lasts);
             notice(player, (caught >= 0 ? Component.translatable("umapyoi.race.skill.caught", name, caught)
                     : Component.translatable("umapyoi.race.skill.used", name)).withStyle(ChatFormatting.GOLD));
             NeoForge.EVENT_BUS.post(new SkillEvent.ApplySkillEvent(id, player.level(), player));
