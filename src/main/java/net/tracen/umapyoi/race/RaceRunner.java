@@ -162,6 +162,10 @@ final class RaceRunner {
         return stats;
     }
 
+    RaceSetup setup() {
+        return setup;
+    }
+
     RaceLayout layout() {
         return layout;
     }

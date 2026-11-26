@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleTypes;
@@ -16,6 +17,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
@@ -36,7 +38,7 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * pass in: inside or outside of the bunch that one is in, whichever is free and nearer. She can't move
  * into someone beside her, and she doesn't tuck in behind someone slower.
  */
-final class RaceOpponent {
+final class RaceOpponent implements RaceSkills.User {
     /** Well suited: aptitude A or better for the race's surface and distance. Suited: B. */
     private static final double WELL_SUITED = 1.0;
     private static final double SUITED = 0.9;
@@ -88,7 +90,16 @@ final class RaceOpponent {
     private double walkedTo;
     private int walkIn;
 
-    private RaceOpponent(RaceRunner runner, RaceAi ai, ItemStack soul, double trim, double lane, double stallOffset, int delay) {
+    /** Her skills, and what decides when she uses them. */
+    private final RaceAiSkills skills;
+    private final RandomSource random;
+    /** Everyone running, as of this tick: whom a hindering skill of hers can reach. */
+    private List<RaceTraffic.Body> around = List.of();
+
+    private RaceOpponent(RaceRunner runner, RaceAi ai, ItemStack soul, double trim, double lane, double stallOffset, int delay,
+            RandomSource random) {
+        this.skills = new RaceAiSkills(soul, runner.stats());
+        this.random = random;
         this.runner = runner;
         this.ai = ai;
         this.soul = soul;
@@ -153,7 +164,7 @@ final class RaceOpponent {
         RaceStats worth = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category(), boost);
         RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint, RaceStyle.aptitudes(soul, level));
         return new RaceOpponent(runner, new RaceAi(worth.style(), distance, random), soul, trim,
-                track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stall, startDelay(random));
+                track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stall, startDelay(random), random);
     }
 
     /**
@@ -230,8 +241,53 @@ final class RaceOpponent {
         return UmaSoulUtils.getTranslatedUmaName(soul);
     }
 
-    RaceRunner runner() {
+    // ---- as a skill user
+
+    @Override
+    public RaceRunner runner() {
         return runner;
+    }
+
+    @Override
+    public ItemStack soul() {
+        return soul;
+    }
+
+    @Override
+    public RaceSetup setup() {
+        return runner.setup();
+    }
+
+    @Override
+    public boolean onCorner() {
+        return runner.layout().onCorner(runner.progress());
+    }
+
+    @Override
+    public int hinder(int level, int ticks, Component skill) {
+        int count = 0;
+        for (RaceTraffic.Body other : around)
+            if (other.who() != this && near(other)) {
+                other.runner().boosts().slow(level, ticks);
+                if (other.who() instanceof ServerPlayer player)
+                    RaceSession.notice(player, Component.translatable("umapyoi.race.skill.hit", name(), skill, ticks / 20)
+                            .withStyle(ChatFormatting.RED));
+                count++;
+            }
+        return count;
+    }
+
+    @Override
+    public int near(double reach) {
+        int count = 0;
+        for (RaceTraffic.Body other : around)
+            if (other.who() != this && near(other))
+                count++;
+        return count;
+    }
+
+    private boolean near(RaceTraffic.Body other) {
+        return Math.hypot(other.progress() - runner.progress(), other.offset() - offset) <= RaceSkills.REACH;
     }
 
     /** What her stats are multiplied by besides ({@link RaceCast.Part}). */
@@ -241,10 +297,6 @@ final class RaceOpponent {
 
     double offset() {
         return offset;
-    }
-
-    ItemStack soul() {
-        return soul;
     }
 
     /** Her stall (0 = innermost). */
@@ -261,7 +313,7 @@ final class RaceOpponent {
     }
 
     RaceTraffic.Body body() {
-        return new RaceTraffic.Body(this, runner.progress(), offset, runner.speed());
+        return new RaceTraffic.Body(this, runner.progress(), offset, runner.speed(), runner);
     }
 
     /**
@@ -278,6 +330,12 @@ final class RaceOpponent {
             runner.start(start);
         double before = runner.progress();
         RaceTraffic.Body me = body();
+        if (!finished()) {
+            around = all;
+            ResourceLocation used = skills.tick(this, random);
+            if (used != null && entity != null && !entity.isRemoved())
+                entity.showSkill(used);
+        }
         boolean sprint = ai.sprint(runner);
         RaceStatePayload state = RaceAi.step(runner, track, offset, sprint, finished() ? RaceTraffic.FREE : RaceTraffic.limit(me, all));
         double step = runner.progress() - before;

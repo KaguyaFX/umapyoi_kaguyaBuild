@@ -99,9 +99,15 @@ final class RaceCast {
                 off = Mth.lerp(random.nextDouble(), HOPELESS_FROM, HOPELESS_TO);
             parts.add(make(souls.get(i), around, usual * (1 + off), random));
         }
-        // Moods come on top: everyone can see them.
-        for (Part part : parts)
+        // Moods come on top: everyone can see them. So do skills, by how good the field is.
+        int level = 0;
+        for (int stat : around)
+            level += stat;
+        level = Math.round(level / (float) Math.max(1, around.length));
+        for (Part part : parts) {
             UmaSoulUtils.setMotivation(part.soul(), mood(random));
+            RaceAiSkills.handOut(part.soul(), level, setup.surface(), random);
+        }
         return parts;
     }
 

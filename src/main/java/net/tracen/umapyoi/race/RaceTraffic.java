@@ -35,8 +35,9 @@ final class RaceTraffic {
      * @param progress race progress, in blocks
      * @param offset   how far off the course's reference line
      * @param speed    blocks per second
+     * @param runner   their race numbers (so a skill can slow them)
      */
-    record Body(Object who, double progress, double offset, double speed) {
+    record Body(Object who, double progress, double offset, double speed, RaceRunner runner) {
     }
 
     private RaceTraffic() {

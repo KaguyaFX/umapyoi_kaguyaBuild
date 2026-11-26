@@ -53,6 +53,9 @@ public final class RaceSkills {
 
         /** Slows everyone else within reach; @return how many */
         int hinder(int level, int ticks, Component skill);
+
+        /** How many others are within this many blocks. */
+        int near(double reach);
     }
 
     /** When an active skill may be used. */

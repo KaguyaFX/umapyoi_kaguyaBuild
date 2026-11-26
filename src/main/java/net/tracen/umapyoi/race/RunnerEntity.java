@@ -5,6 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -38,6 +39,11 @@ public class RunnerEntity extends LivingEntity {
     private static final EntityDataAccessor<Float> OFFSET = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.FLOAT);
     /** Blocks per second. */
     private static final EntityDataAccessor<Float> SPEED = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.FLOAT);
+    /** The skill she used last, and when (the level's game time). */
+    private static final EntityDataAccessor<String> SKILL = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Integer> SKILL_AT = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.INT);
+    /** How long a skill she used shows over her head. */
+    public static final int SKILL_SHOWN = 40;
 
     /** How much of the difference to the server's numbers a client makes up per tick. */
     private static final double CATCH_UP = 0.06;
@@ -72,6 +78,8 @@ public class RunnerEntity extends LivingEntity {
         builder.define(PROGRESS, 0F);
         builder.define(OFFSET, 0F);
         builder.define(SPEED, 0F);
+        builder.define(SKILL, "");
+        builder.define(SKILL_AT, Integer.MIN_VALUE / 2);
     }
 
     // ---- told by the race (server)
@@ -88,6 +96,23 @@ public class RunnerEntity extends LivingEntity {
         course.putLong("origin", origin.asLong());
         entityData.set(SOUL, soul.copy());
         entityData.set(COURSE, course);
+    }
+
+    /** She used a skill: it shows over her head for a moment. */
+    void showSkill(ResourceLocation skill) {
+        entityData.set(SKILL, skill.toString());
+        entityData.set(SKILL_AT, (int) level().getGameTime());
+    }
+
+    /** The skill showing over her head, and for how many more ticks; null if none. */
+    @Nullable
+    public ResourceLocation skillShown() {
+        String skill = entityData.get(SKILL);
+        return skill.isEmpty() || skillTicksLeft() <= 0 ? null : ResourceLocation.tryParse(skill);
+    }
+
+    public int skillTicksLeft() {
+        return SKILL_SHOWN - (int) (level().getGameTime() - entityData.get(SKILL_AT));
     }
 
     void show(double progress, double offset, double speed) {

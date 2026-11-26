@@ -671,7 +671,7 @@ final class RaceSession {
         }
 
         RaceTraffic.Body body() {
-            return new RaceTraffic.Body(player, runner.progress(), offset, pace);
+            return new RaceTraffic.Body(player, runner.progress(), offset, pace, runner);
         }
 
         private TrackGeometry.Spot here() {
@@ -714,6 +714,18 @@ final class RaceSession {
                     count++;
                 }
             caught = count;
+            return count;
+        }
+
+        @Override
+        public int near(double reach) {
+            int count = 0;
+            for (Racer other : racers)
+                if (other != this && other.running() && near(other.runner.progress(), other.offset))
+                    count++;
+            for (RaceOpponent opponent : opponents)
+                if (!opponent.finished() && opponent.runner().started() && near(opponent.runner().progress(), opponent.offset()))
+                    count++;
             return count;
         }
 
