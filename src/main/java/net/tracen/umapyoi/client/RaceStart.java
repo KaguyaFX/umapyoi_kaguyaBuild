@@ -23,6 +23,7 @@ import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.block.GateDoor;
 import net.tracen.umapyoi.race.RaceClientState;
 import net.tracen.umapyoi.race.RaceGatePayload;
+import net.tracen.umapyoi.race.RaceNoticePayload;
 import net.tracen.umapyoi.race.RaceWorld;
 
 /**
@@ -106,6 +107,9 @@ public final class RaceStart {
         RaceGatePayload call = RaceGatePayload.take();
         if (call != null)
             still(minecraft, call);
+        Component notice = RaceNoticePayload.take();
+        if (notice != null)
+            show(notice);
         if (phase == Phase.NONE)
             return;
         if (minecraft.player == null || minecraft.level == null || !RaceWorld.isRaceWorld(minecraft.level) || ++ticks > GIVE_UP) {
@@ -207,10 +211,15 @@ public final class RaceStart {
         if (lateOut)
             went = Math.max(went, openNanos + late * 50_000_000L);
         String seconds = String.format("%.2f", (went - openNanos) / 1e9);
-        readout = lateOut ? Component.translatable("umapyoi.race.start.late_out", seconds).withStyle(ChatFormatting.RED)
-                : Component.translatable("umapyoi.race.start.out", seconds).withStyle(ChatFormatting.WHITE);
-        readoutAt = Util.getMillis();
+        show(lateOut ? Component.translatable("umapyoi.race.start.late_out", seconds).withStyle(ChatFormatting.RED)
+                : Component.translatable("umapyoi.race.start.out", seconds).withStyle(ChatFormatting.WHITE));
         reset();
+    }
+
+    /** Shows something for a moment just above the action bar. */
+    public static void show(Component text) {
+        readout = text;
+        readoutAt = Util.getMillis();
     }
 
     private static void say(Component message) {

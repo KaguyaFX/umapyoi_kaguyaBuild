@@ -17,35 +17,35 @@ public class UmaSkillRegistry {
     });
 
     public static final DeferredHolder<UmaSkill, UmaSkill> BASIC_PACE = SKILLS.register("basic_pace",
-            () -> new SpeedSkill(new UmaSkill.Builder().level(1).type(SkillType.BUFF), 400));
+            () -> new SpeedSkill(new UmaSkill.Builder().level(1).type(SkillType.BUFF).actionPoint(500), 400));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> LAST_LEG = SKILLS.register("last_leg",
-            () -> new LastLegSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "heart_and_soul")).type(SkillType.BUFF).actionPoint(400).requiredWisdom(2),
+            () -> new LastLegSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "heart_and_soul")).type(SkillType.BUFF).actionPoint(350).requiredWisdom(2),
                     100));
     public static final DeferredHolder<UmaSkill, UmaSkill> HEART_AND_SOUL = SKILLS.register("heart_and_soul",
-            () -> new LastLegSkill(new UmaSkill.Builder().level(2).type(SkillType.BUFF).actionPoint(900).requiredWisdom(4),
+            () -> new LastLegSkill(new UmaSkill.Builder().level(2).type(SkillType.BUFF).actionPoint(650).requiredWisdom(4),
                     100));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> DEEP_BREATHS = SKILLS.register("deep_breaths",
             () -> new HealSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "cooldown")).type(SkillType.HEAL).actionPoint(400).requiredWisdom(2)));
     public static final DeferredHolder<UmaSkill, UmaSkill> COOLDOWN = SKILLS.register("cooldown",
-            () -> new HealSkill(new UmaSkill.Builder().level(2).type(SkillType.HEAL).actionPoint(900).requiredWisdom(4)));
+            () -> new HealSkill(new UmaSkill.Builder().level(2).type(SkillType.HEAL).actionPoint(700).requiredWisdom(4)));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> LOW_HEALTH_HEAL = SKILLS.register("low_health_heal",
             () -> new LowHealthHealSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "adv_low_health_heal")).type(SkillType.HEAL).actionPoint(400).requiredWisdom(2)));
     public static final DeferredHolder<UmaSkill, UmaSkill> ADV_LOWHEALTH_HEAL = SKILLS.register("adv_low_health_heal",
-            () -> new LowHealthHealSkill(new UmaSkill.Builder().level(2).type(SkillType.HEAL).actionPoint(900).requiredWisdom(4)));
+            () -> new LowHealthHealSkill(new UmaSkill.Builder().level(2).type(SkillType.HEAL).actionPoint(650).requiredWisdom(4)));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> LOW_HEALTH_BUFF = SKILLS.register("low_health_buff",
             () -> new LowHealthBuffSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "adv_low_health_buff")).type(SkillType.BUFF).actionPoint(400).requiredWisdom(2)));
     public static final DeferredHolder<UmaSkill, UmaSkill> ADV_LOWHEALTH_BUFF = SKILLS.register("adv_low_health_buff",
-            () -> new LowHealthBuffSkill(new UmaSkill.Builder().level(2).type(SkillType.BUFF).actionPoint(900).requiredWisdom(4)));
+            () -> new LowHealthBuffSkill(new UmaSkill.Builder().level(2).type(SkillType.BUFF).actionPoint(700).requiredWisdom(4)));
 
 
     public static final DeferredHolder<UmaSkill, UmaSkill> NUTRITIONAL_SUPPLEMENTS = SKILLS.register("nutritional_supplements",
-            () -> new NutritionalSupplementsSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "big_eater")).type(SkillType.HEAL).actionPoint(600).requiredWisdom(3)));
+            () -> new NutritionalSupplementsSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "big_eater")).type(SkillType.HEAL).actionPoint(350).requiredWisdom(3)));
     public static final DeferredHolder<UmaSkill, UmaSkill> BIG_EATER = SKILLS.register("big_eater",
-            () -> new NutritionalSupplementsSkill(new UmaSkill.Builder().level(2).type(SkillType.HEAL).actionPoint(1000).requiredWisdom(5)));
+            () -> new NutritionalSupplementsSkill(new UmaSkill.Builder().level(2).type(SkillType.HEAL).actionPoint(600).requiredWisdom(5)));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> SERENE = SKILLS.register("serene",
             () -> new SereneSkill(new UmaSkill.Builder().level(1).type(SkillType.HEAL).actionPoint(300).requiredWisdom(2)));
@@ -69,19 +69,19 @@ public class UmaSkillRegistry {
             () -> new PassiveSkill(new UmaSkill.Builder().level(1).requiredWisdom(2)));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> RAPID = SKILLS.register("rapid",
-            () -> new DivineSpeedSkill(new UmaSkill.Builder().level(1).requiredWisdom(2).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "divine_speed")).type(SkillType.BUFF), 200));
+            () -> new DivineSpeedSkill(new UmaSkill.Builder().level(1).requiredWisdom(2).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "divine_speed")).type(SkillType.BUFF).actionPoint(450), 200));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> DIVINE_SPEED = SKILLS.register("divine_speed",
-            () -> new DivineSpeedSkill(new UmaSkill.Builder().level(2).requiredWisdom(5).actionPoint(900).type(SkillType.BUFF), 400));
+            () -> new DivineSpeedSkill(new UmaSkill.Builder().level(2).requiredWisdom(5).actionPoint(1000).type(SkillType.BUFF), 400));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> TOP_UMAMUSUME = SKILLS.register("top_umamusme",
-            () -> new TopUmamusumeSkill(new UmaSkill.Builder().level(3).type(SkillType.BUFF).actionPoint(1200).requiredWisdom(8).nonInheritable()));
+            () -> new TopUmamusumeSkill(new UmaSkill.Builder().level(3).type(SkillType.BUFF).actionPoint(1000).requiredWisdom(8).nonInheritable()));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> INQUISITIVE_MIND = SKILLS.register("inquisitive_mind",
             () -> new PassiveSkill(new UmaSkill.Builder().level(1).requiredWisdom(2)));
 
     public static final DeferredHolder<UmaSkill, UmaSkill> TETHER = SKILLS.register("tether",
-            () -> new TetherSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "dominator")).type(SkillType.HINDER).actionPoint(400).requiredWisdom(2)));
+            () -> new TetherSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "dominator")).type(SkillType.HINDER).actionPoint(350).requiredWisdom(2)));
     public static final DeferredHolder<UmaSkill, UmaSkill> DOMINATOR = SKILLS.register("dominator",
-            () -> new TetherSkill(new UmaSkill.Builder().level(2).type(SkillType.HINDER).actionPoint(900).requiredWisdom(4)));
+            () -> new TetherSkill(new UmaSkill.Builder().level(2).type(SkillType.HINDER).actionPoint(550).requiredWisdom(4)));
 }

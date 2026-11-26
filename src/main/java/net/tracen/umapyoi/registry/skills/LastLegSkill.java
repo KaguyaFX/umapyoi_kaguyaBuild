@@ -20,8 +20,8 @@ public class LastLegSkill extends UmaSkill {
     public void applySkill(Level level, LivingEntity user) {
         ItemStack soul = UmapyoiAPI.getUmaSoul(user);
         int skillLevel = this.getSkillLevel() - 1 + 
-        		(UmaSoulUtils.getProperty(soul).strength() >= 10 ? 2 : 
-        			UmaSoulUtils.getProperty(soul).strength() >= 7 ? 1 : 0);
+        		(UmaSoulUtils.getProperty(soul).strength() >= 13 ? 2 : 
+        			UmaSoulUtils.getProperty(soul).strength() >= 11 ? 1 : 0);
         user.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, this.getSpeedTime(), skillLevel));
         user.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, this.getSpeedTime(), skillLevel));
     }

@@ -2,10 +2,13 @@ package net.tracen.umapyoi.race;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -14,13 +17,12 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
@@ -31,6 +33,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
@@ -38,6 +41,9 @@ import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.block.BlockRegistry;
 import net.tracen.umapyoi.block.Gate;
 import net.tracen.umapyoi.block.GateDoor;
+import net.tracen.umapyoi.events.SkillEvent;
+import net.tracen.umapyoi.registry.UmaSkillRegistry;
+import net.tracen.umapyoi.registry.skills.UmaSkill;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 import net.tracen.umapyoi.utils.ThreeBlockPart;
@@ -241,6 +247,18 @@ final class RaceSession {
         racers.add(new Racer(player, lane));
     }
 
+    /** A player in the race uses a skill, its race version ({@link RaceSkills}). */
+    void useSkill(ServerPlayer player, ResourceLocation skill, int cost) {
+        Racer racer = racer(player);
+        if (racer != null)
+            racer.useSkill(skill, cost);
+    }
+
+    /** Tells a player something for a moment, just above the action bar. */
+    static void notice(ServerPlayer player, Component text) {
+        PacketDistributor.sendToPlayer(player, new RaceNoticePayload(text));
+    }
+
     /** Whether this player is in the race and hasn't finished or left it. */
     boolean running(ServerPlayer player) {
         return racer(player) != null;
@@ -381,6 +399,8 @@ final class RaceSession {
         for (Racer racer : racers)
             if (racer.running())
                 racer.tick(sinceOpen, everyone);
+        for (RaceRunner runner : runners())
+            runner.boosts().tick();
         // Only now is it known who of those who crossed the line this tick was first.
         for (Racer racer : racers)
             if (racer.time >= 0 && !racer.told)
@@ -536,7 +556,7 @@ final class RaceSession {
     }
 
     /** A player in the race. */
-    private final class Racer {
+    private final class Racer implements RaceSkills.User {
         private final ServerPlayer player;
         private final int lane;
         private final RaceStats stats;
@@ -556,6 +576,10 @@ final class RaceSession {
         private boolean told;
         private boolean out;
         private boolean released;
+        /** When each skill they used may be used again, in session ticks. */
+        private final Map<ResourceLocation, Integer> readyAt = new HashMap<>();
+        /** How many the last hindering skill caught; below zero if it wasn't one. */
+        private int caught = -1;
 
         Racer(ServerPlayer player, int lane) {
             this.player = player;
@@ -600,7 +624,8 @@ final class RaceSession {
             offset = spot.offset();
             // Standing just behind the line: a little below zero.
             runner.start(spot.progress() > track.lap() / 2 ? spot.progress() - track.lap() : spot.progress());
-            PacketDistributor.sendToPlayer(player, runner.state(skill(), RaceTraffic.FREE));
+            RaceSkills.start(runner, soul(), setup);
+            PacketDistributor.sendToPlayer(player, runner.state(RaceTraffic.FREE));
         }
 
         void tick(int sinceOpen, List<RaceTraffic.Body> everyone) {
@@ -618,7 +643,10 @@ final class RaceSession {
                 runner.advance(step);
                 pace += (step * 20 - pace) * 0.3;
             }
-            RaceStatePayload state = runner.state(skill(), RaceTraffic.limit(body(), everyone));
+            double limit = RaceTraffic.limit(body(), everyone);
+            RaceStatePayload state = runner.state(limit);
+            runner.held(limit < runner.wanted(state, player.isSprinting()));
+            RaceSkills.charge(runner, soul());
             runner.move(state, player.isSprinting());
             double moved = Math.hypot(player.getX() - lastX, player.getZ() - lastZ);
             lastX = player.getX();
@@ -644,10 +672,91 @@ final class RaceSession {
             return track.locate(player.getX() - origin.getX(), player.getZ() - origin.getZ());
         }
 
-        /** Speed skills give the Speed effect; in a race it multiplies only the Umamusume bonus. */
-        private double skill() {
-            MobEffectInstance speed = player.getEffect(MobEffects.MOVEMENT_SPEED);
-            return speed == null ? 1 : 1 + UmapyoiConfig.RACE_SKILL_SPEED_PER_LEVEL.get() * (speed.getAmplifier() + 1);
+        @Override
+        public RaceRunner runner() {
+            return runner;
+        }
+
+        @Override
+        public ItemStack soul() {
+            return UmapyoiAPI.getUmaSoul(player);
+        }
+
+        @Override
+        public RaceSetup setup() {
+            return setup;
+        }
+
+        @Override
+        public boolean onCorner() {
+            return layout.onCorner(runner.progress());
+        }
+
+        @Override
+        public int hinder(int level, int ticks, Component skill) {
+            int count = 0;
+            for (Racer other : racers)
+                if (other != this && other.running() && near(other.runner.progress(), other.offset)) {
+                    other.runner.boosts().slow(level, ticks);
+                    notice(other.player, Component.translatable("umapyoi.race.skill.hit", player.getDisplayName(), skill, ticks / 20)
+                            .withStyle(ChatFormatting.RED));
+                    count++;
+                }
+            for (RaceOpponent opponent : opponents)
+                if (!opponent.finished() && opponent.runner().started() && near(opponent.runner().progress(), opponent.offset())) {
+                    opponent.runner().boosts().slow(level, ticks);
+                    count++;
+                }
+            caught = count;
+            return count;
+        }
+
+        private boolean near(double progress, double otherOffset) {
+            return Math.hypot(progress - runner.progress(), otherOffset - offset) <= RaceSkills.REACH;
+        }
+
+        /** Uses a skill the race way: only when it may be, while there are action points for it. */
+        void useSkill(ResourceLocation id, int cost) {
+            UmaSkill skill = UmaSkillRegistry.REGISTRY.get(id);
+            Component name = skill == null ? Component.literal(id.toString()) : skill.getDescription();
+            if (openTick < 0) {
+                notice(player, Component.translatable("umapyoi.race.skill.not_started", name).withStyle(ChatFormatting.YELLOW));
+                return;
+            }
+            if (RaceSkills.passive(id)) {
+                notice(player, Component.translatable("umapyoi.race.skill.passive", name).withStyle(ChatFormatting.GRAY));
+                return;
+            }
+            RaceSkills.Active active = RaceSkills.active(id);
+            if (active == null) {
+                notice(player, Component.translatable("umapyoi.race.skill.none", name).withStyle(ChatFormatting.GRAY));
+                return;
+            }
+            int wait = readyAt.getOrDefault(id, 0) - ticks;
+            if (wait > 0) {
+                notice(player, Component.translatable("umapyoi.race.skill.resting", name, String.format("%.1f", wait / 20.0))
+                        .withStyle(ChatFormatting.YELLOW));
+                return;
+            }
+            if (!active.when().holds(this)) {
+                notice(player, active.when().why(name, this).withStyle(ChatFormatting.YELLOW));
+                return;
+            }
+            ItemStack soul = soul();
+            int points = UmaSoulUtils.getActionPoint(soul);
+            if (points < cost) {
+                notice(player, Component.translatable("umapyoi.race.skill.no_points", name, cost).withStyle(ChatFormatting.YELLOW));
+                return;
+            }
+            UmaSoulUtils.setActionPoint(soul, points - cost);
+            if (skill != null)
+                player.playNotifySound(skill.getSound(), SoundSource.PLAYERS, 1.0F, 1.0F);
+            caught = -1;
+            int lasts = active.effect().apply(this);
+            readyAt.put(id, ticks + Math.max(20, lasts));
+            notice(player, (caught >= 0 ? Component.translatable("umapyoi.race.skill.caught", name, caught)
+                    : Component.translatable("umapyoi.race.skill.used", name)).withStyle(ChatFormatting.GOLD));
+            NeoForge.EVENT_BUS.post(new SkillEvent.ApplySkillEvent(id, player.level(), player));
         }
 
         private void gasp() {

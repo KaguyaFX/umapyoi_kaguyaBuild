@@ -105,7 +105,7 @@ final class RaceAi {
      * @param limit the most the runner in front allows, in blocks per second
      */
     static RaceStatePayload step(RaceRunner runner, TrackGeometry track, double offset, boolean sprint, double limit) {
-        RaceStatePayload state = runner.state(1, limit);
+        RaceStatePayload state = runner.state(limit);
         runner.move(state, sprint);
         double moved = runner.speed() / 20;
         runner.useStamina(state, moved);

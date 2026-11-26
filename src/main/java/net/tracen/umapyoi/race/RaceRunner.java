@@ -39,6 +39,18 @@ final class RaceRunner {
     private boolean lostTouch;
     /** The full speed without what was saved up, as a fraction of the plain sprint. */
     private double baseSprint;
+    /** Skill effects running for a few seconds. */
+    private final RaceBoosts boosts = new RaceBoosts();
+    /** From skills held for the whole race: full speed added (a fraction of the plain sprint), acceleration times. */
+    private double sprintAdded;
+    private double accelTimes = 1;
+    /** What saving up for the last leg is multiplied by right now (a skill may speed it up while it holds). */
+    private double chargeTimes = 1;
+    /** Where they were in the field when last counted (1 = first), out of how many. */
+    private int rank = 1;
+    private int field = 1;
+    /** Ticks in a row they have been held up by someone in front. */
+    private int heldTicks;
 
     RaceRunner(RaceSetup setup, RaceStats stats, RaceLayout layout, double plainSprint, Aptitude[] styles) {
         this.setup = setup;
@@ -51,6 +63,43 @@ final class RaceRunner {
 
     Aptitude[] styles() {
         return styles;
+    }
+
+    RaceBoosts boosts() {
+        return boosts;
+    }
+
+    /** For the whole race: full speed plus this many blocks per second, acceleration times {@code accel}. */
+    void passive(double blocksPerSecond, double accel) {
+        sprintAdded += blocksPerSecond / plainSprint;
+        accelTimes *= accel;
+    }
+
+    void chargeTimes(double times) {
+        chargeTimes = times;
+    }
+
+    int rank() {
+        return rank;
+    }
+
+    int field() {
+        return field;
+    }
+
+    /** Whether they are being held up by someone in front this tick; counts how long that has lasted. */
+    void held(boolean held) {
+        heldTicks = held ? heldTicks + 1 : 0;
+    }
+
+    int heldTicks() {
+        return heldTicks;
+    }
+
+    /** Gives back this fraction of their full stamina at once. */
+    void restore(double fraction) {
+        stamina = Math.min(stats.stamina(), stamina + fraction * stats.stamina());
+        updateExhaustion();
     }
 
     double charge() {
@@ -86,6 +135,8 @@ final class RaceRunner {
      * @param gap   blocks to the one just in front
      */
     void chargeUp(int rank, int field, double gap) {
+        this.rank = rank;
+        this.field = field;
         double done = Math.max(0, progress - chargedTo);
         chargedTo = Math.max(chargedTo, progress);
         zone = RaceStyle.zone(rank, field);
@@ -94,7 +145,7 @@ final class RaceRunner {
         lostTouch = !over && gap > UmapyoiConfig.RACE_CHARGE_GAP.get();
         if (field < 2 || over || lostTouch || UmapyoiConfig.RACE_CHARGE_BLOCKS.get() <= 0)
             return;
-        charge = Math.min(1, charge + done / layout.finalFrom() * (rank - 1) / (field - 1) * zoneAptitude().distanceFactor);
+        charge = Math.min(1, charge + done / layout.finalFrom() * (rank - 1) / (field - 1) * zoneAptitude().distanceFactor * chargeTimes);
     }
 
     /** The gates open: off from just behind (or on) the line. */
@@ -157,18 +208,17 @@ final class RaceRunner {
 
     /**
      * Full speed = the running style's coefficient for this phase x (1 + the Umamusume bonus left
-     * after stamina, times the skill boost); cruise is a fraction of it. Exhausted, both drop to
-     * about the same, slower speed.
+     * after stamina, times what speed or slowness skills make of it), plus what skills held all race
+     * add; cruise is a fraction of it. Exhausted, both drop to about the same, slower speed.
      *
-     * @param skill what speed skills multiply the Umamusume bonus by (1 = none)
      * @param limit the most the runner in front allows, in blocks per second ({@link RaceTraffic#limit})
      */
-    RaceStatePayload state(double skill, double limit) {
+    RaceStatePayload state(double limit) {
         RacePhase phase = phase();
         double left = RaceStats.bonusLeft(staminaFraction(), stats.emptyFloor());
-        double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * skill);
+        double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * boosts.bonusFactor()) + sprintAdded;
         double cruise = sprint * UmapyoiConfig.RACE_CRUISE_RATIO.get();
-        double accel = stats.accel() * RaceStyle.accel(stats.style(), phase) * setup.ground().accel();
+        double accel = stats.accel() * RaceStyle.accel(stats.style(), phase) * setup.ground().accel() * accelTimes * boosts.accelFactor();
         if (exhausted) {
             cruise *= UmapyoiConfig.RACE_EXHAUSTED_SPEED.get();
             sprint = cruise * UmapyoiConfig.RACE_EXHAUSTED_SPRINT.get();

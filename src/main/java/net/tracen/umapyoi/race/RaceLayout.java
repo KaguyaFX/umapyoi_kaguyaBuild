@@ -66,6 +66,13 @@ public final class RaceLayout {
         return "umapyoi.race.section.turn_" + number;
     }
 
+    /** Whether this point is on a corner (the final straight never is). */
+    public boolean onCorner(double progress) {
+        if (progress >= finalStraightFrom && progress < finalStraightTo)
+            return false;
+        return !track.section(track.wrap(progress)).straight();
+    }
+
     /** How many corners the race has entered by this point. */
     private int cornersStartedBy(double progress) {
         double lap = track.lap();
