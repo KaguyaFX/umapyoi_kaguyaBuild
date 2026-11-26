@@ -520,10 +520,14 @@ public final class RaceMeeting {
         arrive(player, at, data.origin(), 1);
     }
 
+    /** Spectators come in at the far end of one of the tunnels under the stand and walk out to the front. */
     private void sendToStand(ServerPlayer player) {
         RacecourseData data = RacecourseData.get(level);
-        TrackGeometry.Point at = TrackBuilder.standEntrance(data.track(), level.getRandom().nextInt(9) - 4);
-        arrive(player, at, data.origin(), TrackBuilder.STAND_ENTRANCE_HEIGHT);
+        TrackGeometry.Point tunnel = TrackBuilder.standTunnel(data.track(), level.getRandom());
+        if (tunnel != null)
+            arrive(player, tunnel, data.origin(), 1);
+        else
+            arrive(player, TrackBuilder.standEntrance(data.track(), level.getRandom().nextInt(9) - 4), data.origin(), TrackBuilder.STAND_ENTRANCE_HEIGHT);
     }
 
     private void arrive(ServerPlayer player, TrackGeometry.Point at, BlockPos origin, int height) {

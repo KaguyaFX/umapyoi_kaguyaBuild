@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LeavesBlock;
@@ -131,6 +132,20 @@ public final class TrackBuilder {
         CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
         double x = (layout.standMinX() + layout.standMaxX()) / 2.0 + aside;
         return new TrackGeometry.Point(x, track.radius() + layout.standStart() + Grandstand.ENTRANCE_ROW + 0.5, 180);
+    }
+
+    /**
+     * The far end of one of the stand's tunnels, facing the course: spectators come in there and walk out
+     * to the front. Null if the stand has none.
+     */
+    @Nullable
+    public static TrackGeometry.Point standTunnel(TrackGeometry track, RandomSource random) {
+        CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
+        List<Integer> tunnels = Grandstand.tunnels(layout.standLength());
+        if (tunnels.isEmpty())
+            return null;
+        int along = tunnels.get(random.nextInt(tunnels.size()));
+        return new TrackGeometry.Point(layout.standMinX() + along + 0.5, track.radius() + layout.standStart() + Grandstand.DEPTH - 2 + 0.5, 180);
     }
 
     /** The area a course covers, in blocks around its origin: min X, max X (exclusive), min Z, max Z (exclusive). */

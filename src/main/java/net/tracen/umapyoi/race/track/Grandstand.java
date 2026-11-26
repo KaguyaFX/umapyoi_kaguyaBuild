@@ -1,5 +1,8 @@
 package net.tracen.umapyoi.race.track;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
@@ -71,6 +74,14 @@ final class Grandstand {
         boolean end = along == 0 || along == length - 1;
         if (!end && h <= 3 && row < DEPTH - 1 && tunnel(along, length))
             return AIR;
+        BlockState state = structure(row, h, along, length, end);
+        // A light in each tunnel's ceiling every few rows, where it has one (the front rows are open above).
+        if (h == 4 && row % 4 == 0 && row < DEPTH - 1 && tunnelMiddle(along, length) && !state.isAir())
+            return LIGHT;
+        return state;
+    }
+
+    private static BlockState structure(int row, int h, int along, int length, boolean end) {
 
         if (h == ROOF && row >= ROOF_FRONT) {
             boolean light = (row == 8 || row == 14 || row == 20) && along % 6 == 3;
@@ -145,6 +156,20 @@ final class Grandstand {
             return false;
         int fromMiddle = Math.floorMod(along - length / 2, TUNNEL_SPACING);
         return fromMiddle <= 1 || fromMiddle >= TUNNEL_SPACING - 1;
+    }
+
+    /** The middle of a tunnel. */
+    private static boolean tunnelMiddle(int along, int length) {
+        return along >= 4 && along <= length - 5 && Math.floorMod(along - length / 2, TUNNEL_SPACING) == 0;
+    }
+
+    /** Where the tunnels are along a stand of this length: their middles. */
+    static List<Integer> tunnels(int length) {
+        List<Integer> tunnels = new ArrayList<>();
+        for (int along = 0; along < length; along++)
+            if (tunnelMiddle(along, length))
+                tunnels.add(along);
+        return tunnels;
     }
 
     /** True for blocks that join their neighbours (glass panes) and need a second pass. */
