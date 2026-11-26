@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.api.UmapyoiAPI;
+import net.tracen.umapyoi.career.CareerState;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.races.field.RaceField;
@@ -184,7 +185,9 @@ public class Race {
 
         UmaRaceHistory hist = stack.getOrDefault(DataComponentsTypeRegistry.UMA_RACE_HISTORY, UmaRaceHistory.DEFAULT);
         int last = hist.lastAttendTime();
-        if (this.exclusive) {
+        // Only a soul in its three-year career keeps to the race calendar.
+        // Any other soul (automatic training, career over, retired) may run every race, and run it again.
+        if (this.exclusive && keepsToCalendar(stack)) {
             boolean canAttend = false;
             for (Year year: this.year) {
                 if (last < year.ordinal() * 24 + this.time) {
@@ -229,6 +232,11 @@ public class Race {
         if (last < laterThen)
             return Component.translatable("tooltip.umapyoi.race.unavailable.too_early", describeRaceTime(laterThen));
         return null;
+    }
+
+    /** Whether races this soul has passed in the calendar are closed to it. */
+    public static boolean keepsToCalendar(ItemStack stack) {
+        return stack.get(DataComponentsTypeRegistry.CAREER_STATE) == CareerState.IN_CAREER;
     }
 
     private static String soulStatus(ItemStack stack) {
@@ -333,14 +341,11 @@ public class Race {
 
         attendRace(stack, this.id);
 
+        // The calendar moves on to this race's date, the earliest of its years still ahead.
+        // A race the soul has passed (one that is run again, or run by a soul off the calendar) leaves it where it is.
         int lastAttend = hist.lastAttendTime();
-        this.year.stream().filter(y -> (y.ordinal() * 24 + this.time) > lastAttend).min(Comparator.naturalOrder()).ifPresentOrElse(
-                y -> setLastAttend(stack, y.ordinal() * 24 + this.time),
-                () -> {
-                    Umapyoi.getLogger().error("Cannot calculate the right time.");
-                    setLastAttend(stack, lastAttend + 1);
-                }
-        );
+        this.year.stream().filter(y -> (y.ordinal() * 24 + this.time) > lastAttend).min(Comparator.naturalOrder())
+                .ifPresent(y -> setLastAttend(stack, y.ordinal() * 24 + this.time));
 
         if (this.ranking == RaceRanking.DEBUT) {
             setDebut(stack);
