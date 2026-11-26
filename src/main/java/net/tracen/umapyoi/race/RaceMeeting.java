@@ -890,7 +890,11 @@ public final class RaceMeeting {
     private void updateBar() {
         switch (stage) {
             case OPEN, CLOSED -> {
-                bar.setName(Component.translatable(stage == Stage.OPEN ? "umapyoi.meeting.bar.open" : "umapyoi.meeting.bar.closed", name(), clock(left)));
+                // Once the clock is out the runners are told to keep still; when the gates open nobody knows.
+                if (stage == Stage.CLOSED && left <= 0)
+                    bar.setName(Component.translatable("umapyoi.meeting.bar.gate", name()));
+                else
+                    bar.setName(Component.translatable(stage == Stage.OPEN ? "umapyoi.meeting.bar.open" : "umapyoi.meeting.bar.closed", name(), clock(left)));
                 bar.setProgress(Mth.clamp(left / (float) (UmapyoiConfig.RACE_MEETING_OPEN_SECONDS.get() * 20), 0, 1));
             }
             case RUNNING -> {

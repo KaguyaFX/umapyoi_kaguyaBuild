@@ -350,7 +350,9 @@ public class RaceScreen extends AbstractContainerScreen<RaceContainer> {
         // What's going on.
         graphic.fill(x + 7, y + 49, x + 167, y + 60, 0x98000000);
         Component clock = switch (stage) {
-            case OPEN, CLOSED -> Component.translatable("gui.umapyoi.meeting.starts", RaceMeetingClient.clock());
+            case OPEN, CLOSED -> stage == RaceMeeting.Stage.CLOSED && RaceMeetingClient.left() == 0
+                    ? Component.translatable("gui.umapyoi.meeting.gate")
+                    : Component.translatable("gui.umapyoi.meeting.starts", RaceMeetingClient.clock());
             case RUNNING -> Component.literal(RaceMeetingClient.watching() && RaceMeetingClient.home() ? "" : RaceMeetingClient.raceClockText());
             case LEAVING -> Component.translatable("gui.umapyoi.meeting.leaves", RaceMeetingClient.clock());
             default -> Component.empty();

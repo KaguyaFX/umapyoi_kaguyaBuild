@@ -18,6 +18,7 @@ public final class RaceClientEvents {
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         RaceClientState.reset();
+        RaceStart.forget();
         RaceMeetingClient.reset();
         RaceBetClient.reset();
     }

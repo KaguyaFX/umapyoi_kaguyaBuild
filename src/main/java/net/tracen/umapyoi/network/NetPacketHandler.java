@@ -10,6 +10,7 @@ import net.tracen.umapyoi.race.RaceBetPayload;
 import net.tracen.umapyoi.race.RaceLivePayload;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
 import net.tracen.umapyoi.race.RaceOddsPayload;
+import net.tracen.umapyoi.race.RaceGatePayload;
 import net.tracen.umapyoi.race.RaceStatePayload;
 
 @EventBusSubscriber(modid = Umapyoi.MODID, bus = EventBusSubscriber.Bus.MOD)
@@ -43,6 +44,11 @@ public class NetPacketHandler {
                          RaceStatePayload.TYPE,
                          RaceStatePayload.STREAM_CODEC,
                          RaceStatePayload::handle
+                 )
+                 .playToClient(
+                         RaceGatePayload.TYPE,
+                         RaceGatePayload.STREAM_CODEC,
+                         RaceGatePayload::handle
                  )
                  .playToClient(
                          RaceMeetingPayload.TYPE,

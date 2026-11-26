@@ -29,9 +29,12 @@ public final class RaceInput {
 
     @SubscribeEvent
     public static void onInput(MovementInputUpdateEvent event) {
-        if (!(event.getEntity() instanceof LocalPlayer player) || !RaceClientState.active())
+        if (!(event.getEntity() instanceof LocalPlayer player))
             return;
         Input input = event.getInput();
+        // Keeping still in the starting stall, or held in it.
+        if (RaceStart.filter(input) || !RaceClientState.active())
+            return;
         // In water the jump key swims up, so it stays.
         if (RaceClientState.exhausted() && !player.isInWater())
             input.jumping = false;

@@ -153,7 +153,18 @@ final class RaceOpponent {
         RaceStats worth = RaceStats.of(soul, RaceStyle.of(soul, level), setup.surface(), setup.category(), boost);
         RaceRunner runner = new RaceRunner(setup, worth, layout, plainSprint, RaceStyle.aptitudes(soul, level));
         return new RaceOpponent(runner, new RaceAi(worth.style(), distance, random), soul, trim,
-                track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stall, random.nextInt(6));
+                track.inner() + 0.5 + random.nextDouble() * LANE_SPREAD, stall, startDelay(random));
+    }
+
+    /**
+     * Ticks from the gates opening until she's off: about what a player takes to see them open
+     * (0.15 to 0.35 seconds), and now and then she's late out of the stall too.
+     */
+    static int startDelay(RandomSource random) {
+        int delay = 3 + random.nextInt(5);
+        if (random.nextDouble() < UmapyoiConfig.RACE_AI_LATE_START.get())
+            delay += (int) Math.round(UmapyoiConfig.RACE_START_LATE_SECONDS.get() * 20);
+        return delay;
     }
 
     static ResourceLocation identifier(Registry<UmaData> registry, ItemStack soul) {

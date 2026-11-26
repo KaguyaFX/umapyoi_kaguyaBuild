@@ -247,7 +247,13 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.command.race.trial_busy", "A time trial is already running.");
         add("umapyoi.race.trial.cancelled", "Time trial cancelled.");
         add("umapyoi.race.trial.finish_subtitle", "%s m time trial");
-        add("umapyoi.race.trial.go", "Go!");
+        add("umapyoi.race.start.settled", "All in the stalls");
+        add("umapyoi.race.start.still", "Keep still until the gates open, or you'll be late out");
+        add("umapyoi.race.start.fidget", "Keep still! %s more allowed");
+        add("umapyoi.race.start.fidget_last", "Keep still! Once more and you'll be late out");
+        add("umapyoi.race.start.fidget_late", "Too restless: you'll be late out of the stall");
+        add("umapyoi.race.start.out", "Out of the stall in %ss");
+        add("umapyoi.race.start.late_out", "Late out! %ss");
         add("umapyoi.race.trial.hud", "%s m to go   %s");
         add("umapyoi.race.trial.result", "Time trial, %s m: %s");
         add("umapyoi.race.surface.dirt", "dirt");
@@ -302,6 +308,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("gui.umapyoi.meeting.cannot_run", "You can't run: %s");
         add("gui.umapyoi.meeting.apply", "Apply for a race");
         add("gui.umapyoi.meeting.starts", "starts in %s");
+        add("gui.umapyoi.meeting.gate", "gates open any moment");
         add("gui.umapyoi.meeting.leaves", "closes in %s");
         add("gui.umapyoi.meeting.applicant", "Held by %s");
         add("gui.umapyoi.meeting.winner", "Winner: %s");
@@ -424,6 +431,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.meeting.exit.racing", "There's no leaving during the race. You get your way out back once the result is announced.");
         add("umapyoi.meeting.bar.open", "%s - entries open, starts in %s");
         add("umapyoi.meeting.bar.closed", "%s - entries closed, starts in %s");
+        add("umapyoi.meeting.bar.gate", "%s - the gates open any moment");
         add("umapyoi.meeting.bar.running", "%s - %s leads, %s m to go");
         add("umapyoi.meeting.bar.stragglers", "%s - %s left to finish");
         add("umapyoi.meeting.bar.results", "%s - working out the result%s");

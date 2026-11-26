@@ -154,6 +154,11 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue TRACK_FINISH_METERS;
     public static ModConfigSpec.IntValue TRACK_BUILD_COLUMNS_PER_TICK;
     public static ModConfigSpec.IntValue RACE_COUNTDOWN_SECONDS;
+    public static ModConfigSpec.DoubleValue RACE_START_WAIT_MIN;
+    public static ModConfigSpec.DoubleValue RACE_START_WAIT_MAX;
+    public static ModConfigSpec.IntValue RACE_START_FIDGETS;
+    public static ModConfigSpec.DoubleValue RACE_START_LATE_SECONDS;
+    public static ModConfigSpec.DoubleValue RACE_AI_LATE_START;
     public static ModConfigSpec.IntValue RACE_GATE_CLEAR_SECONDS;
     public static ModConfigSpec.DoubleValue RACE_SPEED_MAX_BONUS;
     public static ModConfigSpec.DoubleValue RACE_CRUISE_RATIO;
@@ -520,8 +525,18 @@ public class UmapyoiConfig {
                 .defineInRange("track_finish_meters", 100.0, 0.0, 5000.0);
         TRACK_BUILD_COLUMNS_PER_TICK = COMMON_BUILDER.comment("Building a racecourse: block columns placed per tick. Lower it if building lags.")
                 .defineInRange("track_build_columns_per_tick", 1500, 16, 100000);
-        RACE_COUNTDOWN_SECONDS = COMMON_BUILDER.comment("Seconds counted down in the starting stalls before the gates open.")
+        RACE_COUNTDOWN_SECONDS = COMMON_BUILDER.comment("Time trials: seconds in the starting stall before the call to stand still (race meetings call it when their clock runs out).")
                 .defineInRange("race_countdown_seconds", 3, 1, 10);
+        RACE_START_WAIT_MIN = COMMON_BUILDER.comment("Race start: after the call to stand still the gates open at a moment nobody knows, at least this many seconds later.")
+                .defineInRange("race_start_wait_min", 2.0, 0.0, 30.0);
+        RACE_START_WAIT_MAX = COMMON_BUILDER.comment("Race start: and at most this many seconds later.")
+                .defineInRange("race_start_wait_max", 5.0, 0.0, 30.0);
+        RACE_START_FIDGETS = COMMON_BUILDER.comment("Race start: how often a player may press a movement key in the stall after the call (and is warned) before being late out of it.")
+                .defineInRange("race_start_fidgets", 2, 0, 20);
+        RACE_START_LATE_SECONDS = COMMON_BUILDER.comment("Race start: how long a runner who is late out of the stall is held in it after the gates open.")
+                .defineInRange("race_start_late_seconds", 0.5, 0.0, 10.0);
+        RACE_AI_LATE_START = COMMON_BUILDER.comment("Race start: the chance that a computer runner is late out of the stall.")
+                .defineInRange("race_ai_late_start", 0.05, 0.0, 1.0);
         RACE_GATE_CLEAR_SECONDS = COMMON_BUILDER.comment("The starting gates are taken off the course this many seconds after they open.")
                 .defineInRange("race_gate_clear_seconds", 8, 1, 60);
         RACE_SPEED_MAX_BONUS = COMMON_BUILDER.comment("Race speed: the most the speed stat can add to an Umamusume's sprint, as a fraction (survival uses 0.84).",

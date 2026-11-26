@@ -46,8 +46,8 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
 /**
  * One race being run on the race world's course, with any number of players and computer runners
  * ({@link RaceOpponent}). The fixed start is the finish line in front of the stand, so a race as long as
- * the lap starts and ends there. Everyone waits in a starting stall while a countdown runs, the gates
- * open, and they are taken off the course a few seconds later. There is at most one at a time.
+ * the lap starts and ends there. Everyone waits in a starting stall, is told to keep still, the gates
+ * open a few seconds later when nobody knows, and they are taken off the course a few seconds after that. There is at most one at a time.
  * <p>
  * Distance is counted, not inferred from where a runner stands: every tick adds how far they moved along
  * the course, and a jump of more than {@link RaceRunner#MAX_STEP} blocks (a teleport, a cut through the
@@ -118,8 +118,10 @@ final class RaceSession {
     private final List<Racer> racers = new ArrayList<>();
     private final List<RaceOpponent> opponents = new ArrayList<>();
     private int ticks;
-    /** Ticks until the gates open; below zero while nobody counts. */
+    /** Ticks until the call to stand still; below zero while nobody counts. */
     private int countdown = -1;
+    /** Ticks from the call to stand still until the gates open; below zero until the call. */
+    private int wait = -1;
     private int openTick = -1;
     /** When the winner, and the last one, crossed the line. */
     private int firstTick = -1;
@@ -340,7 +342,7 @@ final class RaceSession {
 
     // ---- running it
 
-    /** Starts the countdown to the gates opening. */
+    /** Starts the countdown to the call to stand still in the stalls. */
     void begin(int ticks) {
         countdown = ticks;
     }
@@ -409,16 +411,24 @@ final class RaceSession {
             opponent.tick(track, distance, ticks - openTick, START, List.of());
     }
 
+    /**
+     * Nobody is told when the gates open, so that leaving the stall is a matter of seeing them open.
+     * The countdown runs to the call to stand still; the gates open a few seconds after that, when
+     * exactly nobody knows.
+     */
     private void countdown() {
         for (Racer racer : racers)
             racer.hold();
         if (countdown > 0) {
-            if (countdown % 20 == 0 && countdown / 20 <= UmapyoiConfig.RACE_COUNTDOWN_SECONDS.get())
-                for (ServerPlayer player : level.players()) {
-                    title(player, Component.literal(String.valueOf(countdown / 20)), Component.empty());
-                    player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
-                }
             countdown--;
+            return;
+        }
+        if (wait < 0) {
+            callStill();
+            return;
+        }
+        if (wait > 0) {
+            wait--;
             return;
         }
         for (BlockPos door : doors) {
@@ -429,14 +439,26 @@ final class RaceSession {
         BlockPos middle = doors.get(doors.size() / 2);
         if (level.getBlockState(middle).getBlock() instanceof GateDoor gateDoor)
             gateDoor.playSound(null, level, middle, true);
-        for (ServerPlayer player : level.players()) {
-            title(player, Component.translatable("umapyoi.race.trial.go"), Component.empty());
-            player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0F, 2.0F);
-        }
         openTick = ticks;
         for (Racer racer : racers)
             racer.open();
         listener.opened();
+    }
+
+    /** Everyone is in: from now on the runners should keep still, and the gates open at a moment nobody knows. */
+    private void callStill() {
+        double min = UmapyoiConfig.RACE_START_WAIT_MIN.get();
+        double max = Math.max(min, UmapyoiConfig.RACE_START_WAIT_MAX.get());
+        wait = (int) Math.round((min + level.getRandom().nextDouble() * (max - min)) * 20);
+        int allowed = UmapyoiConfig.RACE_START_FIDGETS.get();
+        int late = (int) Math.round(UmapyoiConfig.RACE_START_LATE_SECONDS.get() * 20);
+        for (ServerPlayer player : level.players()) {
+            Racer racer = racer(player);
+            title(player, Component.translatable("umapyoi.race.start.settled"),
+                    racer == null ? Component.empty() : Component.translatable("umapyoi.race.start.still"));
+            if (racer != null)
+                PacketDistributor.sendToPlayer(player, new RaceGatePayload(racer.door(), allowed, late));
+        }
     }
 
     private static void title(ServerPlayer player, Component title, Component subtitle) {
@@ -557,6 +579,11 @@ final class RaceSession {
 
         boolean running() {
             return time < 0 && !out;
+        }
+
+        /** The door of their stall. */
+        BlockPos door() {
+            return cell(track.pointAt(0.5, stallOffset(track, lane)));
         }
 
         /** Stay in the stall: the back of it is open. */
