@@ -22,6 +22,7 @@ import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.data.tag.UmapyoiBlockTags;
 import net.tracen.umapyoi.events.ApplyUmasoulAttributeEvent;
+import net.tracen.umapyoi.race.RaceWorld;
 import net.tracen.umapyoi.registry.UmaSkillRegistry;
 import net.tracen.umapyoi.registry.UmapyoiAttributesRegistry;
 import net.tracen.umapyoi.utils.UmaSoulUtils;
@@ -119,13 +120,18 @@ public class PassiveSkillEvents {
         }
     }
 
+    /*
+     * Turf, Dirt and Snow Runner: faster on their ground. Not in the race world: the race sets the speed
+     * there and these skills have race versions of their own (RaceSkills); a race course also mixes blocks,
+     * so the speed-up would come and go stripe by stripe.
+     */
     @SubscribeEvent
     public static void passiveTurfRunner(PlayerTickEvent.Post event) {
         var player = event.getEntity();
         AttributeInstance movementSpeed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 
         var test_speed = new AttributeModifier(SKILL_TURF, 0.1D, Operation.ADD_MULTIPLIED_TOTAL);
-        if (UmapyoiAPI.getUmaSoul(player).isEmpty()) {
+        if (UmapyoiAPI.getUmaSoul(player).isEmpty() || RaceWorld.isRaceWorld(player.level())) {
             movementSpeed.removeModifier(test_speed);
             return;
         }
@@ -144,7 +150,7 @@ public class PassiveSkillEvents {
         AttributeInstance movementSpeed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 
         var test_speed = new AttributeModifier(SKILL_DIRT, 0.1D, Operation.ADD_MULTIPLIED_TOTAL);
-        if (UmapyoiAPI.getUmaSoul(player).isEmpty()) {
+        if (UmapyoiAPI.getUmaSoul(player).isEmpty() || RaceWorld.isRaceWorld(player.level())) {
             movementSpeed.removeModifier(test_speed);
             return;
         }
@@ -163,7 +169,7 @@ public class PassiveSkillEvents {
         AttributeInstance movementSpeed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 
         var test_speed = new AttributeModifier(SKILL_SNOW, 0.1D, Operation.ADD_MULTIPLIED_TOTAL);
-        if (UmapyoiAPI.getUmaSoul(player).isEmpty()) {
+        if (UmapyoiAPI.getUmaSoul(player).isEmpty() || RaceWorld.isRaceWorld(player.level())) {
             movementSpeed.removeModifier(test_speed);
             return;
         }
