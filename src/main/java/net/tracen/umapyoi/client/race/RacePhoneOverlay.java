@@ -64,10 +64,10 @@ public class RacePhoneOverlay implements LayeredDraw.Layer {
             return;
         int x = graphics.guiWidth() - FROM_RIGHT - WIDTH;
         int bottom = graphics.guiHeight() + BELOW;
-        // Not over the selected skill.
+        // Not over the selected skill, nor the mood above it.
         if (UmapyoiConfig.OVERLAY_SWITCH.get() && !UmapyoiAPI.getUmaSoul(player).isEmpty()
                 && x < graphics.guiWidth() / 2 + UmapyoiConfig.TOPLEFT_COORD_SKILL_X.get() + SKILL_WIDTH + 2)
-            bottom = graphics.guiHeight() + UmapyoiConfig.TOPLEFT_COORD_SKILL_Y.get() - 18;
+            bottom = graphics.guiHeight() + Math.min(UmapyoiConfig.TOPLEFT_COORD_SKILL_Y.get(), UmapyoiConfig.TOPLEFT_COORD_MOTIVATION_Y.get()) - 2;
         int y = bottom - HEIGHT;
         graphics.blit(RaceArt.PHONE, x, y, 148, 0, WIDTH, HEIGHT, 256, 256);
         screen(graphics, minecraft, held, x + SCREEN_X, y + SCREEN_Y);

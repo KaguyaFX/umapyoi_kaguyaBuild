@@ -727,10 +727,11 @@ public class UmapyoiConfig {
                 .defineInRange("top_left_skill_x", 102, Integer.MIN_VALUE, Integer.MAX_VALUE);
         TOPLEFT_COORD_SKILL_Y = CLIENT_BUILDER.comment("The y-coordinate of the top-left coordinate of skill overlay. Default: -21")
                 .defineInRange("top_left_skill_y", -21, Integer.MIN_VALUE, Integer.MAX_VALUE);
-        TOPLEFT_COORD_MOTIVATION_X = CLIENT_BUILDER.comment("The x-coordinate of the top-left coordinate of motivation overlay. Default: 102")
+        TOPLEFT_COORD_MOTIVATION_X = CLIENT_BUILDER.comment("The x-coordinate of the top-left coordinate of motivation overlay. Default: 118")
                 .defineInRange("top_left_motivation_x", 118, Integer.MIN_VALUE, Integer.MAX_VALUE);
-        TOPLEFT_COORD_MOTIVATION_Y = CLIENT_BUILDER.comment("The y-coordinate of the top-left coordinate of motivation overlay. Default: -21")
-                .defineInRange("top_left_motivation_y", -37, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        TOPLEFT_COORD_MOTIVATION_Y = CLIENT_BUILDER.comment("The y-coordinate of the top-left coordinate of motivation overlay. Default: -45",
+                "(high enough that a skill in use, whose frame burns, doesn't lick at it)")
+                .defineInRange("top_left_motivation_y", -45, Integer.MIN_VALUE, Integer.MAX_VALUE);
         TOPLEFT_COORD_CAREER_X = CLIENT_BUILDER.comment("The x-coordinate of the career calendar, from the top-left corner of the screen. Default: 4")
                 .defineInRange("top_left_career_x", 4, Integer.MIN_VALUE, Integer.MAX_VALUE);
         TOPLEFT_COORD_CAREER_Y = CLIENT_BUILDER.comment("The y-coordinate of the career calendar, from the top-left corner of the screen. Default: 4")
