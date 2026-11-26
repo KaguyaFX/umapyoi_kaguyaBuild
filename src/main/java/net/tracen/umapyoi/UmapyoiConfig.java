@@ -31,7 +31,6 @@ public class UmapyoiConfig {
     public static ModConfigSpec.IntValue TAIL_ANIMATION_INTERVAL;
 
     public static ModConfigSpec.BooleanValue OVERLAY_SWITCH;
-    public static ModConfigSpec.BooleanValue RACE_STEADY_VIEW;
     public static ModConfigSpec.BooleanValue TOOLTIP_SWITCH;
 
     public static ModConfigSpec.BooleanValue DISPLAY_DETAIL;
@@ -703,8 +702,6 @@ public class UmapyoiConfig {
         OVERLAY_SWITCH = CLIENT_BUILDER.comment("Decide Overlays' switch")
                 .comment("Uma's selected skill and motivation won't render after closing this.")
                 .define("overlay_switch", true);
-        RACE_STEADY_VIEW = CLIENT_BUILDER.comment("Races: the view stays as wide as an ordinary sprint, instead of widening and narrowing with the race speed.")
-                .define("race_steady_view", true);
 
         TOOLTIP_SWITCH = CLIENT_BUILDER.comment("Deciding whether to omit details.")
                 .comment("After enabling, some details need to be pressed to display.").define("tooltip_switch", true);
