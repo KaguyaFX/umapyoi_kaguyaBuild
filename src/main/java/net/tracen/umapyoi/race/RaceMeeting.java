@@ -73,7 +73,7 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * are put into the stalls.</li>
  * <li>RUNNING: the race ({@link RaceSession}). If nobody is there to run or watch, and nobody has bet on it, it's simply off.</li>
  * <li>RESULTS: everyone is in, and it takes a moment until the result is announced.</li>
- * <li>LEAVING: fireworks, and time to go.</li>
+ * <li>LEAVING: fireworks, and time to go (15 seconds at most once nobody is left).</li>
  * </ul>
  * Nothing of it is saved: when the server stops before the start, the ticket is returned
  * ({@link RaceMail}).
@@ -91,6 +91,8 @@ public final class RaceMeeting {
     /** Fireworks go up this long, one every so many ticks. */
     private static final int FIREWORK_TICKS = 20 * 20;
     private static final int FIREWORK_EVERY = 8;
+    /** Once nobody is left in the race world, it closes in this long at most. */
+    private static final int EMPTY_LEAVE_TICKS = 15 * 20;
     /** Those who watch are told where everyone is every so many ticks. */
     static final int LIVE_EVERY = 2;
     /** Computer runners start walking up to the stalls this long before the players are put in. */
@@ -643,6 +645,10 @@ public final class RaceMeeting {
             }
             case LEAVING -> {
                 bets.tick(0);
+                if (left > EMPTY_LEAVE_TICKS && level.players().isEmpty()) {
+                    left = EMPTY_LEAVE_TICKS;
+                    sync();
+                }
                 if (--left <= 0) {
                     end(null);
                     return;
@@ -1030,6 +1036,6 @@ public final class RaceMeeting {
         Aptitude[] styles = RaceStyle.aptitudes(slot.soul, level);
         for (int i = 0; i < styles.length; i++)
             aptitudes[RaceMeetingPayload.Form.STYLES + i] = (byte) styles[i].ordinal();
-        return new RaceMeetingPayload.Form(grades, aptitudes, (byte) UmaSoulUtils.getMotivation(slot.soul).ordinal(), slot.player == null ? List.of() : List.copyOf(UmaSoulUtils.getSkills(slot.soul)));
+        return new RaceMeetingPayload.Form(grades, aptitudes, (byte) UmaSoulUtils.getMotivation(slot.soul).ordinal(), List.copyOf(UmaSoulUtils.getSkills(slot.soul)));
     }
 }

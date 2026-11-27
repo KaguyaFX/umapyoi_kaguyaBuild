@@ -404,7 +404,7 @@ public class RacePhoneScreen extends Screen {
         graphics.fill(x + 7 + this.font.width(skills), y + 142, x + W - 4, y + 143, 0xFFC8DCAE);
         List<UmaSkill> known = form.skills().stream().map(UmaSkillRegistry.REGISTRY::get).filter(java.util.Objects::nonNull).toList();
         if (known.isEmpty()) {
-            RaceArt.line(graphics, Component.translatable(row.player().isEmpty() ? "gui.umapyoi.phone.skills.computer" : "gui.umapyoi.phone.skills.none"),
+            RaceArt.line(graphics, Component.translatable("gui.umapyoi.phone.skills.none"),
                     x + 4, y + 149, W - 8, 0xFF9A9A9A);
             return;
         }

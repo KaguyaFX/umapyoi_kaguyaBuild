@@ -358,7 +358,6 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("gui.umapyoi.phone.computer", "Computer");
         add("gui.umapyoi.phone.skills", "Skills");
         add("gui.umapyoi.phone.skills.none", "(none)");
-        add("gui.umapyoi.phone.skills.computer", "(computer: none)");
         add("gui.umapyoi.phone.length", "Length");
         add("gui.umapyoi.phone.straight", "Run-in");
         add("gui.umapyoi.phone.direction", "Way");

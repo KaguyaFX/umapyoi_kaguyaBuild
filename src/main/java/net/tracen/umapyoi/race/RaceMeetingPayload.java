@@ -61,7 +61,7 @@ public record RaceMeetingPayload(boolean active, ResourceLocation race, String a
      * @param aptitudes for the surface and the distance, then for running in front, with the pace, from behind and
      *                  from the very back
      * @param mood      a {@link Motivations}
-     * @param skills    a player's; computer runners have none
+     * @param skills    what the runner may use in this race: a player's own, or what a computer runner was given for it
      */
     public record Form(byte[] stats, byte[] aptitudes, byte mood, List<ResourceLocation> skills) {
         public static final int STATS = 5, SURFACE = 0, DISTANCE = 1, STYLES = 2, APTITUDES = 6;
