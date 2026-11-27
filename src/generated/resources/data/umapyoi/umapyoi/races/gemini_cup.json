@@ -5,6 +5,21 @@
   "allow_status": [
     "retired"
   ],
+  "difficulty": {
+    "major": {
+      "above": [
+        2,
+        3
+      ],
+      "announce": true,
+      "floor": 25,
+      "moods": "no_bad",
+      "rise": [
+        2,
+        6
+      ]
+    }
+  },
   "exclusive": false,
   "field": "umapyoi:kyoto",
   "id": "umapyoi:gemini_cup",

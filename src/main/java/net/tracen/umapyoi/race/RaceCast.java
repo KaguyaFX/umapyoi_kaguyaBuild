@@ -3,10 +3,13 @@ package net.tracen.umapyoi.race;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.tracen.umapyoi.registry.races.RaceDifficulty;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.race.track.TrackGeometry;
@@ -63,6 +66,8 @@ final class RaceCast {
     private static final double TRIM_RANGE = 0.04;
     /** Perfect, good, normal, down and bad, out of 100. */
     private static final int[] MOODS = { 20, 30, 30, 15, 5 };
+    /** The highest a stat goes. */
+    private static final int MAX = 39;
 
     private final ServerLevel level;
     private final TrackGeometry track;
@@ -82,6 +87,14 @@ final class RaceCast {
 
     /** @param around what their stats are around: speed, stamina, power, guts, wisdom */
     List<Part> cast(List<ItemStack> souls, int[] around, RandomSource random) {
+        return cast(souls, around, null, random);
+    }
+
+    /**
+     * @param around what their stats are around: speed, stamina, power, guts, wisdom
+     * @param major  for a Major Match: every stat raised to its floor and then some, and the moods it says
+     */
+    List<Part> cast(List<ItemStack> souls, int[] around, @Nullable RaceDifficulty.Major major, RandomSource random) {
         Kind kind = Kind.pick(random);
         double usual = 0;
         for (ItemStack soul : souls) {
@@ -104,11 +117,36 @@ final class RaceCast {
         for (int stat : around)
             level += stat;
         level = Math.round(level / (float) Math.max(1, around.length));
+        if (major != null)
+            for (Part part : parts)
+                set(part.soul(), raised(UmaSoulUtils.getProperty(part.soul()).toArray(), major, random));
         for (Part part : parts) {
-            UmaSoulUtils.setMotivation(part.soul(), mood(random));
+            UmaSoulUtils.setMotivation(part.soul(), major == null ? mood(random) : mood(major.moods(), random));
             RaceAiSkills.handOut(part.soul(), level, setup.surface(), random);
         }
         return parts;
+    }
+
+    /** Each stat at least the floor, and a few grades more on top, never past MAX. */
+    private static int[] raised(int[] stats, RaceDifficulty.Major major, RandomSource random) {
+        int[] raised = new int[stats.length];
+        for (int i = 0; i < stats.length; i++)
+            raised[i] = Math.min(MAX, Math.max(stats[i], major.floor()) + major.rise().draw(random));
+        return raised;
+    }
+
+    private static Motivations mood(RaceDifficulty.Moods moods, RandomSource random) {
+        return switch (moods) {
+            case PERFECT -> Motivations.PERFECT;
+            case NO_BAD -> {
+                Motivations mood;
+                do
+                    mood = mood(random);
+                while (mood == Motivations.BAD);
+                yield mood;
+            }
+            default -> mood(random);
+        };
     }
 
     private Part make(ItemStack soul, int[] around, double wanted, RandomSource random) {

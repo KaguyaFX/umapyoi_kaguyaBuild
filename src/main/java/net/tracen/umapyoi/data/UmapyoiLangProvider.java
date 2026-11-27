@@ -442,6 +442,8 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.meeting.stage.results", "Working out the result");
         add("umapyoi.meeting.stage.leaving", "Race over");
         add("umapyoi.meeting.opened", "[Race] The racecourse is open for %s (%s). It starts in %s.");
+        add("umapyoi.meeting.major_banner", "━━━━━━ ★ MAJOR MATCH ★ ━━━━━━");
+        add("umapyoi.meeting.major_call", "%s: the toughest field there is. A real big race: come and watch!");
         add("umapyoi.meeting.action.enter", "Run");
         add("umapyoi.meeting.action.watch", "Watch");
         add("umapyoi.meeting.description", "%s, %s, %s m");
@@ -667,7 +669,8 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         addTooltip(".race.unavailable.already_debuted", "Already debuted, so debut races are closed.");
         addTooltip(".race.unavailable.invalid", "This race ticket is not valid.");
         addTooltip(".race.unavailable.need_debut", "Hasn't debuted yet. Run a debut race first.");
-        addTooltip(".race.unavailable.need_previous_race", "Must have run one of these first: %s");
+        addTooltip(".race.unavailable.need_previous_race", "Must first win one of these in a race meeting (a Major Match in one you held): %s");
+        addTooltip(".race.unavailable.major_only", "A Major Match is only run for real, in a race meeting");
         addTooltip(".race.unavailable.time_passed", "This race's date has passed (schedule is at %s).");
         addTooltip(".race.unavailable.too_early", "Too early in the schedule; open after %s.");
         addTooltip(".race.unavailable.wrong_status", "Soul is %s; this race only takes: %s");

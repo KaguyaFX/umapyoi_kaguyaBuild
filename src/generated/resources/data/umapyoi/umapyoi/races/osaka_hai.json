@@ -2,13 +2,16 @@
   "attribute_correction": [
     3
   ],
+  "difficulty": 1,
   "field": "umapyoi:hanshin",
   "id": "umapyoi:osaka_hai",
   "length": 2000,
   "ranking": "gi",
   "reference_level": 35,
   "surface": "turf",
-  "tags": [],
+  "tags": [
+    "umapyoi:senior_spring_triple_crown"
+  ],
   "time": 6,
   "year": [
     "senior"

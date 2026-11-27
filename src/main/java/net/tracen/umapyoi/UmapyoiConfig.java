@@ -592,8 +592,9 @@ public class UmapyoiConfig {
                 .defineInRange("race_meeting_leave_seconds", 180, 5, 7200);
         RACE_MEETING_RUNNERS = COMMON_BUILDER.comment("Race meetings: how many run, players included.")
                 .defineInRange("race_meeting_runners", 12, 2, 18);
-        RACE_MEETING_LEVELS = COMMON_BUILDER.comment("Race meetings: what the computer runners' stats are around (1 to 39), for debut, pre-open, open, GIII, GII and GI races.")
-                .defineList("race_meeting_levels", java.util.List.of(2, 4, 6, 9, 11, 14), () -> 10,
+        RACE_MEETING_LEVELS = COMMON_BUILDER.comment("Race meetings: what the computer runners' stats are around (1 to 39; 15 = S), for debut, pre-open, open, GIII, GII and GI races.",
+                "A race's data may add grades on top (\"difficulty\"); Major Matches (URA Finals, the zodiac cups) go by the player who holds them instead.")
+                .defineList("race_meeting_grade_levels", java.util.List.of(3, 5, 7, 11, 13, 15), () -> 10,
                         value -> value instanceof Number number && number.intValue() >= 1 && number.intValue() <= 39);
         RACE_MEETING_REWARDS = COMMON_BUILDER.comment("Race meetings: what first, second, third and everyone else who finishes gets, as a share of what the",
                 "terminal's quick race pays for the same soul.")

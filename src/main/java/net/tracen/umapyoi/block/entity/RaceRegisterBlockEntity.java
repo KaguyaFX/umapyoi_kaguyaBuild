@@ -293,7 +293,7 @@ public class RaceRegisterBlockEntity extends SyncedBlockEntity implements MenuPr
         if (this.level == null) return false;
         Race race = UmapyoiAPI.getRaceRegistry(this.level).get(getRaceID(stackRace));
         if (race == null) return false;
-        return race.isAvailableToUmaSoul(stackSoul);
+        return race.getQuickRaceProblem(stackSoul) == null;
     }
 
     /**
@@ -309,7 +309,7 @@ public class RaceRegisterBlockEntity extends SyncedBlockEntity implements MenuPr
         Race race = UmapyoiAPI.getRaceRegistry(this.level).get(getRaceID(stackRace));
         if (race == null)
             return Component.translatable("tooltip.umapyoi.race.unavailable.invalid");
-        return race.getUnavailableReason(stackSoul);
+        return race.getQuickRaceProblem(stackSoul);
     }
 
     public NonNullList<ItemStack> getDroppableInventory() {

@@ -51,7 +51,8 @@ public class Race {
                     Codec.BOOL.optionalFieldOf("exclusive", true).forGetter(Race::exclusive),
                     Codec.INT.optionalFieldOf("later_then", 0).forGetter(Race::laterThen),
                     ResourceLocation.CODEC.listOf().optionalFieldOf("after_race", List.of()).forGetter((r) -> r.afterRace.stream().toList()),
-                    Codec.STRING.optionalFieldOf("texture_predicate_override").forGetter(r -> Optional.ofNullable(r.texturePredicateOverride))
+                    Codec.STRING.optionalFieldOf("texture_predicate_override").forGetter(r -> Optional.ofNullable(r.texturePredicateOverride)),
+                    RaceDifficulty.CODEC.optionalFieldOf("difficulty", RaceDifficulty.NONE).forGetter(Race::difficulty)
             ).apply(instance, Race::new)
     );
 
@@ -116,10 +117,16 @@ public class Race {
     public String texturePredicateOverride() {
         return this.texturePredicateOverride;
     }
+    /** How hard its computer runners are in a race meeting, beyond its grade; whether it's a Major Match. */
+    public final RaceDifficulty difficulty;
+    public RaceDifficulty difficulty() {
+        return this.difficulty;
+    }
     public Race(ResourceLocation id, RaceRanking ranking, int length, int time, Set<Year> year, Surface surface,
                 Set<ResourceLocation> tags, ResourceLocation field, Set<Integer> attrCorr, int referenceLevel, Set<String> allowStatus,
-                boolean exclusive, int laterThen, Set<ResourceLocation> afterRace, String texturePredicateOverride) {
+                boolean exclusive, int laterThen, Set<ResourceLocation> afterRace, String texturePredicateOverride, RaceDifficulty difficulty) {
         this.id = id;
+        this.difficulty = difficulty;
         this.ranking = ranking;
         this.length = length;
         this.time = time;
@@ -146,7 +153,7 @@ public class Race {
 
     public Race(ResourceLocation id, RaceRanking ranking, int length, int time, List<Year> year, Surface surface,
                 List<ResourceLocation> tags, ResourceLocation field, List<Integer> attrCorr, int referenceLevel, List<String> allowStatus,
-                boolean exclusive, int laterThen, List<ResourceLocation> afterRace, Optional<String> texture) {
+                boolean exclusive, int laterThen, List<ResourceLocation> afterRace, Optional<String> texture, RaceDifficulty difficulty) {
         this(id, ranking, length, time,
                 new HashSet<>(year),
                 surface,
@@ -155,7 +162,7 @@ public class Race {
                 new HashSet<>(attrCorr),
                 referenceLevel,
                 new HashSet<>(allowStatus),
-                exclusive, laterThen, new HashSet<>(afterRace), texture.orElse(null)
+                exclusive, laterThen, new HashSet<>(afterRace), texture.orElse(null), difficulty
         );
     }
 
@@ -202,10 +209,11 @@ public class Race {
             if (!ahead)
                 return Component.translatable("tooltip.umapyoi.race.unavailable.time_passed", describeRaceTime(now));
         }
+        // A race asked for first counts only if won for real (see DataComponentsTypeRegistry.RACES_PASSED).
         if (!this.afterRace.isEmpty()) {
-            Map<ResourceLocation, Integer> attended = hist.attended();
+            List<ResourceLocation> passed = stack.getOrDefault(DataComponentsTypeRegistry.RACES_PASSED, List.of());
             boolean canAttend = false;
-            for (ResourceLocation key: attended.keySet()){
+            for (ResourceLocation key: passed){
                 if (this.afterRace.contains(key)) {
                     canAttend = true;
                     break;
@@ -331,6 +339,24 @@ public class Race {
         soul.update(DataComponentsTypeRegistry.UMA_RACE_HISTORY, UmaRaceHistory.DEFAULT, i -> new UmaRaceHistory(i.historyWon(), i.attended(), lastAttend, i.hasDebut(), i.attendRaceTags()));
     }
 
+    /** Notes that the soul won this race for real (a race meeting; a Major Match in one's own). */
+    public static void pass(ItemStack soul, ResourceLocation race) {
+        List<ResourceLocation> passed = soul.getOrDefault(DataComponentsTypeRegistry.RACES_PASSED, List.of());
+        if (passed.contains(race))
+            return;
+        List<ResourceLocation> more = new ArrayList<>(passed);
+        more.add(race);
+        soul.set(DataComponentsTypeRegistry.RACES_PASSED, List.copyOf(more));
+    }
+
+    /** Why the terminal's quick race can't run this race with this soul: a Major Match is only run for real. */
+    @Nullable
+    public Component getQuickRaceProblem(ItemStack stack) {
+        if (this.difficulty.isMajor())
+            return Component.translatable("tooltip.umapyoi.race.unavailable.major_only");
+        return getUnavailableReason(stack);
+    }
+
     public static void setDebut(ItemStack soul) {
         soul.update(DataComponentsTypeRegistry.UMA_RACE_HISTORY, UmaRaceHistory.DEFAULT, i -> new UmaRaceHistory(i.historyWon(), i.attended(), i.lastAttendTime(), true, i.attendRaceTags()));
     }
@@ -378,6 +404,7 @@ public class Race {
         private int later;
         private Set<ResourceLocation> afterRace;
         private String texturePredicateOverride;
+        private RaceDifficulty difficulty = RaceDifficulty.NONE;
 
         public RaceBuilder() {
             this.ranking = RaceRanking.DEBUT;
@@ -489,6 +516,18 @@ public class Race {
             return this;
         }
 
+        /** Grades stronger than usual for its grade, in a race meeting: the famous races. */
+        public RaceBuilder setStrength(int grades) {
+            this.difficulty = new RaceDifficulty(grades, this.difficulty.major());
+            return this;
+        }
+
+        /** A Major Match: see {@link RaceDifficulty}. */
+        public RaceBuilder setMajor(int floor, RaceDifficulty.Range above, RaceDifficulty.Range rise, RaceDifficulty.Moods moods, boolean announce) {
+            this.difficulty = RaceDifficulty.major(floor, above, rise, moods, announce);
+            return this;
+        }
+
         public Race create(ResourceLocation id) {
             return new Race(id, this.ranking, this.length, this.time, this.year, this.surface, this.tags, this.field,
                     this.attrCorr, Optional.ofNullable(this.referenceLevel).orElseGet(() ->
@@ -499,7 +538,7 @@ public class Race {
                             case GII -> 30;
                             case GI -> 35;
                         }
-            ), this.allowStatus, this.exclusive, this.later, this.afterRace, this.texturePredicateOverride);
+            ), this.allowStatus, this.exclusive, this.later, this.afterRace, this.texturePredicateOverride, this.difficulty);
         }
     }
 }

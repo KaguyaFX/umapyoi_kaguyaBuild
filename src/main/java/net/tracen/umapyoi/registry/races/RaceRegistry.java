@@ -943,7 +943,9 @@ public class RaceRegistry {
                     .setLength(1600)
                     .setField(HANSHIN)
                     .addAttr(2)
-                    .addTags(TRIPLE_TIARA, EIGHT_GREAT_RACES)::create
+                    .addTags(TRIPLE_TIARA, EIGHT_GREAT_RACES)
+                    .setStrength(1)
+                    ::create
     );
 
     public static final ResourceKey<Race> SATSUKI_SHO = simpleRegister("satsuki_sho",
@@ -954,7 +956,9 @@ public class RaceRegistry {
                     .setLength(2000)
                     .setField(NAKAYAMA)
                     .addAttr(0)
-                    .addTags(TRIPLE_CROWN, EIGHT_GREAT_RACES)::create
+                    .addTags(TRIPLE_CROWN, EIGHT_GREAT_RACES)
+                    .setStrength(1)
+                    ::create
     );
 
     public static final ResourceKey<Race> NEW_ZEALAND_TROPHY = simpleRegister("new_zealand_trophy",
@@ -1018,7 +1022,9 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(2400)
                     .setField(TOKYO)
-                    .addTags(TRIPLE_TIARA, EIGHT_GREAT_RACES)::create
+                    .addTags(TRIPLE_TIARA, EIGHT_GREAT_RACES)
+                    .setStrength(1)
+                    ::create
     ); // todo 1: Translation varies: 优骏牝马（日本橡树大赛） (zh-cn1)/奥克斯(zh-tw), choose one or accepts varies in different language files.
 
     public static final ResourceKey<Race> TOKYO_YUSHUN_JAPANESE_DERBY = simpleRegister("tokyo_yushun_japanese_derby",
@@ -1028,7 +1034,9 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(2400)
                     .setField(TOKYO)
-                    .addTags(TRIPLE_CROWN, EIGHT_GREAT_RACES)::create
+                    .addTags(TRIPLE_CROWN, EIGHT_GREAT_RACES)
+                    .setStrength(2)
+                    ::create
     );
 
     public static final ResourceKey<Race> AOI_STAKES = simpleRegister("aoi_stakes",
@@ -1124,6 +1132,7 @@ public class RaceRegistry {
                     .setLength(2200)
                     .addAttr(0)
                     .addTags(SENIOR_SPRING_TRIPLE_CROWN, GRAND_PRIX)
+                    .setStrength(1)
                     ::create
     );
 
@@ -1210,6 +1219,7 @@ public class RaceRegistry {
                     .setLength(1600)
                     .addTags(MILE)
                     .addAttr(1, 3)
+                    .setStrength(1)
                     ::create
     );
 
@@ -1625,6 +1635,7 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(1200)
                     .addTags(SPRINT)
+                    .setStrength(1)
                     ::create
     );
 
@@ -1779,6 +1790,7 @@ public class RaceRegistry {
                     .setLength(2000)
                     .addTags(TRIPLE_TIARA)
                     .addAttr(2)
+                    .setStrength(1)
                     ::create
     );
 
@@ -1788,9 +1800,10 @@ public class RaceRegistry {
                     .setRanking(RaceRanking.GI)
                     .setField(KYOTO)
                     .setSurface(Surface.TURF)
-                    .setLength(2000)
+                    .setLength(3000)
                     .addAttr(2, 4)
                     .addTags(TRIPLE_CROWN, EIGHT_GREAT_RACES)
+                    .setStrength(1)
                     ::create
     );
 
@@ -1802,6 +1815,7 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(2000)
                     .addTags(SENIOR_AUTUMN_TRIPLE_CROWN, EIGHT_GREAT_RACES)
+                    .setStrength(2)
                     ::create
     );
 
@@ -1993,6 +2007,7 @@ public class RaceRegistry {
                     .setLength(1600)
                     .addTags(MILE)
                     .addAttr(0)
+                    .setStrength(1)
                     ::create
     );
 
@@ -2004,6 +2019,7 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(2400)
                     .addTags(SENIOR_AUTUMN_TRIPLE_CROWN)
+                    .setStrength(2)
                     ::create
     );
 
@@ -2178,6 +2194,7 @@ public class RaceRegistry {
                     .setLength(2500)
                     .addAttr(1, 3)
                     .addTags(SENIOR_AUTUMN_TRIPLE_CROWN, GRAND_PRIX, EIGHT_GREAT_RACES)
+                    .setStrength(2)
                     ::create
     );
 
@@ -2231,6 +2248,7 @@ public class RaceRegistry {
                     .setLength(1800)
                     .addTags(DIRT)
                     .addAttr(1)
+                    .setStrength(1)
                     ::create
     );
 
@@ -2540,6 +2558,7 @@ public class RaceRegistry {
                     .setLength(1600)
                     .addTags(DIRT)
                     .addAttr(0, 1)
+                    .setStrength(1)
                     ::create
     );
 
@@ -2694,10 +2713,11 @@ public class RaceRegistry {
             new RaceBuilder().setTime(3, true)
                     .addYear(Year.SENIOR)
                     .setRanking(RaceRanking.GI)
-                    .setField(HANSHIN)
-                    .setSurface(Surface.DIRT)
+                    .setField(CHUKYO)
+                    .setSurface(Surface.TURF)
                     .setLength(1200)
                     .addTags(SPRINT)
+                    .setStrength(1)
                     ::create
     );
 
@@ -2709,6 +2729,8 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(2000)
                     .addAttr(3)
+                    .setStrength(1)
+                    .addTags(SENIOR_SPRING_TRIPLE_CROWN)
                     ::create
     );
 
@@ -2881,6 +2903,7 @@ public class RaceRegistry {
                     .setSurface(Surface.TURF)
                     .setLength(3200)
                     .addTags(SENIOR_SPRING_TRIPLE_CROWN, EIGHT_GREAT_RACES)
+                    .setStrength(1)
                     ::create
     );
 
@@ -3224,6 +3247,7 @@ public class RaceRegistry {
                     .setExclusive(false)
                     // .onlyIfLaterThen(71)
                     .setReferenceLevel(30)
+                    .setMajor(15, new RaceDifficulty.Range(1, 1), RaceDifficulty.Range.ZERO, RaceDifficulty.Moods.PERFECT, false)
                     ::create
     );
 
@@ -3241,6 +3265,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3256,6 +3281,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3271,6 +3297,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3286,6 +3313,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3302,6 +3330,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3317,6 +3346,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3332,6 +3362,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3347,6 +3378,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3362,6 +3394,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3377,6 +3410,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3392,6 +3426,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 
@@ -3407,6 +3442,7 @@ public class RaceRegistry {
                     .onlyIfLaterThen(URA_FINALS.location())
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
+                    .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
                     ::create
     );
 

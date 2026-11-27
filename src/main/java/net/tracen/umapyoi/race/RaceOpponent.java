@@ -21,6 +21,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.tracen.umapyoi.registry.races.RaceDifficulty;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.ItemRegistry;
@@ -120,6 +121,12 @@ final class RaceOpponent implements RaceSkills.User {
      */
     static List<RaceOpponent> field(ServerLevel level, TrackGeometry track, RaceSetup setup, RaceLayout layout, double distance,
             double plainSprint, int[] stats, List<Double> stalls, ItemStack except, RandomSource random) {
+        return field(level, track, setup, layout, distance, plainSprint, stats, null, stalls, except, random);
+    }
+
+    /** @param major a Major Match's own rules for its field, or null */
+    static List<RaceOpponent> field(ServerLevel level, TrackGeometry track, RaceSetup setup, RaceLayout layout, double distance,
+            double plainSprint, int[] stats, @Nullable RaceDifficulty.Major major, List<Double> stalls, ItemStack except, RandomSource random) {
         Registry<UmaData> registry = UmapyoiAPI.getUmaDataRegistry(level);
         List<ItemStack> souls = new ArrayList<>();
         List<ItemStack> suited = new ArrayList<>();
@@ -144,7 +151,7 @@ final class RaceOpponent implements RaceSkills.User {
             taken.add(identifier(registry, except));
         souls.removeIf(soul -> !taken.add(identifier(registry, soul)));
         List<RaceCast.Part> cast = new RaceCast(level, track, setup, layout, distance, plainSprint)
-                .cast(souls.subList(0, Math.min(stalls.size(), souls.size())), stats, random);
+                .cast(souls.subList(0, Math.min(stalls.size(), souls.size())), stats, major, random);
         List<RaceOpponent> field = new ArrayList<>();
         for (int i = 0; i < cast.size(); i++)
             field.add(of(level, track, setup, layout, distance, plainSprint, cast.get(i).soul(), cast.get(i).trim(), stalls.get(i), random));

@@ -46,6 +46,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.tracen.umapyoi.registry.races.RaceDifficulty;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
 import net.tracen.umapyoi.api.UmapyoiAPI;
@@ -138,6 +139,8 @@ public final class RaceMeeting {
     private final boolean applicantRuns;
     private final ItemStack ticket;
     private final int runnerLevel;
+    /** What the computer runners' stats are around: speed, stamina, power, guts, wisdom. */
+    private final int[] around;
     private final ServerBossEvent bar;
     private final List<Slot> slots = new ArrayList<>();
     /** Who came through the meeting, as opposed to an operator who was there anyway. */
@@ -176,7 +179,8 @@ public final class RaceMeeting {
         this.applicantName = applicant.getScoreboardName();
         this.applicantRuns = applicantRuns;
         this.ticket = ticket.copyWithCount(1);
-        this.runnerLevel = runnerLevel(race);
+        this.around = around(race, UmapyoiAPI.getUmaSoul(applicant), level.getRandom());
+        this.runnerLevel = Math.round((float) Arrays.stream(around).sum() / around.length);
         this.bar = new ServerBossEvent(name(), BossEvent.BossBarColor.GREEN, BossEvent.BossBarOverlay.PROGRESS);
     }
 
@@ -242,11 +246,34 @@ public final class RaceMeeting {
         return race.getUnavailableReason(soul);
     }
 
-    /** What the computer runners' stats are around, by the race's grade. */
+    /**
+     * What the computer runners' stats are around, by the race's grade and what its data adds; for a
+     * Major Match, the least they can be (their floor).
+     */
     public static int runnerLevel(Race race) {
+        if (race.difficulty().isMajor())
+            return race.difficulty().major().get().floor();
         List<? extends Integer> levels = UmapyoiConfig.RACE_MEETING_LEVELS.get();
         int index = Math.min(race.ranking().ordinal(), levels.size() - 1);
-        return index < 0 ? 10 : Mth.clamp(levels.get(index), 1, 39);
+        return index < 0 ? 10 : Mth.clamp(levels.get(index) + race.difficulty().strength(), 1, 39);
+    }
+
+    /**
+     * Each of the computer runners' five stats is around this. For a Major Match it goes by the soul of
+     * the player who holds it, a few grades higher, and never under the floor; otherwise by the race.
+     */
+    private static int[] around(Race race, ItemStack host, RandomSource random) {
+        int[] around = new int[5];
+        if (race.difficulty().major().isEmpty()) {
+            Arrays.fill(around, runnerLevel(race));
+            return around;
+        }
+        RaceDifficulty.Major major = race.difficulty().major().get();
+        int above = major.above().draw(random);
+        int[] own = UmaSoulUtils.hasSoulData(host) ? UmaSoulUtils.getProperty(host).toArray() : new int[5];
+        for (int i = 0; i < 5; i++)
+            around[i] = Mth.clamp(Math.max(own[i] + above, major.floor()), 1, 39);
+        return around;
     }
 
     private void prepare() {
@@ -311,10 +338,8 @@ public final class RaceMeeting {
         List<Double> stalls = new ArrayList<>();
         for (int lane = 0; lane < runners; lane++)
             stalls.add(RaceSession.stallOffset(track, lane));
-        int[] stats = new int[5];
-        Arrays.fill(stats, runnerLevel);
         for (RaceOpponent opponent : RaceOpponent.field(level, track, setup, session.layout(), session.distance(), RaceSession.PLAIN_SPRINT,
-                stats, stalls, ItemStack.EMPTY, level.getRandom())) {
+                around.clone(), race.difficulty().major().orElse(null), stalls, ItemStack.EMPTY, level.getRandom())) {
             slots.add(new Slot(opponent.lane(track), opponent));
             session.add(opponent);
         }
@@ -338,7 +363,20 @@ public final class RaceMeeting {
         MutableComponent message = Component.translatable("umapyoi.meeting.opened", name(), description(), minutes(left))
                 .append(" ").append(link("umapyoi.meeting.action.enter", "/umapyoi meeting enter", ChatFormatting.GREEN))
                 .append(" ").append(link("umapyoi.meeting.action.watch", "/umapyoi meeting watch", ChatFormatting.AQUA));
+        boolean major = race.difficulty().major().map(RaceDifficulty.Major::announce).orElse(false);
+        if (!major) {
+            server.getPlayerList().broadcastSystemMessage(message, false);
+            return;
+        }
+        // A Major Match: a banner round it, a call to come and watch, and a fanfare for everyone.
+        Component banner = Component.translatable("umapyoi.meeting.major_banner").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        server.getPlayerList().broadcastSystemMessage(banner, false);
         server.getPlayerList().broadcastSystemMessage(message, false);
+        server.getPlayerList().broadcastSystemMessage(Component.translatable("umapyoi.meeting.major_call", name())
+                .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC), false);
+        server.getPlayerList().broadcastSystemMessage(banner, false);
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
+            player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.MASTER, 0.8F, 1.0F);
     }
 
     private static Component link(String key, String command, ChatFormatting color) {
@@ -939,8 +977,12 @@ public final class RaceMeeting {
     /** On the soul: the race was run, and perhaps won. */
     private void record(ServerPlayer player, boolean won) {
         ItemStack soul = UmapyoiAPI.getUmaSoul(player);
-        if (UmaSoulUtils.hasSoulData(soul))
-            race.followUp(soul, level, won);
+        if (!UmaSoulUtils.hasSoulData(soul))
+            return;
+        race.followUp(soul, level, won);
+        // A Major Match counts as passed only for the one who held it: nobody is carried through by another.
+        if (won && (!race.difficulty().isMajor() || player.getUUID().equals(applicant)))
+            Race.pass(soul, race.id());
     }
 
     /** Prizes for everyone who came in. */

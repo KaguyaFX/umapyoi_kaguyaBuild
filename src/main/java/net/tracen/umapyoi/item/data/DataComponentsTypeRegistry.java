@@ -113,6 +113,15 @@ public class DataComponentsTypeRegistry {
 			DATA_COMPONENTS.registerComponentType("career_state",
 					builder -> builder.persistent(CareerState.CODEC).networkSynchronized(CareerState.STREAM));
 
+	/**
+	 * Races the soul has won for real: in a race meeting, and a Major Match only in one's own. Only these
+	 * count as having run a race another one asks for first; the terminal's quick race never adds to it.
+	 */
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<List<ResourceLocation>>> RACES_PASSED =
+			DATA_COMPONENTS.registerComponentType("races_passed",
+					builder -> builder.persistent(ResourceLocation.CODEC.listOf())
+							.networkSynchronized(ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list())));
+
 	/** Uma traits, personality traits and food preferences of a soul (all may be empty). */
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<UmaTraits>> UMA_TRAITS =
 			DATA_COMPONENTS.registerComponentType("uma_traits",
