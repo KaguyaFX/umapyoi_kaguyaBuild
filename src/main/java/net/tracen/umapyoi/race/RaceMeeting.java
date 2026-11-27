@@ -984,9 +984,10 @@ public final class RaceMeeting {
     private RaceMeetingPayload payload() {
         RaceMeetingPayload.Course course = RaceMeetingPayload.Course.NONE;
         if (session != null) {
-            TrackGeometry track = RacecourseData.get(level).track();
+            RacecourseData data = RacecourseData.get(level);
+            TrackGeometry track = data.track();
             course = new RaceMeetingPayload.Course((float) track.straight(), (float) track.radius(), (float) track.width(),
-                    (float) track.finish(), (float) session.distance(), (float) session.layout().finalFrom());
+                    (float) track.finish(), (float) session.distance(), (float) session.layout().finalFrom(), data.origin().asLong());
         }
         return new RaceMeetingPayload(true, race.id(), applicantName, stage.ordinal(), stage == Stage.RUNNING ? session.raceTicks() : left,
                 UmapyoiConfig.RACE_MEETING_CLOSE_SECONDS.get() * 20, (float) setup.distanceMeters(), setup.surface().ordinal(),

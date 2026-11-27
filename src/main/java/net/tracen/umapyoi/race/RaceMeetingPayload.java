@@ -36,11 +36,11 @@ public record RaceMeetingPayload(boolean active, ResourceLocation race, String a
      * @param distance  blocks from the start to the finish
      * @param finalFrom where the final leg begins
      */
-    public record Course(float straight, float radius, float width, float finish, float distance, float finalFrom) {
-        static final Course NONE = new Course(0, 0, 0, 0, 0, 0);
+    public record Course(float straight, float radius, float width, float finish, float distance, float finalFrom, long origin) {
+        static final Course NONE = new Course(0, 0, 0, 0, 0, 0, 0);
 
         private static Course read(FriendlyByteBuf buf) {
-            return new Course(buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat());
+            return new Course(buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readLong());
         }
 
         private static void write(FriendlyByteBuf buf, Course course) {
@@ -50,6 +50,7 @@ public record RaceMeetingPayload(boolean active, ResourceLocation race, String a
             buf.writeFloat(course.finish);
             buf.writeFloat(course.distance);
             buf.writeFloat(course.finalFrom);
+            buf.writeLong(course.origin);
         }
     }
 

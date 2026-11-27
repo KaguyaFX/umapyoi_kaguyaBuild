@@ -193,6 +193,43 @@ public final class RaceArt {
         return BRACKET[bracket(gate, field)];
     }
 
+    /** The colour of a number on its bracket's colour. */
+    public static int bracketTextColor(int gate, int field) {
+        return BRACKET_TEXT[bracket(gate, field)];
+    }
+
+    /** Margins as races give them: a nose, a head, a neck, lengths to the quarter, then a distance. */
+    private static final double[] LENGTHS = { 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9, 10 };
+
+    /**
+     * How far behind the one in front, in lengths of a runner.
+     *
+     * @param lengths how many
+     */
+    public static Component margin(double lengths) {
+        if (lengths < 0.1)
+            return Component.translatable("umapyoi.race.margin.nose");
+        if (lengths < 0.25)
+            return Component.translatable("umapyoi.race.margin.head");
+        if (lengths < 0.4)
+            return Component.translatable("umapyoi.race.margin.neck");
+        if (lengths > 10.5)
+            return Component.translatable("umapyoi.race.margin.distance");
+        double best = LENGTHS[0];
+        for (double step : LENGTHS)
+            if (Math.abs(step - lengths) < Math.abs(best - lengths))
+                best = step;
+        int whole = (int) best;
+        double part = best - whole;
+        String fraction = part == 0.25 ? "¼" : part == 0.5 ? "½" : part == 0.75 ? "¾" : "";
+        return Component.literal((whole > 0 ? String.valueOf(whole) : "") + fraction);
+    }
+
+    /** A runner is about 2.4 m long. */
+    public static double lengths(double seconds, double metersPerSecond) {
+        return seconds * metersPerSecond / 2.4;
+    }
+
     /** The stall's number on its bracket's colour. */
     public static void chip(GuiGraphics graphics, int x, int y, int w, int h, int gate, int field, boolean off) {
         roundBox(graphics, x, y, w, h, off ? 0xFFD8D8D8 : bracketColor(gate, field), off ? 0xFFB0B0B0 : 0xFF5A5A5A);

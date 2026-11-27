@@ -243,6 +243,7 @@ public final class TrackBuilder {
                 }
                 case 1 -> {
                     TrackScenery.decorate(level, layout, poleSpacing, connect);
+                    TrackScreens.build(level, layout);
                     phase = 2;
                     return false;
                 }
