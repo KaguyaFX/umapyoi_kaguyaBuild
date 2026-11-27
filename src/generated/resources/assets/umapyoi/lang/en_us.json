@@ -1205,6 +1205,7 @@
   "umapyoi.meeting.missed_self": "You weren't back when entries closed, so you've withdrawn. You can still watch.",
   "umapyoi.meeting.nobody": "%s: nobody came, so it's off.",
   "umapyoi.meeting.off_the_grounds": "That's outside the racecourse.",
+  "umapyoi.meeting.off_the_paddock": "Spectators stay out of the paddock ring.",
   "umapyoi.meeting.off_the_track": "Spectators stay off the track during a race.",
   "umapyoi.meeting.opened": "[Race] The racecourse is open for %s (%s). It starts in %s.",
   "umapyoi.meeting.place": "%s.",

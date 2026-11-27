@@ -147,6 +147,16 @@ public final class RaceArt {
         center(graphics, text, x, w + 1, y + (h - 7) / 2, on ? WHITE : 0xFFB8C8A0, false);
     }
 
+    /** A mood's colour. */
+    public static int moodColor(Motivations mood) {
+        return MOOD[mood.ordinal()];
+    }
+
+    /** Whether a pixel of a mood's 5 x 5 arrow is drawn. */
+    public static boolean moodArrow(Motivations mood, int x, int y) {
+        return MOOD_ARROW[mood.ordinal()][y].charAt(x) == '#';
+    }
+
     /** A mood's arrow. */
     public static void mood(GuiGraphics graphics, int x, int y, Motivations mood) {
         int at = mood.ordinal();

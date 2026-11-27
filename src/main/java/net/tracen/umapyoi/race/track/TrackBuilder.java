@@ -73,6 +73,13 @@ public final class TrackBuilder {
     private static final BlockState APRON = Blocks.SMOOTH_STONE.defaultBlockState();
     private static final BlockState WATER = Blocks.WATER.defaultBlockState();
     private static final BlockState SAND = Blocks.SAND.defaultBlockState();
+    /** The paddock: the walking ring, the apron round it and its steps, the way to it. */
+    private static final BlockState PADDOCK_PATH = Blocks.DIRT_PATH.defaultBlockState();
+    private static final BlockState PADDOCK_FLOOR = Blocks.SMOOTH_STONE.defaultBlockState();
+    private static final BlockState PADDOCK_STEP = Blocks.STONE_BRICKS.defaultBlockState();
+    private static final BlockState WAY = Blocks.POLISHED_ANDESITE.defaultBlockState();
+    /** Unseen, so the paddock can be seen at night. */
+    private static final BlockState PADDOCK_LIGHT = Blocks.LIGHT.defaultBlockState();
     private static final BlockState[] FLOWERS = {
             Blocks.POPPY.defaultBlockState(), Blocks.DANDELION.defaultBlockState(),
             Blocks.PINK_TULIP.defaultBlockState(), Blocks.CORNFLOWER.defaultBlockState(),
@@ -134,6 +141,8 @@ public final class TrackBuilder {
     /** Whether a place (in the course's own coordinates) is on the racecourse's grounds: not behind the stand, nor far out. */
     public static boolean onGrounds(TrackGeometry track, double x, double z) {
         CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
+        if (TrackPaddock.part(track, x, z) != TrackPaddock.Part.NONE)
+            return true;
         double limit = layout.besideStand(Mth.floor(x), z) ? layout.standStart() + Grandstand.DEPTH : track.outer() + GROUNDS;
         return track.locate(x, z).offset() < limit;
     }
@@ -169,8 +178,9 @@ public final class TrackBuilder {
                 Mth.floor(-track.halfLengthX(beyond)),
                 Mth.ceil(track.halfLengthX(beyond)),
                 Mth.floor(-track.halfLengthZ(beyond)),
-                Math.max(Mth.ceil(track.halfLengthZ(beyond)),
-                        Mth.ceil(track.radius() + layout.standStart() + Grandstand.DEPTH + 3)) };
+                Math.max(Math.max(Mth.ceil(track.halfLengthZ(beyond)),
+                        Mth.ceil(track.radius() + layout.standStart() + Grandstand.DEPTH + 3)),
+                        Mth.ceil(TrackPaddock.farEdge(track) + 2)) };
     }
 
     @SubscribeEvent
@@ -301,6 +311,11 @@ public final class TrackBuilder {
                 }
             }
 
+            TrackPaddock.Part paddock = TrackPaddock.part(track, x, z);
+            if (paddock != TrackPaddock.Part.NONE) {
+                paddock(i, k, paddock);
+                return;
+            }
             BlockState surface = GROUND;
             BlockState above = null;
             int hill = hills.height(i, k);
@@ -331,6 +346,40 @@ public final class TrackBuilder {
             for (int h = 1; h <= clearTo(x, z, d); h++)
                 place(level, layout.world(i, h, k), h == 1 && above != null ? above : AIR);
             if (above == RAIL)
+                connect.add(layout.world(i, 1, k));
+        }
+
+        /** A column of the paddock. */
+        private void paddock(int i, int k, TrackPaddock.Part part) {
+            int top = switch (part) {
+                case STEP_1 -> 1;
+                case STEP_2 -> 2;
+                case STEP_3 -> 3;
+                default -> 0;
+            };
+            BlockState surface = switch (part) {
+                case LAWN -> GROUND;
+                case PATH -> PADDOCK_PATH;
+                case WAY -> WAY;
+                case STEP_1, STEP_2, STEP_3 -> PADDOCK_STEP;
+                default -> PADDOCK_FLOOR;
+            };
+            place(level, layout.world(i, -1, k), SUBSOIL);
+            for (int h = 0; h <= CLEAR_HEIGHT; h++) {
+                BlockState state;
+                if (h <= top)
+                    state = surface;
+                else if (h == 1 && part == TrackPaddock.Part.RAIL)
+                    state = RAIL;
+                else if (h == 1 && part == TrackPaddock.Part.LAWN && Math.floorMod(i * 31 + k * 17, 23) == 0)
+                    state = FLOWERS[Math.floorMod(i * 7 + k * 3, FLOWERS.length)];
+                else if (h == 4 && part == TrackPaddock.Part.PATH && Math.floorMod(i, 6) == 0 && Math.floorMod(k, 6) == 0)
+                    state = PADDOCK_LIGHT;
+                else
+                    state = AIR;
+                place(level, layout.world(i, h, k), state);
+            }
+            if (part == TrackPaddock.Part.RAIL)
                 connect.add(layout.world(i, 1, k));
         }
 

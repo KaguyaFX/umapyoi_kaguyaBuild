@@ -1376,6 +1376,7 @@
   "umapyoi.meeting.nobody": "%s: 아무도 오지 않아 종료되었습니다.",
   "umapyoi.meeting.stopped": "%s: 레이스가 취소되었습니다.",
   "umapyoi.meeting.off_the_track": "레이스 중 관객은 주로에 들어갈 수 없습니다.",
+  "umapyoi.meeting.off_the_paddock": "관객은 패독 안에 들어갈 수 없습니다.",
   "umapyoi.meeting.off_the_grounds": "그곳은 경기장 밖입니다.",
   "umapyoi.meeting.exit.racing": "레이스 중에는 나갈 수 없습니다. 결과 발표 후 나가는 문을 다시 드립니다.",
   "umapyoi.meeting.bar.open": "%s — 접수 중, %s 후 출발",

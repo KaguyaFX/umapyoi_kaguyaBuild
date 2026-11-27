@@ -2,6 +2,7 @@ package net.tracen.umapyoi.race;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.UmaRaceTicketItem;
 import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
+import net.tracen.umapyoi.race.track.TrackPaddock;
 import net.tracen.umapyoi.registry.races.Race;
 import net.tracen.umapyoi.registry.races.RaceLoot;
 import net.tracen.umapyoi.registry.races.RaceRegistry;
@@ -99,6 +101,8 @@ public final class RaceMeeting {
     private static final int WALK_IN_SECONDS = 15;
     /** Runners arrive this many blocks before the line. */
     private static final double ARRIVE_BEFORE_LINE = 14;
+    /** How fast the runners walk round the paddock, blocks a second. */
+    private static final double PADDOCK_WALK = 1.3;
 
     /** A stall: a computer runner, or the player who took her place. */
     private static final class Slot {
@@ -148,6 +152,8 @@ public final class RaceMeeting {
     private int age;
     /** The runners are on their way to the stalls; the players are in them. */
     private boolean called;
+    /** The computer runners walking round the paddock before the call to the stalls, by lane. */
+    private final Map<Integer, RunnerEntity> walkers = new HashMap<>();
     private boolean loaded;
     private boolean awarded;
     /** The result, once it's announced. */
@@ -374,7 +380,7 @@ public final class RaceMeeting {
             bets.field(entries());
             sync();
         }
-        sendToTrack(player);
+        sendRunner(player);
         return null;
     }
 
@@ -515,6 +521,84 @@ public final class RaceMeeting {
         return true;
     }
 
+    /** A runner goes to the paddock until the call to the stalls, then to the track. */
+    private void sendRunner(ServerPlayer player) {
+        if (called)
+            sendToTrack(player);
+        else
+            sendToPaddock(player);
+    }
+
+    private void sendToPaddock(ServerPlayer player) {
+        RacecourseData data = RacecourseData.get(level);
+        arrive(player, TrackPaddock.onRing(data.track(), level.getRandom().nextDouble()), data.origin(), 1);
+    }
+
+    /** At the call, the runners in the paddock (or anywhere) go out onto the track, to walk to the stalls. */
+    private void toTheTrack() {
+        for (Slot slot : slots) {
+            if (slot.player == null || slot.scratched)
+                continue;
+            ServerPlayer player = server.getPlayerList().getPlayer(slot.player);
+            if (player != null && player.level() == level)
+                sendToTrack(player);
+        }
+    }
+
+    /**
+     * The computer runners walk round the paddock in their stalls' order, the players' places left
+     * free in the line; a player who takes a runner's place takes hers in the paddock too.
+     */
+    private void parade() {
+        RacecourseData data = RacecourseData.get(level);
+        TrackGeometry track = data.track();
+        if (track == null)
+            return;
+        TrackGeometry ring = TrackPaddock.ring();
+        TrackGeometry.Point centre = TrackPaddock.centre(track);
+        BlockPos at = data.origin().offset(Mth.floor(centre.x()), 0, Mth.floor(centre.z()));
+        List<Slot> walking = slots.stream().filter(slot -> !slot.scratched).sorted((a, b) -> Integer.compare(a.lane, b.lane)).toList();
+        double gone = PADDOCK_WALK * age / 20.0;
+        for (int n = 0; n < walking.size(); n++) {
+            Slot slot = walking.get(n);
+            RunnerEntity walker = walkers.get(slot.lane);
+            if (slot.player != null) {
+                if (walker != null) {
+                    walker.discard();
+                    walkers.remove(slot.lane);
+                }
+                continue;
+            }
+            // The ring goes the other way round from the place one stands in front of: back to front.
+            double progress = ring.lap() * (1 - (double) n / walking.size()) + gone;
+            if (walker == null) {
+                walker = RaceEntities.RUNNER.get().create(level);
+                if (walker == null)
+                    continue;
+                walker.place(slot.soul, ring, at);
+                walker.setCustomName(UmaSoulUtils.getTranslatedUmaName(slot.soul));
+                walker.setCustomNameVisible(true);
+                walker.gate(slot.lane + 1);
+                walker.show(progress, ring.middle(), PADDOCK_WALK);
+                level.addFreshEntity(walker);
+                walkers.put(slot.lane, walker);
+            } else if (age % 20 == 0) {
+                walker.show(progress, ring.middle(), PADDOCK_WALK);
+            }
+        }
+        for (Integer lane : List.copyOf(walkers.keySet()))
+            if (walking.stream().noneMatch(slot -> slot.lane == lane)) {
+                walkers.get(lane).discard();
+                walkers.remove(lane);
+            }
+    }
+
+    private void endParade() {
+        for (RunnerEntity walker : walkers.values())
+            walker.discard();
+        walkers.clear();
+    }
+
     private void sendToTrack(ServerPlayer player) {
         RacecourseData data = RacecourseData.get(level);
         TrackGeometry track = data.track();
@@ -608,6 +692,7 @@ public final class RaceMeeting {
                 session.tick();
                 left--;
                 takeBets();
+                parade();
                 if (closeTicks() <= 0)
                     close();
             }
@@ -617,9 +702,13 @@ public final class RaceMeeting {
                 int gate = UmapyoiConfig.RACE_MEETING_GATE_SECONDS.get();
                 if (!called && left <= (gate + WALK_IN_SECONDS) * 20) {
                     called = true;
+                    endParade();
+                    toTheTrack();
                     session.gather(true);
                     tell(Component.translatable("umapyoi.meeting.loading"));
                 }
+                if (!called)
+                    parade();
                 if (!loaded && left <= gate * 20 && !load())
                     return;
                 session.tick(); // opens the gates and moves on to RUNNING
@@ -839,6 +928,7 @@ public final class RaceMeeting {
 
     private void end(@Nullable Component announcement) {
         current = null;
+        endParade();
         if (bets != null)
             bets.cancel();
         if (session != null)
@@ -858,6 +948,7 @@ public final class RaceMeeting {
             return;
         RaceMeeting meeting = current;
         current = null;
+        meeting.endParade();
         if (meeting.stage.ordinal() < Stage.RUNNING.ordinal())
             meeting.refund();
         else
@@ -887,9 +978,12 @@ public final class RaceMeeting {
             if (!TrackBuilder.onGrounds(track, x, z)) {
                 player.displayClientMessage(Component.translatable("umapyoi.meeting.off_the_grounds").withStyle(ChatFormatting.RED), true);
                 if (runner && stage.ordinal() < Stage.RUNNING.ordinal())
-                    sendToTrack(player);
+                    sendRunner(player);
                 else
                     sendToStand(player);
+            } else if (!runner && TrackPaddock.inRing(track, x, z)) {
+                player.displayClientMessage(Component.translatable("umapyoi.meeting.off_the_paddock").withStyle(ChatFormatting.RED), true);
+                sendToStand(player);
             } else if (!runner && stage.ordinal() <= Stage.RUNNING.ordinal() && track.locate(x, z).offset() < track.outer() + 1) {
                 player.displayClientMessage(Component.translatable("umapyoi.meeting.off_the_track").withStyle(ChatFormatting.RED), true);
                 sendToStand(player);

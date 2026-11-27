@@ -204,6 +204,7 @@ final class RaceOpponent implements RaceSkills.User {
         entity.place(soul, track, origin);
         entity.setCustomName(name());
         entity.setCustomNameVisible(true);
+        entity.gate(lane(track) + 1);
         walkedTo = progress;
         entity.show(progress, offset, 0);
         level.addFreshEntity(entity);

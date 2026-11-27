@@ -805,6 +805,8 @@ final class RaceSession {
             ran.put(id, lasts);
             notice(player, (caught >= 0 ? Component.translatable("umapyoi.race.skill.caught", name, caught)
                     : Component.translatable("umapyoi.race.skill.used", name)).withStyle(ChatFormatting.GOLD));
+            // Everyone else sees it over their head, as they do the computer runners'.
+            PacketDistributor.sendToPlayersInDimension(player.serverLevel(), new RacePlayerSkillPayload(player.getUUID(), id));
             NeoForge.EVENT_BUS.post(new SkillEvent.ApplySkillEvent(id, player.level(), player));
         }
 

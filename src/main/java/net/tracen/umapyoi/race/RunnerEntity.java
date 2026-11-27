@@ -42,6 +42,8 @@ public class RunnerEntity extends LivingEntity {
     /** The skill she used last, and when (the level's game time). */
     private static final EntityDataAccessor<String> SKILL = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> SKILL_AT = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.INT);
+    /** Her stall's number in the race being held; 0 for none. */
+    private static final EntityDataAccessor<Integer> GATE = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.INT);
     /** How long a skill she used shows over her head. */
     public static final int SKILL_SHOWN = 40;
 
@@ -80,6 +82,7 @@ public class RunnerEntity extends LivingEntity {
         builder.define(SPEED, 0F);
         builder.define(SKILL, "");
         builder.define(SKILL_AT, Integer.MIN_VALUE / 2);
+        builder.define(GATE, 0);
     }
 
     // ---- told by the race (server)
@@ -96,6 +99,15 @@ public class RunnerEntity extends LivingEntity {
         course.putLong("origin", origin.asLong());
         entityData.set(SOUL, soul.copy());
         entityData.set(COURSE, course);
+    }
+
+    void gate(int gate) {
+        entityData.set(GATE, gate);
+    }
+
+    /** Her stall's number, shown over her head before the race; 0 for none. */
+    public int gate() {
+        return entityData.get(GATE);
     }
 
     /** She used a skill: it shows over her head for a moment. */

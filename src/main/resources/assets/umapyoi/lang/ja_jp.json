@@ -1211,6 +1211,7 @@
   "umapyoi.meeting.nobody": "%s：誰も来なかったため終了しました。",
   "umapyoi.meeting.stopped": "%s：レースは中止になりました。",
   "umapyoi.meeting.off_the_track": "レース中、観客はコースに入れません。",
+  "umapyoi.meeting.off_the_paddock": "観客はパドックの中に入れません。",
   "umapyoi.meeting.off_the_grounds": "そこはレース場の外です。",
   "umapyoi.meeting.exit.racing": "レース中は退場できません。着順確定後に出口のドアをお渡しします。",
   "umapyoi.meeting.bar.open": "%s — 受付中、発走まで %s",

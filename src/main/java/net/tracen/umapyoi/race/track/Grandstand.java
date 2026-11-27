@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.properties.SlabType;
  *   h6  __1F walkway____|___________________________|
  *      /lower tier                                   lower tier: one block up per two rows (seat + floor)
  *     |front wall ... tunnels under everything at ground level, every 36 blocks, closed at the back
+ *                     but for the middle one, which leads out to the paddock
  * </pre>
  * Seats are coloured; every 12 blocks along the stand (and beside each end wall) a white aisle runs
  * from front to back, like a cinema. In the hall's glass front a door is in line with each tunnel, and
@@ -90,7 +91,8 @@ final class Grandstand {
      */
     static BlockState blockAt(int row, int h, int along, int length) {
         boolean end = along == 0 || along == length - 1;
-        if (!end && h <= 3 && row < DEPTH - 1 && tunnel(along, length))
+        // The middle tunnel goes right through, out to the paddock.
+        if (!end && h <= 3 && (row < DEPTH - 1 || Math.abs(along - length / 2) <= 1) && tunnel(along, length))
             return AIR;
         BlockState state = structure(row, h, along, length, end);
         // A light in each tunnel's ceiling every few rows, where it has one (the front rows are open above).
@@ -250,7 +252,7 @@ final class Grandstand {
         return Math.floorMod(along - length / 2, AISLE_SPACING) == AISLE_SPACING / 2;
     }
 
-    /** Three-wide passages into the stand at ground level, spaced out from the middle. The back wall ends them: there's only open country behind. */
+    /** Three-wide passages into the stand at ground level, spaced out from the middle. The back wall ends them, but for the middle one (to the paddock). */
     private static boolean tunnel(int along, int length) {
         if (along < 3 || along > length - 4)
             return false;
