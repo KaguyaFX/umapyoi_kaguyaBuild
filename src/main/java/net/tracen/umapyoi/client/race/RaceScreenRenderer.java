@@ -234,7 +234,14 @@ public final class RaceScreenRenderer {
 
     // ---- the big screen
 
-    private static void header(Painter paint, RaceMeetingPayload held, Component right) {
+    /**
+     * The race's tier and name, and something on the right: doubled if it takes no more than half the
+     * width, else plain. The name is cut to what's left, less {@code besides} for what the caller puts
+     * just left of the right-hand text.
+     *
+     * @return the width the right-hand text took
+     */
+    private static int header(Painter paint, RaceMeetingPayload held, Component right, int besides) {
         paint.rect(0, 0, W, 22, NAVY);
         paint.rect(0, 22, W, 2, GOLD);
         Race race = ClientUtils.getRaceRegistry().get(held.race());
@@ -246,9 +253,10 @@ public final class RaceScreenRenderer {
             paint.text(tier, 8, 7, WHITE, false);
             x += w + 6;
         }
-        int rightWidth = paint.width(right) * 2;
-        paint.text(paint.cut(RaceArt.raceName(held.race()), (W - x - rightWidth - 12) / 2), x, 3, WHITE, true);
-        paint.text(right, W - 6 - rightWidth, 3, WHITE, true);
+        Fitted fitted = paint.fit(right, W / 2);
+        paint.text(paint.cut(RaceArt.raceName(held.race()), (W - x - fitted.width() - besides - 12) / 2), x, 3, WHITE, true);
+        paint.line(fitted, W - 6 - fitted.width(), 3, WHITE);
+        return fitted.width();
     }
 
     private static List<RaceMeetingPayload.Row> runners(RaceMeetingPayload held) {
@@ -267,7 +275,7 @@ public final class RaceScreenRenderer {
         Component clock = held.stageNow() == RaceMeeting.Stage.CLOSED && RaceMeetingClient.left() == 0
                 ? Component.translatable("gui.umapyoi.meeting.gate")
                 : Component.translatable("umapyoi.screen.off", RaceMeetingClient.clock());
-        header(paint, held, clock);
+        header(paint, held, clock, 0);
         List<RaceMeetingPayload.Row> rows = runners(held);
         int field = rows.size();
         int columns = field > 12 ? 3 : 2;
@@ -346,10 +354,26 @@ public final class RaceScreenRenderer {
             }
         }
         // what a broadcast lays over the pictures
+        int boxW;
+        if (held.stageNow() == RaceMeeting.Stage.RESULTS) {
+            Fitted waiting = paint.fit(Component.translatable("umapyoi.meeting.stage.results"), W / 2);
+            boxW = waiting.width() + 8;
+            paint.rect(W - 4 - boxW, 4, boxW, 18, 0xD2101010);
+            paint.line(waiting, W - boxW, 5, AMBER);
+        } else {
+            Component left = Component.translatable("umapyoi.screen.left", RaceMeetingClient.metersLeft() + "m");
+            Component clock = Component.literal(RaceMeetingClient.raceClockText());
+            // Both doubled if they take no more than a little over half the width, else both plain.
+            boolean big = (paint.width(left) + paint.width(clock)) * 2 + 20 <= W / 2 + 32;
+            int scale = big ? 2 : 1;
+            boxW = (paint.width(left) + paint.width(clock)) * scale + 20;
+            paint.rect(W - 4 - boxW, 4, boxW, 18, 0xD2101010);
+            int y = big ? 5 : 9;
+            paint.text(left, W - boxW, y, AMBER, big);
+            paint.text(clock, W - 8 - paint.width(clock) * scale, y, WHITE, big);
+        }
         Race race = ClientUtils.getRaceRegistry().get(held.race());
         int x = 4;
-        Component name = paint.cut(RaceArt.raceName(held.race()), 64);
-        int nameW = paint.width(name) * 2;
         if (race != null) {
             Component tier = RaceArt.tier(race.ranking());
             int w = paint.width(tier) + 8;
@@ -357,21 +381,9 @@ public final class RaceScreenRenderer {
             paint.text(tier, 8, 9, WHITE, false);
             x += w;
         }
-        paint.rect(x, 4, nameW + 8, 18, 0xDC101826);
+        Component name = paint.cut(RaceArt.raceName(held.race()), Math.min(64, (W - 4 - boxW - 6 - x - 8) / 2));
+        paint.rect(x, 4, paint.width(name) * 2 + 8, 18, 0xDC101826);
         paint.text(name, x + 4, 5, WHITE, true);
-        if (held.stageNow() == RaceMeeting.Stage.RESULTS) {
-            Component waiting = Component.translatable("umapyoi.meeting.stage.results");
-            int boxW = paint.width(waiting) * 2 + 8;
-            paint.rect(W - 4 - boxW, 4, boxW, 18, 0xD2101010);
-            paint.text(waiting, W - boxW, 5, AMBER, true);
-        } else {
-            Component left = Component.translatable("umapyoi.screen.left", RaceMeetingClient.metersLeft() + "m");
-            Component clock = Component.literal(RaceMeetingClient.raceClockText());
-            int boxW = paint.width(left) * 2 + paint.width(clock) * 2 + 20;
-            paint.rect(W - 4 - boxW, 4, boxW, 18, 0xD2101010);
-            paint.text(left, W - boxW, 5, AMBER, true);
-            paint.text(clock, W - 8 - paint.width(clock) * 2, 5, WHITE, true);
-        }
         // the running order along the bottom, the gaps as on the course
         paint.rect(0, 118, W, 26, 0xE10C1424);
         List<Integer> order = RaceMeetingClient.order();
@@ -406,11 +418,11 @@ public final class RaceScreenRenderer {
         paint.rect(0, 0, W, H, PAPER);
         List<RaceMeetingPayload.Row> placed = placed(held);
         Component time = placed.isEmpty() ? Component.empty() : Component.literal(time(placed.get(0).time()));
-        header(paint, held, time);
-        Component confirmed = Component.translatable("umapyoi.screen.confirmed");
-        int cw = paint.width(confirmed) * 2 + 8;
-        paint.rect(W - 18 - paint.width(time) * 2 - cw, 4, cw, 15, RED);
-        paint.text(confirmed, W - 14 - paint.width(time) * 2 - cw, 3, WHITE, true);
+        Fitted confirmed = paint.fit(Component.translatable("umapyoi.screen.confirmed"), 72);
+        int cw = confirmed.width() + 8;
+        int timeW = header(paint, held, time, cw + 6);
+        paint.rect(W - 12 - timeW - cw, 4, cw, 15, RED);
+        paint.line(confirmed, W - 8 - timeW - cw, 3, WHITE);
         int field = held.rows().size();
         for (int k = 0; k < Math.min(3, placed.size()); k++) {
             RaceMeetingPayload.Row row = placed.get(k);
@@ -459,10 +471,8 @@ public final class RaceScreenRenderer {
     private static void board(Painter paint, RaceMeetingPayload held, boolean lit) {
         paint.rect(0, 0, BW, H, 0xFF050607);
         Component confirmed = Component.translatable("umapyoi.screen.confirmed"), inquiry = Component.translatable("umapyoi.screen.inquiry");
-        paint.rect(4, 4, 42, 16, lit ? RED : 0xFF2A1210);
-        paint.text(confirmed, 25 - paint.width(confirmed), 4, lit ? WHITE : 0xFF5A2A26, true);
-        paint.rect(50, 4, 42, 16, 0xFF2A1D08);
-        paint.text(inquiry, 71 - paint.width(inquiry), 4, 0xFF5A4A20, true);
+        lamp(paint, confirmed, 4, lit ? RED : 0xFF2A1210, lit ? WHITE : 0xFF5A2A26);
+        lamp(paint, inquiry, 50, 0xFF2A1D08, 0xFF5A4A20);
         List<RaceMeetingPayload.Row> placed = lit ? placed(held) : List.of();
         int field = held.rows().size();
         for (int k = 0; k < 5; k++) {
@@ -498,6 +508,19 @@ public final class RaceScreenRenderer {
             { ".##.", "#..#", "#..#", ".##.", "#..#", "#..#", ".##." },
             { ".##.", "#..#", "#..#", ".###", "...#", "...#", ".##." } };
 
+    private static final int LAMP_W = 42;
+
+    /** One of the board's two lamps, its word doubled if it fits. */
+    private static void lamp(Painter paint, Component word, int x, int lampColor, int wordColor) {
+        paint.rect(x, 4, LAMP_W, 16, lampColor);
+        Fitted fitted = paint.fit(word, LAMP_W - 2);
+        paint.line(fitted, x + (LAMP_W - fitted.width()) / 2 + 1, 4, wordColor);
+    }
+
+    /** Some text, and whether it's doubled. */
+    private record Fitted(Component text, int width, boolean big) {
+    }
+
     /** Paints in screen pixels, each thing over the last, in the order it's asked to. */
     private static final class Painter {
         private final GuiGraphics graphics;
@@ -530,6 +553,19 @@ public final class RaceScreenRenderer {
                 pose.scale(2, 2, 1);
             graphics.drawString(font, text, 0, 0, argb, false);
             pose.popPose();
+        }
+
+        /** The text doubled if that takes no more than {@code room} screen pixels, else plain, cut if need be. */
+        Fitted fit(Component text, int room) {
+            if (width(text) * 2 <= room)
+                return new Fitted(text, width(text) * 2, true);
+            Component plain = cut(text, room);
+            return new Fitted(plain, width(plain), false);
+        }
+
+        /** Fitted text on a line made for doubled text: plain text sits in its middle. */
+        void line(Fitted fitted, int x, int y, int argb) {
+            text(fitted.text(), x, fitted.big() ? y : y + 4, argb, fitted.big());
         }
 
         void right(Component text, int right, int y, int argb) {
