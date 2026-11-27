@@ -1071,6 +1071,7 @@
   "umapyoi.race.margin.neck": "颈",
   "umapyoi.race.margin.distance": "大差",
   "umapyoi.race.skill.not_started": "%s：开闸后才能用",
+  "umapyoi.race.skill.race_only": "%s：比赛世界里只有比赛中才能用",
   "umapyoi.race.skill.passive": "%s：比赛中自动生效",
   "umapyoi.race.skill.none": "%s：比赛中没有作用",
   "umapyoi.race.skill.resting": "%s：还要等 %s 秒",

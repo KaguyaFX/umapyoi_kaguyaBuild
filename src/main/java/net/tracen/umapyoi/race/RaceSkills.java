@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -16,6 +17,8 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.events.SkillEvent;
+import net.tracen.umapyoi.registry.UmaSkillRegistry;
+import net.tracen.umapyoi.registry.skills.UmaSkill;
 import net.tracen.umapyoi.utils.Aptitude;
 import net.tracen.umapyoi.utils.Distance;
 import net.tracen.umapyoi.utils.Position;
@@ -251,16 +254,22 @@ public final class RaceSkills {
 
     /**
      * A runner's skills work the race way. Runs after everything else that may change the price (a
-     * blessing halves it), then takes the use over.
+     * blessing halves it), then takes the use over. In the race world skills are for the race only:
+     * before it (in the paddock, say) or watching, they do nothing, or their survival effects would
+     * carry into it, a better mood for one, for points given back at the stall.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onUseSkill(SkillEvent.UseSkillEvent event) {
         if (event.isCanceled() || !(event.getPlayer() instanceof ServerPlayer player) || !RaceWorld.isRaceWorld(player.level()))
             return;
-        RaceSession session = RaceSession.current();
-        if (session == null || !session.running(player))
-            return;
         event.setCanceled(true);
+        RaceSession session = RaceSession.current();
+        if (session == null || !session.running(player)) {
+            UmaSkill skill = UmaSkillRegistry.REGISTRY.get(event.getSkillResourceLocation());
+            Component name = skill == null ? Component.literal(event.getSkillResourceLocation().toString()) : skill.getDescription();
+            RaceSession.notice(player, Component.translatable("umapyoi.race.skill.race_only", name).withStyle(ChatFormatting.YELLOW));
+            return;
+        }
         session.useSkill(player, event.getSkillResourceLocation(), event.getAp());
     }
 }

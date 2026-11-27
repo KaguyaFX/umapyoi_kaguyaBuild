@@ -271,6 +271,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.margin.neck", "nk");
         add("umapyoi.race.margin.distance", "dist");
         add("umapyoi.race.skill.not_started", "%s: only once the gates are open");
+        add("umapyoi.race.skill.race_only", "%s: in the race world, only during a race");
         add("umapyoi.race.skill.passive", "%s works by itself in a race");
         add("umapyoi.race.skill.none", "%s does nothing in a race");
         add("umapyoi.race.skill.resting", "%s: ready in %ss");
