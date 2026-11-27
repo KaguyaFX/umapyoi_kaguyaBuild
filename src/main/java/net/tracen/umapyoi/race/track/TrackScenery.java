@@ -16,8 +16,10 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 
 /**
  * The things placed one by one after the ground is laid: the goal post and distance poles, lamp
- * posts on the apron, lily pads, and trees around the outside and in the infield. Random choices
- * are seeded from the position, so the same spot always gets the same course.
+ * posts on the apron, lily pads, and the trees: two rows round the outside with gaps to see through,
+ * the woods on the hills ({@link TrackHills}) and some in the infield. Trees are only chosen here and
+ * grown later, a few at a time. Random choices are seeded from the position, so the same spot always
+ * gets the same course.
  */
 final class TrackScenery {
     /** Poles stand this far inside the surface's inner edge. */
@@ -25,9 +27,15 @@ final class TrackScenery {
     private static final int LAMP_SPACING = 12;
     /** Rows in front of the stand's front wall. */
     private static final double LAMP_FROM_STAND = 2;
-    private static final double TREE_SPACING = 8;
-    /** Outside trees stand this far beyond the surface's outer edge, plus up to 3; infield trees at least this far inside. */
+    /** The two rows outside: how far beyond the surface's outer edge (plus up to 2), and how far apart along them. */
+    private static final double ROW_1 = 7, ROW_2 = 12, TREE_SPACING = 7;
+    /** A gap through both rows every so often, this long. */
+    private static final double GAP_EVERY = 110, GAP = 16;
+    /** Infield trees at least this far inside the surface's inner edge. */
     private static final double TREE_RING = 7;
+    /** Trees on the hills: one chance in each square this wide, better the higher the hill. */
+    private static final int WOOD_GRID = 6;
+    private static final double WOOD_CHANCE = 0.6;
     private static final int INFIELD_TREES = 26;
     private static final double INFIELD_TREE_GAP = 7;
 
@@ -44,14 +52,22 @@ final class TrackScenery {
     private TrackScenery() {
     }
 
-    static void decorate(ServerLevel level, CourseLayout layout, double poleSpacing, List<BlockPos> connect) {
+    /** A tree to grow at a place on the ground, and the seed it grows from. */
+    record Tree(BlockPos pos, ResourceKey<ConfiguredFeature<?, ?>> kind, long seed) {
+    }
+
+    /** Places the poles, lamps, lights and lily pads; returns the trees to grow. */
+    static List<Tree> decorate(ServerLevel level, CourseLayout layout, TrackHills hills, double poleSpacing, List<BlockPos> connect) {
         RandomSource random = RandomSource.create(layout.origin().asLong());
         poles(level, layout, poleSpacing);
         lamps(level, layout, connect);
         floodlights(level, layout);
         lilyPads(level, layout, random);
-        outsideTrees(level, layout, random);
-        infieldTrees(level, layout, random);
+        List<Tree> trees = new ArrayList<>();
+        rows(layout, random, trees);
+        infieldTrees(layout, random, trees);
+        woods(layout, hills, random, trees);
+        return trees;
     }
 
     /** The goal post and the distance poles, counted back from the finish. */
@@ -132,21 +148,49 @@ final class TrackScenery {
         }
     }
 
-    /** A loose ring of trees outside the course, except on the stand's side of the home straight. */
-    private static void outsideTrees(ServerLevel level, CourseLayout layout, RandomSource random) {
+    /**
+     * Two rows of trees outside the course, the second between the first's, except on the stand's side
+     * of the home straight, with gaps through both now and then.
+     */
+    private static void rows(CourseLayout layout, RandomSource random, List<Tree> trees) {
         TrackGeometry track = layout.track();
-        for (double p = 0; p < track.lap(); p += TREE_SPACING) {
-            double along = p + (random.nextDouble() * 2 - 1) * 3;
-            double offset = track.outer() + TREE_RING + random.nextDouble() * 3;
-            TrackGeometry.Point point = track.pointAt(along, offset);
-            if (point.z() > 0 && Math.abs(point.x()) <= track.straight() / 2 + 4)
-                continue;
-            tree(level, layout.world(Mth.floor(point.x()), 1, Mth.floor(point.z())), random);
+        for (double row : new double[] { ROW_1, ROW_2 }) {
+            double start = row == ROW_1 ? 0 : TREE_SPACING / 2;
+            for (double p = start; p < track.lap(); p += TREE_SPACING) {
+                double along = p + (random.nextDouble() * 2 - 1) * 2;
+                double offset = track.outer() + row + random.nextDouble() * 2;
+                if (Math.floorMod((long) along, (long) GAP_EVERY) < GAP)
+                    continue;
+                TrackGeometry.Point point = track.pointAt(along, offset);
+                if (point.z() > 0 && Math.abs(point.x()) <= track.straight() / 2 + 4)
+                    continue;
+                trees.add(new Tree(layout.world(Mth.floor(point.x()), 1, Mth.floor(point.z())), outsideKind(random), random.nextLong()));
+            }
         }
     }
 
+    /** Woods on the hills, thicker where they're higher. */
+    private static void woods(CourseLayout layout, TrackHills hills, RandomSource random, List<Tree> trees) {
+        TrackGeometry track = layout.track();
+        int halfX = Mth.ceil(track.halfLengthX(TrackHills.TO)), halfZ = Mth.ceil(track.halfLengthZ(TrackHills.TO));
+        for (int gi = -halfX; gi < halfX; gi += WOOD_GRID)
+            for (int gk = -halfZ; gk < halfZ; gk += WOOD_GRID) {
+                int i = gi + random.nextInt(WOOD_GRID), k = gk + random.nextInt(WOOD_GRID);
+                int h = hills.height(i, k);
+                if (h < 2 || random.nextDouble() > WOOD_CHANCE * Math.min(1, h / 5.0))
+                    continue;
+                trees.add(new Tree(layout.world(i, h + 1, k), outsideKind(random), random.nextLong()));
+            }
+    }
+
+    /** Outside the course the woods are mostly cedar-like spruce and oak, with some birch and cherry. */
+    private static ResourceKey<ConfiguredFeature<?, ?>> outsideKind(RandomSource random) {
+        float roll = random.nextFloat();
+        return roll < 0.35F ? TreeFeatures.SPRUCE : roll < 0.65F ? TreeFeatures.OAK : roll < 0.8F ? TreeFeatures.BIRCH : TreeFeatures.CHERRY;
+    }
+
     /** Trees scattered over the infield, clear of the pond, the poles and each other. */
-    private static void infieldTrees(ServerLevel level, CourseLayout layout, RandomSource random) {
+    private static void infieldTrees(CourseLayout layout, RandomSource random, List<Tree> trees) {
         TrackGeometry track = layout.track();
         double halfX = track.straight() / 2 + track.radius();
         double halfZ = track.radius();
@@ -164,16 +208,15 @@ final class TrackScenery {
             if (crowded)
                 continue;
             placed.add(new double[] { x, z });
-            tree(level, layout.world(Mth.floor(x), 1, Mth.floor(z)), random);
+            float roll = random.nextFloat();
+            ResourceKey<ConfiguredFeature<?, ?>> kind = roll < 0.5F ? TreeFeatures.OAK : roll < 0.8F ? TreeFeatures.BIRCH : TreeFeatures.CHERRY;
+            trees.add(new Tree(layout.world(Mth.floor(x), 1, Mth.floor(z)), kind, random.nextLong()));
         }
     }
 
-    /** Oak, birch or cherry, grown the way saplings grow them. */
-    private static void tree(ServerLevel level, BlockPos pos, RandomSource random) {
-        float roll = random.nextFloat();
-        ResourceKey<ConfiguredFeature<?, ?>> kind = roll < 0.5F ? TreeFeatures.OAK
-                : roll < 0.8F ? TreeFeatures.BIRCH : TreeFeatures.CHERRY;
-        level.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).getHolder(kind)
-                .ifPresent(feature -> feature.value().place(level, level.getChunkSource().getGenerator(), random, pos));
+    /** Grows a tree the way a sapling would. */
+    static void grow(ServerLevel level, Tree tree) {
+        level.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).getHolder(tree.kind())
+                .ifPresent(feature -> feature.value().place(level, level.getChunkSource().getGenerator(), RandomSource.create(tree.seed()), tree.pos()));
     }
 }

@@ -19,8 +19,8 @@ import net.tracen.umapyoi.utils.Surface;
  */
 public class RacecourseData extends SavedData {
     private static final String NAME = "umapyoi_racecourse";
-    /** Bumped when the course's shape is read differently; an older course counts as unbuilt and gets rebuilt. */
-    private static final int VERSION = 4;
+    /** Bumped when the course's shape is read differently or what is built on it changes; an older course counts as unbuilt and gets rebuilt. */
+    private static final int VERSION = 5;
 
     private boolean built;
     private BlockPos origin = BlockPos.ZERO;

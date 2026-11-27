@@ -26,8 +26,9 @@ import net.tracen.umapyoi.utils.Surface;
 /**
  * Builds a racecourse into a level with vanilla blocks, a slice of columns per tick: striped turf,
  * rails on both sides, a hedge behind the outer rail (flowers by the finish), the apron and the
- * two-tier {@link Grandstand} along the home straight, and a pond in the infield. Then
- * {@link TrackScenery} adds poles, lamps and trees, and a last pass joins fences and panes.
+ * two-tier {@link Grandstand} along the home straight, a pond in the infield and low hills round the
+ * turns ({@link TrackHills}). Then {@link TrackScenery} adds poles, lamps and lights, the trees grow
+ * a few at a time, and a last pass joins fences and panes.
  * It overwrites whatever is there, so it only runs in the race world.
  * <p>
  * {@link #dress} repaints an already built course for one race: the running surface (turf, dirt or
@@ -37,10 +38,16 @@ import net.tracen.umapyoi.utils.Surface;
  */
 @EventBusSubscriber(modid = Umapyoi.MODID)
 public final class TrackBuilder {
-    /** Ground kept around the outer rail, room for the trees. */
-    private static final int MARGIN = 12;
+    /** Ground kept around the outer rail when the course is repainted for a race: room for the rows of trees. */
+    private static final int MARGIN = 16;
     /** Blocks cleared above the ground: enough to clear a stand left by an earlier, differently sized course. */
     private static final int CLEAR_HEIGHT = Grandstand.HEIGHT + 2;
+    /** Beyond the rows of trees, where there may be hills and woods, this high. */
+    private static final int CLEAR_HILLS = 40;
+    /** Trees grown each tick at most. */
+    private static final int TREES_PER_TICK = 12;
+    /** Work stops for the tick after this long, so that the server keeps up. */
+    private static final long TICK_NANOS = 20_000_000L;
     /** Length of each turf stripe along the course. */
     private static final double STRIPE = 4;
     /** Flowers replace the hedge this far either side of the finish line. */
@@ -55,6 +62,10 @@ public final class TrackBuilder {
     private static final BlockState[] DIRT = { Blocks.COARSE_DIRT.defaultBlockState(), Blocks.ROOTED_DIRT.defaultBlockState() };
     private static final BlockState[] SYNTHETIC = { Blocks.BROWN_TERRACOTTA.defaultBlockState(), Blocks.BLACK_TERRACOTTA.defaultBlockState() };
     private static final BlockState GROUND = Blocks.GRASS_BLOCK.defaultBlockState();
+    /** Under a hill's grass, where its steps show: green on every side, and it stays so. */
+    private static final BlockState MOSS = Blocks.MOSS_BLOCK.defaultBlockState();
+    /** Bushes on the hills, one column in this many. */
+    private static final int BUSH_EVERY = 6;
     private static final BlockState SUBSOIL = Blocks.DIRT.defaultBlockState();
     private static final BlockState RAIL = Blocks.BIRCH_FENCE.defaultBlockState();
     private static final BlockState HEDGE = Blocks.OAK_LEAVES.defaultBlockState().setValue(LeavesBlock.PERSISTENT, true);
@@ -148,14 +159,17 @@ public final class TrackBuilder {
         return new TrackGeometry.Point(layout.standMinX() + along + 0.5, track.radius() + layout.standStart() + Grandstand.DEPTH - 2 + 0.5, 180);
     }
 
-    /** The area a course covers, in blocks around its origin: min X, max X (exclusive), min Z, max Z (exclusive). */
-    private static int[] bounds(TrackGeometry track) {
+    /**
+     * The area a course covers, in blocks around its origin: min X, max X (exclusive), min Z, max Z
+     * (exclusive); up to {@code beyond} blocks outside the surface.
+     */
+    private static int[] bounds(TrackGeometry track, double beyond) {
         CourseLayout layout = new CourseLayout(track, BlockPos.ZERO);
         return new int[] {
-                Mth.floor(-track.halfLengthX(MARGIN)),
-                Mth.ceil(track.halfLengthX(MARGIN)),
-                Mth.floor(-track.halfLengthZ(MARGIN)),
-                Math.max(Mth.ceil(track.halfLengthZ(MARGIN)),
+                Mth.floor(-track.halfLengthX(beyond)),
+                Mth.ceil(track.halfLengthX(beyond)),
+                Mth.floor(-track.halfLengthZ(beyond)),
+                Math.max(Mth.ceil(track.halfLengthZ(beyond)),
                         Mth.ceil(track.radius() + layout.standStart() + Grandstand.DEPTH + 3)) };
     }
 
@@ -185,6 +199,8 @@ public final class TrackBuilder {
         private final ServerLevel level;
         private final CourseLayout layout;
         private final TrackGeometry track;
+        @Nullable
+        private final TrackGeometry previous;
         private final double poleSpacing;
         private final IntConsumer onProgress;
         private final Consumer<Result> onDone;
@@ -198,6 +214,9 @@ public final class TrackBuilder {
         private final long startNanos = System.nanoTime();
         /** Fences, panes and walls: they join their neighbours only once those exist. */
         private final List<BlockPos> connect = new ArrayList<>();
+        private final TrackHills hills;
+        private List<TrackScenery.Tree> trees = List.of();
+        private int grown;
         private int i;
         private int k;
         private int phase;
@@ -208,11 +227,13 @@ public final class TrackBuilder {
             this.level = level;
             this.layout = layout;
             this.track = layout.track();
+            this.previous = previous;
             this.poleSpacing = poleSpacing;
             this.onProgress = onProgress;
             this.onDone = onDone;
-            this.own = bounds(track);
-            int[] old = previous == null ? own : bounds(previous);
+            this.hills = new TrackHills(layout);
+            this.own = bounds(track, TrackHills.TO);
+            int[] old = previous == null ? own : bounds(previous, TrackHills.TO);
             this.minX = Math.min(own[0], old[0]);
             this.maxX = Math.max(own[1], old[1]);
             this.minZ = Math.min(own[2], old[2]);
@@ -223,9 +244,10 @@ public final class TrackBuilder {
 
         @Override
         public boolean step(int budget) {
+            long until = System.nanoTime() + TICK_NANOS;
             switch (phase) {
                 case 0 -> {
-                    for (int done = 0; done < budget && i < maxX; done++) {
+                    for (int done = 0; done < budget && i < maxX && (done % 64 != 0 || System.nanoTime() < until); done++) {
                         column(i, k);
                         if (++k >= maxZ) {
                             k = minZ;
@@ -242,9 +264,16 @@ public final class TrackBuilder {
                     return false;
                 }
                 case 1 -> {
-                    TrackScenery.decorate(level, layout, poleSpacing, connect);
+                    trees = TrackScenery.decorate(level, layout, hills, poleSpacing, connect);
                     TrackScreens.build(level, layout);
                     phase = 2;
+                    return false;
+                }
+                case 2 -> {
+                    for (int n = 0; n < TREES_PER_TICK && grown < trees.size() && System.nanoTime() < until; n++)
+                        TrackScenery.grow(level, trees.get(grown++));
+                    if (grown >= trees.size())
+                        phase = 3;
                     return false;
                 }
                 default -> {
@@ -274,6 +303,11 @@ public final class TrackBuilder {
 
             BlockState surface = GROUND;
             BlockState above = null;
+            int hill = hills.height(i, k);
+            if (hill > 0) {
+                hill(i, k, hill);
+                return;
+            }
             if (track.onSurface(d)) {
                 surface = surfaceBlock(track, spot, Surface.TURF);
             } else if (isRail(track, i, k, d)) {
@@ -294,10 +328,31 @@ public final class TrackBuilder {
 
             place(level, layout.world(i, -1, k), SUBSOIL);
             place(level, layout.world(i, 0, k), surface);
-            for (int h = 1; h <= CLEAR_HEIGHT; h++)
+            for (int h = 1; h <= clearTo(x, z, d); h++)
                 place(level, layout.world(i, h, k), h == 1 && above != null ? above : AIR);
             if (above == RAIL)
                 connect.add(layout.world(i, 1, k));
+        }
+
+        /** How high to clear: higher beyond the rows of trees, this course's or the one before. */
+        private int clearTo(double x, double z, double d) {
+            boolean near = d < track.outer() + MARGIN
+                    && (previous == null || previous.locate(x, z).offset() < previous.outer() + MARGIN);
+            return near ? CLEAR_HEIGHT : CLEAR_HILLS;
+        }
+
+        /** A hill's column: earth up to its height, moss where the steps show, grass on top, now and then a bush. */
+        private void hill(int i, int k, int height) {
+            int lowest = height;
+            for (int[] n : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
+                lowest = Math.min(lowest, hills.height(i + n[0], k + n[1]));
+            int bush = Math.floorMod(i * 73_856_093 ^ k * 19_349_663, BUSH_EVERY * 4);
+            int bushTop = bush < 4 ? height + (bush == 0 ? 2 : 1) : height;
+            place(level, layout.world(i, -1, k), SUBSOIL);
+            for (int h = 0; h <= CLEAR_HILLS; h++) {
+                BlockState state = h < lowest ? SUBSOIL : h < height ? MOSS : h == height ? GROUND : h <= bushTop ? HEDGE : AIR;
+                place(level, layout.world(i, h, k), state);
+            }
         }
 
         private void stand(int i, int k, int row, int along) {
@@ -395,7 +450,7 @@ public final class TrackBuilder {
             this.poleSpacing = poleSpacing;
             this.onProgress = onProgress;
             this.onDone = onDone;
-            int[] own = bounds(track);
+            int[] own = bounds(track, MARGIN);
             this.minX = own[0];
             this.maxX = own[1];
             this.minZ = own[2];
