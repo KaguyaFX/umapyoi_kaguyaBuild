@@ -22,6 +22,7 @@ import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.UmaSkillRegistry;
+import net.tracen.umapyoi.registry.races.Race;
 import net.tracen.umapyoi.registry.umadata.Motivations;
 import net.tracen.umapyoi.registry.umadata.UmaDataBasicStatus;
 import net.tracen.umapyoi.registry.umadata.UmaDataSkills;
@@ -122,6 +123,15 @@ public class ModifyUmaSoul {
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
                                         List.of("untrained", "trained", "retired"), builder
                                 )).executes(ctx -> setGrowth(k, ctx))
+                ),
+                // For trying races out: a soul that has debuted, and one that has passed a race (won it for
+                // real, as a race asked for first needs: URA Finals for the zodiac cups).
+                Commands.literal("debut").executes(ctx -> setDebut(k, ctx)),
+                Commands.literal("pass").then(
+                        Commands.argument("race", ResourceLocationArgument.id())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggestResource(
+                                        ctx.getSource().registryAccess().registryOrThrow(Race.REGISTRY_KEY).keySet(), builder
+                                )).executes(ctx -> pass(k, ctx))
                 ),
                 Commands.literal("motivation").then(
                         Commands.argument("motivation", StringArgumentType.word())
@@ -524,6 +534,44 @@ public class ModifyUmaSoul {
         player.getInventory().setChanged();
         player.inventoryMenu.broadcastChanges();
 
+        ctx.getSource().sendSuccess(() -> Component.translatable("umapyoi.command.modify.success", playerName, Component.translatable("umapyoi.command.part." + typeString.get())), true);
+        return 1;
+    }
+
+    public static int setDebut(String mode, CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return change(mode, ctx, soul -> {
+            Race.setDebut(soul);
+            return true;
+        });
+    }
+
+    public static int pass(String mode, CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ResourceLocation race = ResourceLocationArgument.getId(ctx, "race");
+        if (!ctx.getSource().registryAccess().registryOrThrow(Race.REGISTRY_KEY).containsKey(race)) {
+            ctx.getSource().sendFailure(Component.translatable("tooltip.umapyoi.race.unavailable.invalid"));
+            return 0;
+        }
+        return change(mode, ctx, soul -> {
+            Race.pass(soul, race);
+            return true;
+        });
+    }
+
+    /** Changes the soul the mode picks and says so, as the other changes do. */
+    private static int change(String mode, CommandContext<CommandSourceStack> ctx, java.util.function.Predicate<ItemStack> change) throws CommandSyntaxException {
+        ServerPlayer player;
+        try {
+            player = EntityArgument.getPlayer(ctx, "player");
+        } catch (IllegalArgumentException e) {
+            player = ctx.getSource().getPlayer();
+        }
+        Component playerName = player.getName();
+        AtomicReference<String> typeString = new AtomicReference<>();
+        ItemStack soul = getItemStackByMode(mode, player, ctx.getSource()::sendFailure, typeString::set);
+        if (soul == null || !change.test(soul))
+            return 0;
+        player.getInventory().setChanged();
+        player.inventoryMenu.broadcastChanges();
         ctx.getSource().sendSuccess(() -> Component.translatable("umapyoi.command.modify.success", playerName, Component.translatable("umapyoi.command.part." + typeString.get())), true);
         return 1;
     }
