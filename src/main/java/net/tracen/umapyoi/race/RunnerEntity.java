@@ -42,6 +42,14 @@ public class RunnerEntity extends LivingEntity {
     /** The skill she used last, and when (the level's game time). */
     private static final EntityDataAccessor<String> SKILL = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> SKILL_AT = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.INT);
+    /** Which way she faces when she isn't going anywhere (NaN: along the course). */
+    private static final EntityDataAccessor<Float> FACING = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.FLOAT);
+    /** Sitting on a bench. */
+    private static final EntityDataAccessor<Boolean> SEATED = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.BOOLEAN);
+    /** How far she has turned her head from where she faces, in degrees. */
+    private static final EntityDataAccessor<Float> LOOK = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.FLOAT);
+    /** Seated, she is this much lower, so that she sits on a bench's seat (half a block up). */
+    private static final double SEAT_DROP = -0.25;
     /** Her stall's number in the race being held; 0 for none. */
     private static final EntityDataAccessor<Integer> GATE = SynchedEntityData.defineId(RunnerEntity.class, EntityDataSerializers.INT);
     /** How long a skill she used shows over her head. */
@@ -64,6 +72,9 @@ public class RunnerEntity extends LivingEntity {
     // What this client shows.
     private double shownProgress = Double.NaN;
     private double shownOffset;
+    private float shownLook;
+    /** How much of the way to where she looks her head turns each tick. */
+    private static final float LOOK_TURN = 0.12F;
 
     public RunnerEntity(EntityType<? extends RunnerEntity> type, Level level) {
         super(type, level);
@@ -83,6 +94,9 @@ public class RunnerEntity extends LivingEntity {
         builder.define(SKILL, "");
         builder.define(SKILL_AT, Integer.MIN_VALUE / 2);
         builder.define(GATE, 0);
+        builder.define(FACING, Float.NaN);
+        builder.define(SEATED, false);
+        builder.define(LOOK, 0F);
     }
 
     // ---- told by the race (server)
@@ -127,6 +141,22 @@ public class RunnerEntity extends LivingEntity {
         return SKILL_SHOWN - (int) (level().getGameTime() - entityData.get(SKILL_AT));
     }
 
+    /** Stays at a place, facing one way, standing or seated. */
+    void still(double progress, double offset, float facing, boolean seated) {
+        entityData.set(FACING, facing);
+        entityData.set(SEATED, seated);
+        show(progress, offset, 0);
+    }
+
+    /** Turns her head this far from where she faces. */
+    void look(float degrees) {
+        entityData.set(LOOK, degrees);
+    }
+
+    public boolean seated() {
+        return entityData.get(SEATED);
+    }
+
     void show(double progress, double offset, double speed) {
         entityData.set(PROGRESS, (float) progress);
         entityData.set(OFFSET, (float) offset);
@@ -150,10 +180,13 @@ public class RunnerEntity extends LivingEntity {
         if (track == null)
             return;
         TrackGeometry.Point point = track.pointAt(track.wrap(progress), offset);
-        setPos(origin.getX() + point.x(), origin.getY() + 1, origin.getZ() + point.z());
-        setYRot(point.yaw());
-        setYHeadRot(point.yaw());
-        setYBodyRot(point.yaw());
+        setPos(origin.getX() + point.x(), origin.getY() + 1 + (seated() ? SEAT_DROP : 0), origin.getZ() + point.z());
+        float facing = entityData.get(FACING);
+        float yaw = Float.isNaN(facing) ? point.yaw() : facing;
+        setYRot(yaw);
+        setYBodyRot(yaw);
+        shownLook += (entityData.get(LOOK) - shownLook) * LOOK_TURN;
+        setYHeadRot(yaw + shownLook);
     }
 
     @Override
@@ -207,6 +240,12 @@ public class RunnerEntity extends LivingEntity {
         TrackGeometry.Point out = track.pointAt(spot.progress(), spot.offset() + 1);
         double push = (SHOULDER - Math.abs(across)) * PUSH * (across < 0 ? -1 : 1);
         player.push((out.x() - in.x()) * push, 0, (out.z() - in.z()) * push);
+    }
+
+    /** Her body goes where she's put, not after her head. */
+    @Override
+    protected float tickHeadTurn(float yRot, float animStep) {
+        return animStep;
     }
 
     @Override

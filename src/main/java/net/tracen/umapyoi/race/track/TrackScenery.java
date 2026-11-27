@@ -17,7 +17,7 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 /**
  * The things placed one by one after the ground is laid: the goal post and distance poles, lamp
  * posts on the apron, lily pads, and the trees: two rows round the outside with gaps to see through,
- * the woods on the hills ({@link TrackHills}) and some in the infield. Trees are only chosen here and
+ * the woods on the hills ({@link TrackHills}), some in the infield and a cherry tree in the paddock. Trees are only chosen here and
  * grown later, a few at a time. Random choices are seeded from the position, so the same spot always
  * gets the same course.
  */
@@ -66,6 +66,8 @@ final class TrackScenery {
         List<Tree> trees = new ArrayList<>();
         rows(layout, random, trees);
         infieldTrees(layout, random, trees);
+        TrackGeometry.Point tree = TrackPaddock.tree(layout.track());
+        trees.add(new Tree(layout.world(Mth.floor(tree.x()), 1, Mth.floor(tree.z())), TreeFeatures.CHERRY, random.nextLong()));
         woods(layout, hills, random, trees);
         return trees;
     }

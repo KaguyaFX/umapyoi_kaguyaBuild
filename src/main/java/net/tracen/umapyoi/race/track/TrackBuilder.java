@@ -8,12 +8,14 @@ import java.util.function.IntConsumer;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -80,6 +82,7 @@ public final class TrackBuilder {
     private static final BlockState WAY = Blocks.POLISHED_ANDESITE.defaultBlockState();
     /** Unseen, so the paddock can be seen at night. */
     private static final BlockState PADDOCK_LIGHT = Blocks.LIGHT.defaultBlockState();
+    private static final BlockState BENCH = Blocks.SPRUCE_STAIRS.defaultBlockState();
     private static final BlockState[] FLOWERS = {
             Blocks.POPPY.defaultBlockState(), Blocks.DANDELION.defaultBlockState(),
             Blocks.PINK_TULIP.defaultBlockState(), Blocks.CORNFLOWER.defaultBlockState(),
@@ -351,6 +354,8 @@ public final class TrackBuilder {
 
         /** A column of the paddock. */
         private void paddock(int i, int k, TrackPaddock.Part part) {
+            double x = i + 0.5, z = k + 0.5;
+            Direction bench = part == TrackPaddock.Part.LAWN ? TrackPaddock.bench(track, x, z) : null;
             int top = switch (part) {
                 case STEP_1 -> 1;
                 case STEP_2 -> 2;
@@ -371,7 +376,9 @@ public final class TrackBuilder {
                     state = surface;
                 else if (h == 1 && part == TrackPaddock.Part.RAIL)
                     state = RAIL;
-                else if (h == 1 && part == TrackPaddock.Part.LAWN && Math.floorMod(i * 31 + k * 17, 23) == 0)
+                else if (h == 1 && bench != null)
+                    state = BENCH.setValue(StairBlock.FACING, bench);
+                else if (h == 1 && part == TrackPaddock.Part.LAWN && Math.floorMod(i * 31 + k * 17, 23) == 0 && TrackPaddock.clear(track, x, z))
                     state = FLOWERS[Math.floorMod(i * 7 + k * 3, FLOWERS.length)];
                 else if (h == 4 && part == TrackPaddock.Part.PATH && Math.floorMod(i, 6) == 0 && Math.floorMod(k, 6) == 0)
                     state = PADDOCK_LIGHT;

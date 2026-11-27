@@ -64,6 +64,13 @@ public class RunnerRenderer extends LivingEntityRenderer<RunnerEntity, PlayerMod
                     skill, entity.skillTicksLeft());
     }
 
+    /** Seated, the figure takes the pose of one riding, which the Umamusume's model copies. */
+    @Override
+    protected void scale(RunnerEntity entity, PoseStack poseStack, float partialTick) {
+        super.scale(entity, poseStack, partialTick);
+        this.model.riding = entity.seated();
+    }
+
     /** Not on a figure that is only looked at in a menu. */
     @Override
     protected boolean shouldShowName(RunnerEntity entity) {

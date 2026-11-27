@@ -102,7 +102,7 @@ public final class RaceMeeting {
     /** Runners arrive this many blocks before the line. */
     private static final double ARRIVE_BEFORE_LINE = 14;
     /** How fast the runners walk round the paddock, blocks a second. */
-    private static final double PADDOCK_WALK = 1.3;
+    private static final double PADDOCK_WALK = 1.0;
 
     /** A stall: a computer runner, or the player who took her place. */
     private static final class Slot {
@@ -152,8 +152,10 @@ public final class RaceMeeting {
     private int age;
     /** The runners are on their way to the stalls; the players are in them. */
     private boolean called;
-    /** The computer runners walking round the paddock before the call to the stalls, by lane. */
+    /** The computer runners in the paddock before the call to the stalls, by lane. */
     private final Map<Integer, RunnerEntity> walkers = new HashMap<>();
+    /** What each of them does there, by lane. */
+    private final Map<Integer, Role> roles = new HashMap<>();
     private boolean loaded;
     private boolean awarded;
     /** The result, once it's announced. */
@@ -545,9 +547,16 @@ public final class RaceMeeting {
         }
     }
 
+    /** What a computer runner does in the paddock: walks (alone or beside another), sits or stands. */
+    private record Role(boolean walking, double share, double offset, @Nullable TrackPaddock.Spot spot) {
+    }
+
     /**
-     * The computer runners walk round the paddock in their stalls' order, the players' places left
-     * free in the line; a player who takes a runner's place takes hers in the paddock too.
+     * The computer runners in the paddock: a few walk round the ring, in pairs side by side or alone,
+     * the others sit on the benches or stand about in twos and threes, and turn their heads now and
+     * then. Who does what is drawn when they first come out; a runner who comes back when a player
+     * gives up her place sits or stands wherever there's room. A player who takes a runner's place
+     * takes her out of the paddock, and does as they like.
      */
     private void parade() {
         RacecourseData data = RacecourseData.get(level);
@@ -555,22 +564,15 @@ public final class RaceMeeting {
         if (track == null)
             return;
         TrackGeometry ring = TrackPaddock.ring();
-        TrackGeometry.Point centre = TrackPaddock.centre(track);
-        BlockPos at = data.origin().offset(Mth.floor(centre.x()), 0, Mth.floor(centre.z()));
-        List<Slot> walking = slots.stream().filter(slot -> !slot.scratched).sorted((a, b) -> Integer.compare(a.lane, b.lane)).toList();
+        BlockPos at = TrackPaddock.ringOrigin(track, data.origin());
+        List<Slot> computers = slots.stream().filter(slot -> !slot.scratched && slot.player == null).toList();
+        if (roles.isEmpty() && !computers.isEmpty())
+            castRoles(computers);
         double gone = PADDOCK_WALK * age / 20.0;
-        for (int n = 0; n < walking.size(); n++) {
-            Slot slot = walking.get(n);
+        for (Slot slot : computers) {
+            Role role = roles.computeIfAbsent(slot.lane, lane -> spareRole());
             RunnerEntity walker = walkers.get(slot.lane);
-            if (slot.player != null) {
-                if (walker != null) {
-                    walker.discard();
-                    walkers.remove(slot.lane);
-                }
-                continue;
-            }
-            // The ring goes the other way round from the place one stands in front of: back to front.
-            double progress = ring.lap() * (1 - (double) n / walking.size()) + gone;
+            double progress = ring.lap() * role.share() + (role.walking() ? gone : 0);
             if (walker == null) {
                 walker = RaceEntities.RUNNER.get().create(level);
                 if (walker == null)
@@ -579,24 +581,94 @@ public final class RaceMeeting {
                 walker.setCustomName(UmaSoulUtils.getTranslatedUmaName(slot.soul));
                 walker.setCustomNameVisible(true);
                 walker.gate(slot.lane + 1);
-                walker.show(progress, ring.middle(), PADDOCK_WALK);
+                if (role.walking())
+                    walker.show(progress, role.offset(), PADDOCK_WALK);
+                else {
+                    TrackGeometry.Spot spot = ring.locate(role.spot().x(), role.spot().z());
+                    walker.still(spot.progress(), spot.offset(), role.spot().yaw(), role.spot().seat());
+                }
                 level.addFreshEntity(walker);
                 walkers.put(slot.lane, walker);
-            } else if (age % 20 == 0) {
-                walker.show(progress, ring.middle(), PADDOCK_WALK);
+            } else if (role.walking() && age % 20 == 0) {
+                walker.show(progress, role.offset(), PADDOCK_WALK);
+            }
+            // Now and then she looks somewhere else, or back ahead.
+            if (level.getRandom().nextInt(LOOK_EVERY) == 0) {
+                float reach = role.walking() ? 25 : 55;
+                walker.look(level.getRandom().nextFloat() < 0.4F ? 0 : (level.getRandom().nextFloat() * 2 - 1) * reach);
             }
         }
         for (Integer lane : List.copyOf(walkers.keySet()))
-            if (walking.stream().noneMatch(slot -> slot.lane == lane)) {
-                walkers.get(lane).discard();
-                walkers.remove(lane);
+            if (computers.stream().noneMatch(slot -> slot.lane == lane)) {
+                walkers.remove(lane).discard();
+                roles.remove(lane);
             }
+    }
+
+    /** Ticks between a runner's looks, on average. */
+    private static final int LOOK_EVERY = 100;
+
+    /** Who walks, who sits and who stands, by lot: about a quarter walk, half the rest sit. */
+    private void castRoles(List<Slot> computers) {
+        RandomSource random = level.getRandom();
+        List<Slot> lot = new ArrayList<>(computers);
+        java.util.Collections.shuffle(lot, new java.util.Random(random.nextLong()));
+        int n = lot.size();
+        int walking = Math.min(5, Math.max(1, Math.round(n * 0.28F)));
+        int sitting = Math.round((n - walking) * 0.55F);
+        // The walkers in pairs side by side, one alone if they're odd, spread round the ring.
+        int units = walking / 2 + walking % 2;
+        int next = 0;
+        for (int u = 0; u < units; u++) {
+            double share = (double) u / units;
+            boolean pair = u < walking / 2;
+            roles.put(lot.get(next++).lane, new Role(true, share, pair ? 0 : 0.5, null));
+            if (pair)
+                roles.put(lot.get(next++).lane, new Role(true, share, 1, null));
+        }
+        List<TrackPaddock.Spot> seats = new ArrayList<>(TrackPaddock.seats());
+        java.util.Collections.shuffle(seats, new java.util.Random(random.nextLong()));
+        for (int i = 0; i < sitting && next < n; i++)
+            roles.put(lot.get(next++).lane, new Role(false, 0, 0, seats.get(i)));
+        // Those standing fill whole groups where they can, so that nobody stands chatting to no one.
+        List<List<TrackPaddock.Spot>> groups = new ArrayList<>(TrackPaddock.groups());
+        java.util.Collections.shuffle(groups, new java.util.Random(random.nextLong()));
+        groups.sort((a, b) -> Integer.compare(b.size(), a.size()));
+        for (List<TrackPaddock.Spot> group : groups) {
+            int left = n - next;
+            if (left <= 0)
+                break;
+            if (group.size() > left && left == 1 && groups.stream().anyMatch(g -> g.size() == 1))
+                continue;
+            for (TrackPaddock.Spot spot : group)
+                if (next < n)
+                    roles.put(lot.get(next++).lane, new Role(false, 0, 0, spot));
+        }
+        // Should there be more than places to stand, the rest find a seat.
+        for (int i = sitting; next < n && i < seats.size(); i++)
+            roles.put(lot.get(next++).lane, new Role(false, 0, 0, seats.get(i)));
+        while (next < n)
+            roles.put(lot.get(next++).lane, new Role(true, random.nextDouble(), 0.5, null));
+    }
+
+    /** For a runner who comes back to the paddock later: a free seat, a free place to stand, or a walk. */
+    private Role spareRole() {
+        List<TrackPaddock.Spot> taken = roles.values().stream().map(Role::spot).filter(java.util.Objects::nonNull).toList();
+        for (TrackPaddock.Spot seat : TrackPaddock.seats())
+            if (!taken.contains(seat))
+                return new Role(false, 0, 0, seat);
+        for (List<TrackPaddock.Spot> group : TrackPaddock.groups())
+            for (TrackPaddock.Spot spot : group)
+                if (!taken.contains(spot))
+                    return new Role(false, 0, 0, spot);
+        return new Role(true, level.getRandom().nextDouble(), 0.5, null);
     }
 
     private void endParade() {
         for (RunnerEntity walker : walkers.values())
             walker.discard();
         walkers.clear();
+        roles.clear();
     }
 
     private void sendToTrack(ServerPlayer player) {
