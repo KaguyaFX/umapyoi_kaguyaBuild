@@ -25,7 +25,9 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * <ul>
  * <li>A good moment: a speed skill when nobody holds her up and no speed skill is running yet, one that
  * gives stamina back when she is below half, a hindering one in the final leg when someone is within reach
- * (earlier the field is bunched up and it would go off at every turn).</li>
+ * (earlier the field is bunched up and it would go off at every turn). A speed skill that may be used at
+ * any time is kept for the final leg, where races are won (used early it only burns her points).</li>
+ * <li>Before the final leg she keeps enough points for the dearest speed skill she can use in it.</li>
  * <li>Wisdom decides how quickly she takes a good moment, from a second and a half or so (G) to about a
  * quarter of a second (S), and how often she wastes a skill at a bad one.</li>
  * </ul>
@@ -44,6 +46,8 @@ final class RaceAiSkills {
     private static final int DULLEST = 1, SHARPEST = 15;
 
     private final List<Usable> skills = new ArrayList<>();
+    /** Points kept before the final leg: what the dearest speed skill she can use in it costs. */
+    private final int reserve;
     /** 0 for wisdom G, 1 for S and above. */
     private final double sharp;
     private final double max;
@@ -62,6 +66,7 @@ final class RaceAiSkills {
             String name = id.getPath();
             skills.add(new Usable(id, active, skill.getActionPoint(), REST.contains(name) ? Kind.REST : HINDER.contains(name) ? Kind.HINDER : Kind.SPEED));
         }
+        this.reserve = skills.stream().filter(RaceAiSkills::forTheFinish).mapToInt(Usable::cost).max().orElse(0);
         int wisdom = UmaSoulUtils.getProperty(soul).wisdom();
         this.sharp = Mth.clamp((wisdom - DULLEST) / (double) (SHARPEST - DULLEST), 0, 1);
         this.max = UmaSoulUtils.getMaxActionPoint(soul);
@@ -82,10 +87,14 @@ final class RaceAiSkills {
             return null;
         double take = 0.03 + 0.17 * sharp;
         double waste = 0.004 * (1 - sharp);
+        boolean late = late(user.runner());
         for (Usable skill : skills) {
             if (points < skill.cost() || readyAt.getOrDefault(skill.id(), 0) > ticks || !skill.active().when().holds(user))
                 continue;
-            if (random.nextDouble() >= (good(skill.kind(), user) ? take : waste))
+            // Before the final leg, nothing that would leave too little for it.
+            if (!late && !forTheFinish(skill) && points - skill.cost() < reserve)
+                continue;
+            if (random.nextDouble() >= (good(skill, user, late) ? take : waste))
                 continue;
             points -= skill.cost();
             readyAt.put(skill.id(), ticks + Math.max(20, skill.active().effect().apply(user)));
@@ -94,13 +103,23 @@ final class RaceAiSkills {
         return null;
     }
 
-    private static boolean good(Kind kind, RaceSkills.User user) {
+    private static boolean good(Usable skill, RaceSkills.User user, boolean late) {
         RaceRunner runner = user.runner();
-        return switch (kind) {
-            case SPEED -> runner.heldTicks() == 0 && runner.boosts().speedLevel() == 0 && !runner.exhausted();
+        return switch (skill.kind()) {
+            case SPEED -> runner.heldTicks() == 0 && runner.boosts().speedLevel() == 0 && !runner.exhausted()
+                    && (late || skill.active().when() != RaceSkills.When.ANY);
             case REST -> runner.staminaFraction() < 0.5;
-            case HINDER -> (runner.phase() == RacePhase.FINAL || runner.phase() == RacePhase.LAST_SPURT) && user.near(RaceSkills.REACH) > 0;
+            case HINDER -> late && user.near(RaceSkills.REACH) > 0;
         };
+    }
+
+    private static boolean late(RaceRunner runner) {
+        return runner.phase() == RacePhase.FINAL || runner.phase() == RacePhase.LAST_SPURT;
+    }
+
+    /** A speed skill she can use in the final leg (any but the mid-race ones). */
+    private static boolean forTheFinish(Usable skill) {
+        return skill.kind() == Kind.SPEED && skill.active().when() != RaceSkills.When.MIDDLE;
     }
 
     // ---- what they get
