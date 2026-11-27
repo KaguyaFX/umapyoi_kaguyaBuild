@@ -15,6 +15,7 @@ import net.minecraft.world.level.Level;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.career.CareerState;
+import net.tracen.umapyoi.career.UmaCareerData;
 import net.tracen.umapyoi.item.ItemRegistry;
 import net.tracen.umapyoi.item.data.DataComponentsTypeRegistry;
 import net.tracen.umapyoi.registry.races.field.RaceField;
@@ -185,18 +186,21 @@ public class Race {
 
         UmaRaceHistory hist = stack.getOrDefault(DataComponentsTypeRegistry.UMA_RACE_HISTORY, UmaRaceHistory.DEFAULT);
         int last = hist.lastAttendTime();
-        // Only a soul in its three-year career keeps to the race calendar.
-        // Any other soul (automatic training, career over, retired) may run every race, and run it again.
+        // Only a soul in its three-year career keeps to the calendar, and the calendar is its career's:
+        // a race whose every year has gone by in the career is closed. Any race still ahead may be run
+        // whenever one likes, again and again, and running one closes nothing. Any other soul (automatic
+        // training, career over, retired) may run every race.
         if (this.exclusive && keepsToCalendar(stack)) {
-            boolean canAttend = false;
+            int now = careerDate(stack);
+            boolean ahead = false;
             for (Year year: this.year) {
-                if (last < year.ordinal() * 24 + this.time) {
-                    canAttend = true;
+                if (year.ordinal() * 24 + this.time >= now) {
+                    ahead = true;
                     break;
                 }
             }
-            if (!canAttend)
-                return Component.translatable("tooltip.umapyoi.race.unavailable.time_passed", describeRaceTime(last));
+            if (!ahead)
+                return Component.translatable("tooltip.umapyoi.race.unavailable.time_passed", describeRaceTime(now));
         }
         if (!this.afterRace.isEmpty()) {
             Map<ResourceLocation, Integer> attended = hist.attended();
@@ -234,9 +238,16 @@ public class Race {
         return null;
     }
 
-    /** Whether races this soul has passed in the calendar are closed to it. */
+    /** Whether races this soul's career has gone past are closed to it. */
     public static boolean keepsToCalendar(ItemStack stack) {
-        return stack.get(DataComponentsTypeRegistry.CAREER_STATE) == CareerState.IN_CAREER;
+        return stack.get(DataComponentsTypeRegistry.CAREER_STATE) == CareerState.IN_CAREER
+                && stack.get(DataComponentsTypeRegistry.CAREER_DATA) != null;
+    }
+
+    /** Where a soul's three-year career is, on the race calendar (11 = Junior, early June, to 72). */
+    private static int careerDate(ItemStack stack) {
+        UmaCareerData career = stack.get(DataComponentsTypeRegistry.CAREER_DATA);
+        return career == null ? 0 : career.periodIndex();
     }
 
     private static String soulStatus(ItemStack stack) {
