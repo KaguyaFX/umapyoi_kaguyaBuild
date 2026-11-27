@@ -44,8 +44,12 @@ public final class RacePanorama {
     /** Degrees above and below the horizon the picture's top and bottom are. */
     private static final float TOP = 33.75F, BOTTOM = 11.25F;
     private static final int AROUND = 96, BANDS = 12;
-    /** How far the picture is: any distance, as nothing is in front of or behind it in depth. */
-    private static final float RADIUS = 10;
+    /**
+     * How far the picture is, as a share of the farthest the camera sees. Nothing is in front of or
+     * behind it in depth, but view bobbing moves the eye a little: the farther the picture, the less
+     * it moves against the land in front of it.
+     */
+    private static final float FAR_SHARE = 0.5F;
     /** How much it takes the fog's colour. */
     private static final float TINT = 0.3F;
     /**
@@ -83,12 +87,13 @@ public final class RacePanorama {
         RenderSystem.disableDepthTest();
         RenderSystem.disableCull();
         RenderSystem.defaultBlendFunc();
-        draw(m, TEXTURE, r, g, b, 1);
+        float radius = minecraft.gameRenderer.getDepthFar() * FAR_SHARE;
+        draw(m, TEXTURE, radius, r, g, b, 1);
         // The lights come on from dusk, as bright as they are drawn, added on top.
         float dark = Math.clamp((LIGHTS_FROM - light) / (LIGHTS_FROM - LIGHTS_FULL), 0, 1);
         if (dark > 0 && hasLights()) {
             RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-            draw(m, LIGHTS, 1, 1, 1, dark);
+            draw(m, LIGHTS, radius, 1, 1, 1, dark);
             RenderSystem.defaultBlendFunc();
         }
         RenderSystem.enableCull();
@@ -97,17 +102,17 @@ public final class RacePanorama {
         RenderSystem.disableBlend();
     }
 
-    private static void draw(Matrix4f m, ResourceLocation texture, float r, float g, float b, float a) {
+    private static void draw(Matrix4f m, ResourceLocation texture, float radius, float r, float g, float b, float a) {
         RenderSystem.setShaderTexture(0, texture);
         BufferBuilder to = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         for (int i = 0; i < AROUND; i++) {
             float u0 = (float) i / AROUND, u1 = (float) (i + 1) / AROUND;
             for (int j = 0; j < BANDS; j++) {
                 float v0 = (float) j / BANDS, v1 = (float) (j + 1) / BANDS;
-                vertex(to, m, u0, v0, r, g, b, a);
-                vertex(to, m, u0, v1, r, g, b, a);
-                vertex(to, m, u1, v1, r, g, b, a);
-                vertex(to, m, u1, v0, r, g, b, a);
+                vertex(to, m, radius, u0, v0, r, g, b, a);
+                vertex(to, m, radius, u0, v1, r, g, b, a);
+                vertex(to, m, radius, u1, v1, r, g, b, a);
+                vertex(to, m, radius, u1, v0, r, g, b, a);
             }
         }
         BufferUploader.drawWithShader(to.buildOrThrow());
@@ -135,12 +140,12 @@ public final class RacePanorama {
      * A point of the picture: across from north round by east, down from its top. Rows are evenly
      * spaced in angle, so a mountain is as tall in the game as it's drawn.
      */
-    private static void vertex(BufferBuilder to, Matrix4f m, float u, float v, float r, float g, float b, float a) {
+    private static void vertex(BufferBuilder to, Matrix4f m, float radius, float u, float v, float r, float g, float b, float a) {
         double bearing = u * Math.PI * 2;
         double elevation = Math.toRadians(TOP - v * (TOP + BOTTOM));
-        float x = (float) (Math.sin(bearing) * RADIUS);
-        float z = (float) (-Math.cos(bearing) * RADIUS);
-        float y = (float) (Math.tan(elevation) * RADIUS);
+        float x = (float) (Math.sin(bearing) * radius);
+        float z = (float) (-Math.cos(bearing) * radius);
+        float y = (float) (Math.tan(elevation) * radius);
         to.addVertex(m, x, y, z).setUv(u, v).setColor(r, g, b, a);
     }
 }
