@@ -17,6 +17,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexSorting;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -521,16 +522,27 @@ public final class RaceScreenRenderer {
             text(text, right - width(text), y, argb, false);
         }
 
-        /** A runner's number on her bracket's colour: doubled when it fits. */
+        /**
+         * A runner's number on her bracket's colour. Big ones are doubled; two digits don't fit doubled,
+         * so they are only made as tall, in bold to keep the strokes as thick: narrower, the same size.
+         */
         void chip(int x, int y, int w, int h, int gate, int field, boolean small) {
             rect(x, y, w, h, RaceArt.bracketColor(gate, field));
             Component number = Component.literal(String.valueOf(gate));
             int color = RaceArt.bracketTextColor(gate, field);
-            boolean big = !small && h >= 16 && width(number) * 2 <= w - 2;
-            if (big)
-                text(number, x + (w - width(number) * 2) / 2 + 1, y + (h - 16) / 2 + 1, color, true);
-            else
+            if (small || h < 16) {
                 text(number, x + (w - width(number)) / 2 + 1, y + (h - 8) / 2 + 1, color, false);
+            } else if (gate < 10) {
+                text(number, x + (w - width(number) * 2) / 2 + 1, y + (h - 16) / 2 + 1, color, true);
+            } else {
+                Component bold = number.copy().withStyle(ChatFormatting.BOLD);
+                PoseStack pose = graphics.pose();
+                pose.pushPose();
+                pose.translate(x + (w - width(bold) + 1) / 2, y + (h - 16) / 2 + 1, 0);
+                pose.scale(1, 2, 1);
+                graphics.drawString(font, bold, 0, 0, color, false);
+                pose.popPose();
+            }
         }
 
         /**
