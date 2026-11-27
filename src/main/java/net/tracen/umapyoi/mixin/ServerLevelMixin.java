@@ -4,6 +4,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.minecraft.server.level.ServerLevel;
 import net.tracen.umapyoi.race.RaceWorld;
@@ -21,5 +22,16 @@ public class ServerLevelMixin {
             level.setRainLevel(0);
         level.setThunderLevel(0);
         ci.cancel();
+    }
+
+    /**
+     * The race world is flat, whatever the overworld is. Players are told so when they arrive; otherwise,
+     * standing on ground near the bottom of the world, they see the sky and fog darken towards the
+     * horizon as if they were by the void.
+     */
+    @Inject(method = "isFlat", at = @At("HEAD"), cancellable = true)
+    private void umapyoi$raceWorldIsFlat(CallbackInfoReturnable<Boolean> cir) {
+        if (RaceWorld.isRaceWorld((ServerLevel) (Object) this))
+            cir.setReturnValue(true);
     }
 }
