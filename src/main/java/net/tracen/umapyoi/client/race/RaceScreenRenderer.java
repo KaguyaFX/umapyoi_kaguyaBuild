@@ -17,7 +17,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexSorting;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -293,7 +292,7 @@ public final class RaceScreenRenderer {
             int x = (i / perColumn) * colW, y = 36 + (i % perColumn) * rowH;
             paint.rect(x, y, colW - (i / perColumn < columns - 1 ? 1 : 0), rowH, i % perColumn % 2 == 0 ? PAPER : PAPER2);
             paint.rect(x, y, 4, rowH, RaceArt.bracketColor(row.gate(), field));
-            paint.chip(x + 6, y + (rowH - 14) / 2, 22, 14, row.gate(), field, false);
+            paint.chip(x + 6, y + (rowH - 16) / 2, 22, 16, row.gate(), field, false);
             int favourite = RaceBetClient.favourite(row.gate());
             Component shown = Component.literal(row.scratched() ? "--" : odds(RaceBetClient.odds(row.gate(), false, 0)));
             int oddsLeft = x + oddsRight - paint.width(shown) * 2;
@@ -343,7 +342,7 @@ public final class RaceScreenRenderer {
             int field = held.rows().size();
             for (Spot spot : spots) {
                 TrackGeometry.Point at = track.pointAt(track.wrap(spot.progress()), spot.offset());
-                paint.chip((int) Math.round(cx + at.x() * sx) - 5, (int) Math.round(cy + at.z() * sz) - 5, 10, 9, spot.gate(), field, true);
+                paint.chip((int) Math.round(cx + at.x() * sx) - 5, (int) Math.round(cy + at.z() * sz) - 5, 11, 9, spot.gate(), field, true);
             }
         }
         // what a broadcast lays over the pictures
@@ -381,7 +380,9 @@ public final class RaceScreenRenderer {
             List<Double> progress = new ArrayList<>();
             for (int gate : order)
                 progress.add(RaceMeetingClient.spots().stream().filter(s -> s.gate() == gate).mapToDouble(Spot::progress).findFirst().orElse(0));
-            double spare = W - 12 - order.size() * 26.0, gaps = 0;
+            // Narrower when the field is too big for the strip.
+            int chipW = Math.min(24, (W - 12) / order.size() - 2);
+            double spare = W - 12 - order.size() * (chipW + 2.0), gaps = 0;
             for (int k = 1; k < order.size(); k++)
                 gaps += Math.max(0, progress.get(k - 1) - progress.get(k));
             double perBlock = gaps <= 0 ? 0 : Math.min(3, Math.max(0, spare) / gaps);
@@ -389,8 +390,8 @@ public final class RaceScreenRenderer {
             for (int k = 0; k < order.size(); k++) {
                 if (k > 0)
                     at += 2 + Math.max(0, progress.get(k - 1) - progress.get(k)) * perBlock;
-                paint.chip((int) Math.round(at), 122, 24, 18, order.get(k), field, false);
-                at += 24;
+                paint.chip((int) Math.round(at), 122, chipW, 18, order.get(k), field, false);
+                at += chipW;
             }
         }
     }
@@ -464,7 +465,6 @@ public final class RaceScreenRenderer {
         paint.text(inquiry, 71 - paint.width(inquiry), 4, 0xFF5A4A20, true);
         List<RaceMeetingPayload.Row> placed = lit ? placed(held) : List.of();
         int field = held.rows().size();
-        double speed = placed.isEmpty() || placed.get(0).time() <= 0 ? 0 : held.meters() / placed.get(0).time();
         for (int k = 0; k < 5; k++) {
             int y = 26 + k * 20;
             boolean known = k < placed.size();
@@ -472,8 +472,8 @@ public final class RaceScreenRenderer {
             if (known) {
                 RaceMeetingPayload.Row row = placed.get(k);
                 paint.chip(22, y, 26, 17, row.gate(), field, false);
-                if (k > 0 && speed > 0)
-                    paint.text(RaceArt.margin(RaceArt.lengths(row.time() - placed.get(k - 1).time(), speed)), 54, y - 6, AMBER, false);
+                if (k > 0)
+                    paint.text(RaceArt.margin(RaceArt.lengths(row.time() - placed.get(k - 1).time())), 54, y - 6, AMBER, false);
             } else {
                 paint.rect(22, y, 26, 17, 0xFF121418);
             }
@@ -483,6 +483,20 @@ public final class RaceScreenRenderer {
         Component time = Component.literal(placed.isEmpty() ? "-:--.-" : time(placed.get(0).time()));
         paint.text(time, BW - 4 - paint.width(time) * 2, 128, placed.isEmpty() ? 0xFF3A2A10 : AMBER, true);
     }
+
+    /** The screen's digits for runners' numbers: four dots wide, so that two fit where the game's font fits one. */
+    private static final int DIGIT_COLUMNS = 4, DIGIT_ROWS = 7;
+    private static final String[][] DIGITS = {
+            { ".##.", "#..#", "#..#", "#..#", "#..#", "#..#", ".##." },
+            { "..#.", ".##.", "..#.", "..#.", "..#.", "..#.", ".###" },
+            { ".##.", "#..#", "...#", "..#.", ".#..", "#...", "####" },
+            { ".##.", "#..#", "...#", ".##.", "...#", "#..#", ".##." },
+            { "...#", "..##", ".#.#", "#..#", "####", "...#", "...#" },
+            { "####", "#...", "###.", "...#", "...#", "#..#", ".##." },
+            { ".##.", "#...", "#...", "###.", "#..#", "#..#", ".##." },
+            { "####", "...#", "...#", "..#.", ".#..", ".#..", ".#.." },
+            { ".##.", "#..#", "#..#", ".##.", "#..#", "#..#", ".##." },
+            { ".##.", "#..#", "#..#", ".###", "...#", "...#", ".##." } };
 
     /** Paints in screen pixels, each thing over the last, in the order it's asked to. */
     private static final class Painter {
@@ -523,26 +537,34 @@ public final class RaceScreenRenderer {
         }
 
         /**
-         * A runner's number on her bracket's colour. Big ones are doubled; two digits don't fit doubled,
-         * so they are only made as tall, in bold to keep the strokes as thick: narrower, the same size.
+         * A runner's number on her bracket's colour, in the screen's own digits. Every number of one
+         * list is the same size: doubled if the field's largest number fits doubled, else plain.
          */
         void chip(int x, int y, int w, int h, int gate, int field, boolean small) {
             rect(x, y, w, h, RaceArt.bracketColor(gate, field));
-            Component number = Component.literal(String.valueOf(gate));
-            int color = RaceArt.bracketTextColor(gate, field);
-            if (small || h < 16) {
-                text(number, x + (w - width(number)) / 2 + 1, y + (h - 8) / 2 + 1, color, false);
-            } else if (gate < 10) {
-                text(number, x + (w - width(number) * 2) / 2 + 1, y + (h - 16) / 2 + 1, color, true);
-            } else {
-                Component bold = number.copy().withStyle(ChatFormatting.BOLD);
-                PoseStack pose = graphics.pose();
-                pose.pushPose();
-                pose.translate(x + (w - width(bold) + 1) / 2, y + (h - 16) / 2 + 1, 0);
-                pose.scale(1, 2, 1);
-                graphics.drawString(font, bold, 0, 0, color, false);
-                pose.popPose();
-            }
+            int widest = numberWidth(Math.max(gate, field), 2);
+            int scale = !small && h >= DIGIT_ROWS * 2 + 2 && widest <= w - 4 ? 2 : 1;
+            number(gate, x + (w - numberWidth(gate, scale) + 1) / 2, y + (h - DIGIT_ROWS * scale + 1) / 2, scale,
+                    RaceArt.bracketTextColor(gate, field));
+        }
+
+        private static int numberWidth(int value, int scale) {
+            return (String.valueOf(value).length() * (DIGIT_COLUMNS + 1) - 1) * scale;
+        }
+
+        /** A number in {@link #DIGITS}, each dot a square of {@code scale} screen pixels. */
+        void number(int value, int x, int y, int scale, int argb) {
+            String text = String.valueOf(value);
+            graphics.drawManaged(() -> {
+                for (int i = 0; i < text.length(); i++) {
+                    String[] rows = DIGITS[text.charAt(i) - '0'];
+                    int left = x + i * (DIGIT_COLUMNS + 1) * scale;
+                    for (int r = 0; r < DIGIT_ROWS; r++)
+                        for (int c = 0; c < DIGIT_COLUMNS; c++)
+                            if (rows[r].charAt(c) == '#')
+                                rect(left + c * scale, y + r * scale, scale, scale, argb);
+                }
+            });
         }
 
         /**

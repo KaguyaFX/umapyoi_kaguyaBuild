@@ -225,9 +225,15 @@ public final class RaceArt {
         return Component.literal((whole > 0 ? String.valueOf(whole) : "") + fraction);
     }
 
-    /** A runner is about 2.4 m long. */
-    public static double lengths(double seconds, double metersPerSecond) {
-        return seconds * metersPerSecond / 2.4;
+    /**
+     * Seconds to a length, as real races go: a length is about 2.4 m, and they're timed at about 6
+     * lengths a second. Our runners are faster than real ones, but margins read as they do there.
+     */
+    private static final double SECONDS_PER_LENGTH = 1 / 6.0;
+
+    /** How many lengths this much time behind is. */
+    public static double lengths(double seconds) {
+        return seconds / SECONDS_PER_LENGTH;
     }
 
     /** The stall's number on its bracket's colour. */
