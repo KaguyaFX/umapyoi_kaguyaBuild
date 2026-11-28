@@ -6,6 +6,9 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.registry.skills.*;
+import net.tracen.umapyoi.registry.skills.RaceOnlySkill;
+import net.tracen.umapyoi.registry.skills.RequiemSkill;
+import net.tracen.umapyoi.registry.skills.SkillRarity;
 import net.tracen.umapyoi.registry.skills.passive.PassiveSkill;
 
 public class UmaSkillRegistry {
@@ -84,4 +87,14 @@ public class UmaSkillRegistry {
             () -> new TetherSkill(new UmaSkill.Builder().level(1).upperSkill(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "dominator")).type(SkillType.HINDER).actionPoint(350).requiredWisdom(2)));
     public static final DeferredHolder<UmaSkill, UmaSkill> DOMINATOR = SKILLS.register("dominator",
             () -> new TetherSkill(new UmaSkill.Builder().level(2).type(SkillType.HINDER).actionPoint(550).requiredWisdom(4)));
+
+    /** The zodiac cups' computer runners' skills, for races only; players get them by command or in creative. */
+    public static final DeferredHolder<UmaSkill, UmaSkill> CONQUEROR_OF_STARS = SKILLS.register("conqueror_of_stars",
+            () -> new RaceOnlySkill(new UmaSkill.Builder().level(3).type(SkillType.BUFF).actionPoint(2500).requiredWisdom(15).nonInheritable().notSold()));
+    public static final DeferredHolder<UmaSkill, UmaSkill> GALAXY_DESTROYER = SKILLS.register("galaxy_destroyer",
+            () -> new RaceOnlySkill(new UmaSkill.Builder().level(3).type(SkillType.BUFF).actionPoint(3000).requiredWisdom(15).nonInheritable().notSold()));
+    /** Dominator evolved. How it evolves is still open: by command for now. */
+    public static final DeferredHolder<UmaSkill, UmaSkill> REQUIEM = SKILLS.register("requiem",
+            () -> new RequiemSkill(new UmaSkill.Builder().level(2).rarity(SkillRarity.EVOLVED).type(SkillType.HINDER).actionPoint(700).requiredWisdom(13)
+                    .nonInheritable().notSold()));
 }

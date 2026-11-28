@@ -38,7 +38,9 @@ public final class RaceSkills {
     static final double REACH = 2.5;
     /** Stat levels: C+, B and A. */
     private static final int C_PLUS = 10, B = 11, A = 13;
-    private static final int SPEED = 0, POWER = 2, WISDOM = 4;
+    private static final int SPEED = 0, POWER = 2, GUTS = 3, WISDOM = 4;
+    /** Skills of the zodiac cups' computer runners: they do nothing outside a race. */
+    private static final Set<String> RACE_ONLY = Set.of("conqueror_of_stars", "galaxy_destroyer");
 
     private RaceSkills() {
     }
@@ -54,16 +56,34 @@ public final class RaceSkills {
         /** On a corner (the final straight isn't one). */
         boolean onCorner();
 
-        /** Slows everyone else within reach; @return how many */
-        int hinder(int level, int ticks, Component skill);
+        /** Hinders everyone else within the hindrance's reach; @return how many */
+        int hinder(Hindrance hindrance, Component skill);
 
         /** How many others are within this many blocks. */
         int near(double reach);
     }
 
+    /**
+     * What a hindering skill does to everyone else within reach: slows them, and it may make them use more
+     * stamina for as long and, if they are only cruising, lose touch (save nothing up) for as long.
+     */
+    record Hindrance(int level, int ticks, double reach, double drain, boolean breakTouch) {
+        static Hindrance slow(int level, int ticks) {
+            return new Hindrance(level, ticks, REACH, 1, false);
+        }
+
+        void on(RaceRunner runner) {
+            runner.boosts().slow(level, ticks);
+            if (drain != 1)
+                runner.boosts().drain(drain, ticks);
+            if (breakTouch && !runner.sprinting())
+                runner.boosts().loseTouch(ticks);
+        }
+    }
+
     /** When an active skill may be used. */
     enum When {
-        ANY, MIDDLE, FINAL, FINAL_MIDDLE_RANKS, FINAL_CORNER, FINAL_MIDDLE_DISTANCE;
+        ANY, MIDDLE, FINAL, FINAL_MIDDLE_RANKS, FINAL_CORNER, FINAL_MIDDLE_DISTANCE, MEDIUM_LONG, SPRINT_MILE, GUTS_ABOVE_A;
 
         boolean holds(User user) {
             RaceRunner runner = user.runner();
@@ -77,6 +97,17 @@ public final class RaceSkills {
                 case FINAL_MIDDLE_RANKS -> last && runner.rank() >= order(runner.field(), 20) && runner.rank() <= order(runner.field(), 60);
                 case FINAL_CORNER -> last && user.onCorner() && (category == Distance.MEDIUM || category == Distance.LONG);
                 case FINAL_MIDDLE_DISTANCE -> last && category == Distance.MEDIUM;
+                case MEDIUM_LONG, SPRINT_MILE -> fits(category);
+                case GUTS_ABOVE_A -> stat(user, GUTS) > A;
+            };
+        }
+
+        /** Whether a race of this length is one for it at all. */
+        boolean fits(Distance category) {
+            return switch (this) {
+                case MEDIUM_LONG -> category == Distance.MEDIUM || category == Distance.LONG;
+                case SPRINT_MILE -> category == Distance.SPRINT || category == Distance.MILE;
+                default -> true;
             };
         }
 
@@ -142,6 +173,30 @@ public final class RaceSkills {
         });
         active("tether", When.ANY, user -> hinder(user, "tether", 1, 5));
         active("dominator", When.ANY, user -> hinder(user, "dominator", 1, 8));
+        // The zodiac cups' computer runners. Mid-race it saves up faster; in the final leg what was saved goes
+        // further. A runner low on stamina gets some back.
+        active("conqueror_of_stars", When.MEDIUM_LONG, user -> {
+            RaceRunner runner = user.runner();
+            if (runner.staminaFraction() < 0.5)
+                rest(user, 0.10);
+            runner.boosts().charge(1.1, 15 * 20);
+            runner.boosts().release(0.15, 15 * 20);
+            return 15 * 20;
+        });
+        // A quarter of the stamina at once, then six seconds faster that cost none (less faster if already low).
+        active("galaxy_destroyer", When.SPRINT_MILE, user -> {
+            RaceRunner runner = user.runner();
+            boolean low = runner.staminaFraction() < 0.5;
+            runner.spend(0.25);
+            runner.boosts().flat(low ? 0.15 : 0.3, 6 * 20);
+            runner.boosts().free(6 * 20);
+            return 6 * 20;
+        });
+        // Dominator evolved: further, harder, and it wears them out; anyone just cruising loses touch.
+        active("requiem", When.GUTS_ABOVE_A, user -> {
+            user.hinder(new Hindrance(2, 5 * 20, 3, 1.10, true), Component.translatable("uma_skill.umapyoi.requiem"));
+            return 5 * 20;
+        });
     }
 
     private static void active(String name, When when, Effect effect) {
@@ -152,6 +207,12 @@ public final class RaceSkills {
     @Nullable
     static Active active(ResourceLocation skill) {
         return Umapyoi.MODID.equals(skill.getNamespace()) ? ACTIVE.get(skill.getPath()) : null;
+    }
+
+    /** Whether a race of this length is one for the skill at all (some are only for some lengths). */
+    static boolean fits(ResourceLocation skill, Distance category) {
+        Active active = active(skill);
+        return active == null || active.when().fits(category);
     }
 
     static boolean passive(ResourceLocation skill) {
@@ -201,7 +262,7 @@ public final class RaceSkills {
     }
 
     private static int hinder(User user, String skill, int level, int seconds) {
-        user.hinder(level, seconds * 20, Component.translatable("uma_skill.umapyoi." + skill));
+        user.hinder(Hindrance.slow(level, seconds * 20), Component.translatable("uma_skill.umapyoi." + skill));
         return seconds * 20;
     }
 
@@ -260,8 +321,18 @@ public final class RaceSkills {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onUseSkill(SkillEvent.UseSkillEvent event) {
-        if (event.isCanceled() || !(event.getPlayer() instanceof ServerPlayer player) || !RaceWorld.isRaceWorld(player.level()))
+        if (event.isCanceled() || !(event.getPlayer() instanceof ServerPlayer player))
             return;
+        if (!RaceWorld.isRaceWorld(player.level())) {
+            ResourceLocation id = event.getSkillResourceLocation();
+            if (Umapyoi.MODID.equals(id.getNamespace()) && RACE_ONLY.contains(id.getPath())) {
+                event.setCanceled(true);
+                UmaSkill skill = UmaSkillRegistry.REGISTRY.get(id);
+                Component name = skill == null ? Component.literal(id.toString()) : skill.getDescription();
+                player.displayClientMessage(Component.translatable("umapyoi.skill.race_only", name).withStyle(ChatFormatting.YELLOW), true);
+            }
+            return;
+        }
         event.setCanceled(true);
         RaceSession session = RaceSession.current();
         if (session == null || !session.running(player)) {

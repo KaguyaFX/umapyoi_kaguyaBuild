@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -123,6 +124,10 @@ final class RaceCast {
         for (Part part : parts) {
             UmaSoulUtils.setMotivation(part.soul(), major == null ? mood(random) : mood(major.moods(), random));
             RaceAiSkills.handOut(part.soul(), level, setup.surface(), random);
+            if (major != null)
+                for (ResourceLocation skill : major.skills())
+                    if (RaceSkills.fits(skill, setup.category()) && !UmaSoulUtils.hasSkill(part.soul(), skill))
+                        UmaSoulUtils.addSkill(part.soul(), skill);
         }
         return parts;
     }

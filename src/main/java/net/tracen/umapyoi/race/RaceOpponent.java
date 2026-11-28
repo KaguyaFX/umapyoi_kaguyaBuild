@@ -272,13 +272,13 @@ final class RaceOpponent implements RaceSkills.User {
     }
 
     @Override
-    public int hinder(int level, int ticks, Component skill) {
+    public int hinder(RaceSkills.Hindrance hindrance, Component skill) {
         int count = 0;
         for (RaceTraffic.Body other : around)
-            if (other.who() != this && near(other)) {
-                other.runner().boosts().slow(level, ticks);
+            if (other.who() != this && near(other, hindrance.reach())) {
+                hindrance.on(other.runner());
                 if (other.who() instanceof ServerPlayer player)
-                    RaceSession.notice(player, Component.translatable("umapyoi.race.skill.hit", name(), skill, ticks / 20)
+                    RaceSession.notice(player, Component.translatable("umapyoi.race.skill.hit", name(), skill, hindrance.ticks() / 20)
                             .withStyle(ChatFormatting.RED));
                 count++;
             }
@@ -289,13 +289,13 @@ final class RaceOpponent implements RaceSkills.User {
     public int near(double reach) {
         int count = 0;
         for (RaceTraffic.Body other : around)
-            if (other.who() != this && near(other))
+            if (other.who() != this && near(other, reach))
                 count++;
         return count;
     }
 
-    private boolean near(RaceTraffic.Body other) {
-        return Math.hypot(other.progress() - runner.progress(), other.offset() - offset) <= RaceSkills.REACH;
+    private boolean near(RaceTraffic.Body other, double reach) {
+        return Math.hypot(other.progress() - runner.progress(), other.offset() - offset) <= reach;
     }
 
     /** What her stats are multiplied by besides ({@link RaceCast.Part}). */

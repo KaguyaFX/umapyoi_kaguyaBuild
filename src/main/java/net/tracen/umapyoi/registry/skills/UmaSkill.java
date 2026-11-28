@@ -21,6 +21,7 @@ public class UmaSkill{
     private final ResourceLocation upperSkill;
     private final boolean inheritable;
     private final SkillRarity rarity;
+    private final boolean sold;
     private String descriptionId;
 
     public static final ResourceKey<Registry<UmaSkill>> REGISTRY_KEY = ResourceKey
@@ -35,6 +36,12 @@ public class UmaSkill{
         this.upperSkill = builder.upperSkill;
         this.inheritable = builder.inheritable;
         this.rarity = builder.rarity != null ? builder.rarity : SkillRarity.ofLevel(builder.level);
+        this.sold = builder.sold;
+    }
+
+    /** Whether trainers sell its book (not the computer runners' own skills, nor ones got some other way). */
+    public boolean isSold() {
+        return sold;
     }
 
     /** Which frame and fire it gets: by its level unless it was said. */
@@ -114,6 +121,7 @@ public class UmaSkill{
         private ResourceLocation upperSkill;
         private boolean inheritable = true;
         private SkillRarity rarity;
+        private boolean sold = true;
         public Builder type(SkillType type) {
             this.type = type;
             return this;
@@ -142,6 +150,12 @@ public class UmaSkill{
         /** A rarity other than its level's (an evolved skill). */
         public Builder rarity(SkillRarity rarity) {
             this.rarity = rarity;
+            return this;
+        }
+
+        /** Trainers don't sell its book. */
+        public Builder notSold() {
+            this.sold = false;
             return this;
         }
 

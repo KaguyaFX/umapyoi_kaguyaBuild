@@ -285,6 +285,10 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.skill.when.final_middle_ranks", "%s: only in the final leg, in places %s to %s");
         add("umapyoi.race.skill.when.final_corner", "%s: only on a corner in the final leg of a medium or long race");
         add("umapyoi.race.skill.when.final_middle_distance", "%s: only in the final leg of a medium race");
+        add("umapyoi.race.skill.when.medium_long", "%s: only in a medium or long race");
+        add("umapyoi.race.skill.when.sprint_mile", "%s: only in a sprint or mile race");
+        add("umapyoi.race.skill.when.guts_above_a", "%s: only with guts above A");
+        add("umapyoi.skill.race_only", "%s: only works in a race");
         add("umapyoi.race.trial.hud", "%s m to go   %s");
         add("umapyoi.race.trial.result", "Time trial, %s m: %s");
         add("umapyoi.race.surface.dirt", "dirt");
@@ -807,6 +811,9 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
 
         addSkill(UmaSkillRegistry.TETHER, "Tether");
         addSkill(UmaSkillRegistry.DOMINATOR, "Dominator");
+        addSkill(UmaSkillRegistry.CONQUEROR_OF_STARS, "Conqueror of Stars");
+        addSkill(UmaSkillRegistry.GALAXY_DESTROYER, "Galaxy Destroyer");
+        addSkill(UmaSkillRegistry.REQUIEM, "Requiem");
 
         addSkillDetail(UmaSkillRegistry.BASIC_PACE, "Slightly increase speed.");
         addSkillDetail(UmaSkillRegistry.LAST_LEG, "Slightly increase speed and power.");
@@ -838,6 +845,9 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
 
         addSkillDetail(UmaSkillRegistry.TETHER, "Slightly lower the speed of other entities.");
         addSkillDetail(UmaSkillRegistry.DOMINATOR, "Lower the speed of other entities.");
+        addSkillDetail(UmaSkillRegistry.CONQUEROR_OF_STARS, "Shows a power fit to conquer the stars.");
+        addSkillDetail(UmaSkillRegistry.GALAXY_DESTROYER, "Shows a power fit to destroy a galaxy.");
+        addSkillDetail(UmaSkillRegistry.REQUIEM, "Lower the speed of other entities, and fill them with despair.");
 
         addTooltip(".race.time.junior", "Junior");
         addTooltip(".race.time.classic", "Classic");

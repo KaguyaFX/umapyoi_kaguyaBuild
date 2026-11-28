@@ -559,6 +559,12 @@
   "uma_skill.umapyoi.inquisitive_mind": "探求心",
   
   "uma_skill.umapyoi.dominator": "独占力",
+  "uma_skill.umapyoi.conqueror_of_stars": "群星征服者",
+  "uma_skill.umapyoi.conqueror_of_stars.desc": "发挥出足以征服群星的力量。",
+  "uma_skill.umapyoi.galaxy_destroyer": "银河毁灭者",
+  "uma_skill.umapyoi.galaxy_destroyer.desc": "发挥出足以毁灭银河的力量。",
+  "uma_skill.umapyoi.requiem": "镇魂曲",
+  "uma_skill.umapyoi.requiem.desc": "降低周围实体的速度且使其绝望。",
   "uma_skill.umapyoi.tether": "束缚",
   
    "uma_skill.umapyoi.adv_low_health_buff.desc": "提升速度和力量，低血量时提升更多。",
@@ -1114,6 +1120,10 @@
   "umapyoi.race.skill.when.final_middle_ranks": "%s：只能在终盘、第 %s～%s 名时用",
   "umapyoi.race.skill.when.final_corner": "%s：只能在中长距离的终盘弯道用",
   "umapyoi.race.skill.when.final_middle_distance": "%s：只能在中距离的终盘用",
+  "umapyoi.race.skill.when.medium_long": "%s：只能在中距离或长距离比赛用",
+  "umapyoi.race.skill.when.sprint_mile": "%s：只能在短距离或英里比赛用",
+  "umapyoi.race.skill.when.guts_above_a": "%s：根性要高于 A 才能用",
+  "umapyoi.skill.race_only": "%s：只能在比赛里用",
   "umapyoi.race.trial.hud": "剩余 %s 米　%s",
   "umapyoi.race.trial.result": "计时赛 %s 米：%s",
   "umapyoi.race.surface.dirt": "泥地",

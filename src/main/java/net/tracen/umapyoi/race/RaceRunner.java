@@ -51,6 +51,8 @@ final class RaceRunner {
     private int field = 1;
     /** Ticks in a row they have been held up by someone in front. */
     private int heldTicks;
+    /** Sprinting (rather than cruising) on the last tick. */
+    private boolean sprinting;
 
     RaceRunner(RaceSetup setup, RaceStats stats, RaceLayout layout, double plainSprint, Aptitude[] styles) {
         this.setup = setup;
@@ -94,6 +96,16 @@ final class RaceRunner {
 
     int heldTicks() {
         return heldTicks;
+    }
+
+    /** Takes this fraction of their full stamina at once. */
+    void spend(double fraction) {
+        stamina = Math.max(0, stamina - fraction * stats.stamina());
+        updateExhaustion();
+    }
+
+    boolean sprinting() {
+        return sprinting;
     }
 
     /** Gives back this fraction of their full stamina at once. */
@@ -142,10 +154,10 @@ final class RaceRunner {
         zone = RaceStyle.zone(rank, field);
         RacePhase phase = phase();
         boolean over = phase == RacePhase.FINAL || phase == RacePhase.LAST_SPURT;
-        lostTouch = !over && gap > UmapyoiConfig.RACE_CHARGE_GAP.get();
+        lostTouch = !over && (gap > UmapyoiConfig.RACE_CHARGE_GAP.get() || boosts.touchLost());
         if (field < 2 || over || lostTouch || UmapyoiConfig.RACE_CHARGE_BLOCKS.get() <= 0)
             return;
-        charge = Math.min(1, charge + done / layout.finalFrom() * (rank - 1) / (field - 1) * zoneAptitude().distanceFactor * chargeTimes);
+        charge = Math.min(1, charge + done / layout.finalFrom() * (rank - 1) / (field - 1) * zoneAptitude().distanceFactor * chargeTimes * boosts.chargeFactor());
     }
 
     /**
@@ -221,6 +233,7 @@ final class RaceRunner {
 
     /** One tick of speeding up or slowing down. */
     void move(RaceStatePayload state, boolean sprinting) {
+        this.sprinting = sprinting;
         if (motion != null)
             motion.step(state, sprinting, -1, 0);
     }
@@ -235,7 +248,8 @@ final class RaceRunner {
     RaceStatePayload state(double limit) {
         RacePhase phase = phase();
         double left = RaceStats.bonusLeft(staminaFraction(), stats.emptyFloor());
-        double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * boosts.bonusFactor()) + sprintAdded;
+        double sprint = RaceStyle.speed(stats.style(), phase) * (1 + stats.bonusRatio() * left * boosts.bonusFactor()) + sprintAdded
+                + boosts.flatSpeed() / plainSprint;
         double cruise = sprint * UmapyoiConfig.RACE_CRUISE_RATIO.get();
         double accel = stats.accel() * RaceStyle.accel(stats.style(), phase) * setup.ground().accel() * accelTimes * boosts.accelFactor();
         if (exhausted) {
@@ -245,7 +259,7 @@ final class RaceRunner {
         }
         baseSprint = sprint;
         if (releasing())
-            sprint *= 1 + UmapyoiConfig.RACE_CHARGE_SPEED.get();
+            sprint = sprint * (1 + UmapyoiConfig.RACE_CHARGE_SPEED.get()) + boosts.releaseSpeed() / plainSprint;
         double perTick = 1 / (plainSprint * 20);
         return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(), (float) sprint, (float) cruise,
                 (float) (accel * perTick),
@@ -278,8 +292,8 @@ final class RaceRunner {
             return false;
         double span = baseSprint - state.cruiseSpeed();
         double effort = span <= 0 ? 0 : Math.max(0, Math.min(1, (motion.speed() - state.cruiseSpeed()) / span));
-        if (moved <= MAX_STEP)
-            stamina -= moved * effort * setup.ground().drain() * (1 - frontSave());
+        if (moved <= MAX_STEP && !boosts.free())
+            stamina -= moved * effort * setup.ground().drain() * (1 - frontSave()) * boosts.drainFactor();
         if (releasing() && motion.speed() > baseSprint)
             charge = Math.max(0, charge - Math.min(moved, (motion.speed() - baseSprint) * plainSprint / 20) / UmapyoiConfig.RACE_CHARGE_BLOCKS.get());
         stillTicks = moved < 0.01 ? stillTicks + 1 : 0;

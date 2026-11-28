@@ -28,20 +28,27 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * (earlier the field is bunched up and it would go off at every turn). A speed skill that may be used at
  * any time is kept for the final leg, where races are won (used early it only burns her points).</li>
  * <li>Before the final leg she keeps enough points for the dearest speed skill she can use in it.</li>
+ * <li>The zodiac cups' skills: Conqueror of Stars a few seconds before the final leg, so it covers the end of
+ * saving up and the start of using it; Galaxy Destroyer in the final leg while sprinting, with stamina to
+ * spare for its price.</li>
  * <li>Wisdom decides how quickly she takes a good moment, from a second and a half or so (G) to about a
  * quarter of a second (S), and how often she wastes a skill at a bad one.</li>
  * </ul>
  */
 final class RaceAiSkills {
     private enum Kind {
-        SPEED, REST, HINDER
+        SPEED, REST, HINDER, CHARGE, SURGE
     }
 
     private record Usable(ResourceLocation id, RaceSkills.Active active, int cost, Kind kind) {
     }
 
     private static final Set<String> REST = Set.of("deep_breaths", "cooldown", "nutritional_supplements", "big_eater");
-    private static final Set<String> HINDER = Set.of("tether", "dominator");
+    private static final Set<String> HINDER = Set.of("tether", "dominator", "requiem");
+    private static final Set<String> CHARGE = Set.of("conqueror_of_stars");
+    private static final Set<String> SURGE = Set.of("galaxy_destroyer");
+    /** Conqueror of Stars is used once the final leg is this many seconds away. */
+    private static final double CHARGE_BEFORE = 8;
     /** Wisdom levels: G and S. */
     private static final int DULLEST = 1, SHARPEST = 15;
 
@@ -64,7 +71,9 @@ final class RaceAiSkills {
             if (active == null || skill == null)
                 continue;
             String name = id.getPath();
-            skills.add(new Usable(id, active, skill.getActionPoint(), REST.contains(name) ? Kind.REST : HINDER.contains(name) ? Kind.HINDER : Kind.SPEED));
+            Kind kind = REST.contains(name) ? Kind.REST : HINDER.contains(name) ? Kind.HINDER : CHARGE.contains(name) ? Kind.CHARGE
+                    : SURGE.contains(name) ? Kind.SURGE : Kind.SPEED;
+            skills.add(new Usable(id, active, skill.getActionPoint(), kind));
         }
         this.reserve = skills.stream().filter(RaceAiSkills::forTheFinish).mapToInt(Usable::cost).max().orElse(0);
         int wisdom = UmaSoulUtils.getProperty(soul).wisdom();
@@ -110,6 +119,10 @@ final class RaceAiSkills {
                     && (late || skill.active().when() != RaceSkills.When.ANY);
             case REST -> runner.staminaFraction() < 0.5;
             case HINDER -> late && user.near(RaceSkills.REACH) > 0;
+            case CHARGE -> late ? runner.releasing()
+                    : runner.phase() == RacePhase.MIDDLE && runner.layout().finalFrom() - runner.progress() <= runner.speed() * CHARGE_BEFORE;
+            // Only with stamina to spare: falling below half for its price costs more than it gives.
+            case SURGE -> late && runner.sprinting() && runner.heldTicks() == 0 && runner.staminaFraction() >= 0.75;
         };
     }
 

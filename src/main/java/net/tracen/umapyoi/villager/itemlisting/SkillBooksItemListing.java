@@ -24,7 +24,7 @@ public class SkillBooksItemListing implements ItemListing {
 
     @Override
     public MerchantOffer getOffer(Entity pTrader, RandomSource pRand) {
-        List<UmaSkill> list = UmaSkillRegistry.REGISTRY.stream().collect(Collectors.toList());
+        List<UmaSkill> list = UmaSkillRegistry.REGISTRY.stream().filter(UmaSkill::isSold).collect(Collectors.toList());
         UmaSkill skill = list.get(pRand.nextInt(list.size()));
         int i = skill.getSkillLevel() * 2;
         ItemStack itemstack = UmaSkillUtils.getSkillBook(skill);

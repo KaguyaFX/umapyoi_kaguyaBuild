@@ -700,18 +700,18 @@ final class RaceSession {
         }
 
         @Override
-        public int hinder(int level, int ticks, Component skill) {
+        public int hinder(RaceSkills.Hindrance hindrance, Component skill) {
             int count = 0;
             for (Racer other : racers)
-                if (other != this && other.running() && near(other.runner.progress(), other.offset)) {
-                    other.runner.boosts().slow(level, ticks);
-                    notice(other.player, Component.translatable("umapyoi.race.skill.hit", player.getDisplayName(), skill, ticks / 20)
+                if (other != this && other.running() && near(other.runner.progress(), other.offset, hindrance.reach())) {
+                    hindrance.on(other.runner);
+                    notice(other.player, Component.translatable("umapyoi.race.skill.hit", player.getDisplayName(), skill, hindrance.ticks() / 20)
                             .withStyle(ChatFormatting.RED));
                     count++;
                 }
             for (RaceOpponent opponent : opponents)
-                if (!opponent.finished() && opponent.runner().started() && near(opponent.runner().progress(), opponent.offset())) {
-                    opponent.runner().boosts().slow(level, ticks);
+                if (!opponent.finished() && opponent.runner().started() && near(opponent.runner().progress(), opponent.offset(), hindrance.reach())) {
+                    hindrance.on(opponent.runner());
                     count++;
                 }
             caught = count;
@@ -722,16 +722,16 @@ final class RaceSession {
         public int near(double reach) {
             int count = 0;
             for (Racer other : racers)
-                if (other != this && other.running() && near(other.runner.progress(), other.offset))
+                if (other != this && other.running() && near(other.runner.progress(), other.offset, reach))
                     count++;
             for (RaceOpponent opponent : opponents)
-                if (!opponent.finished() && opponent.runner().started() && near(opponent.runner().progress(), opponent.offset()))
+                if (!opponent.finished() && opponent.runner().started() && near(opponent.runner().progress(), opponent.offset(), reach))
                     count++;
             return count;
         }
 
-        private boolean near(double progress, double otherOffset) {
-            return Math.hypot(progress - runner.progress(), otherOffset - offset) <= RaceSkills.REACH;
+        private boolean near(double progress, double otherOffset, double reach) {
+            return Math.hypot(progress - runner.progress(), otherOffset - offset) <= reach;
         }
 
         /** Tells the client how the selected skill stands, if that changed. */

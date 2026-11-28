@@ -525,6 +525,12 @@ public class Race {
             return this;
         }
 
+        /** What every computer runner in this Major Match gets on top (those that suit the length). */
+        public RaceBuilder setMajorSkills(List<ResourceLocation> skills) {
+            this.difficulty = new RaceDifficulty(this.difficulty.strength(), this.difficulty.major().map(major -> major.withSkills(skills)));
+            return this;
+        }
+
         /** A Major Match: see {@link RaceDifficulty}. */
         public RaceBuilder setMajor(int floor, RaceDifficulty.Range above, RaceDifficulty.Range rise, RaceDifficulty.Moods moods, boolean announce) {
             this.difficulty = RaceDifficulty.major(floor, above, rise, moods, announce);

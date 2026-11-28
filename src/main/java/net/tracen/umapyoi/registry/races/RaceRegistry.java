@@ -10,6 +10,7 @@ import net.tracen.umapyoi.utils.Surface;
 import net.tracen.umapyoi.utils.Year;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.function.Function;
 
 import static net.tracen.umapyoi.registry.races.Race.RaceBuilder;
@@ -19,6 +20,11 @@ import static net.tracen.umapyoi.registry.races.tags.RaceTagRegistry.*;
 public class RaceRegistry {
     public static final String PREDICATE_CHAMPIONS = "champions";
     
+    /** The zodiac cups' computer runners all get one of these, the one for the race's length. */
+    private static final List<ResourceLocation> ZODIAC_SKILLS = List.of(
+            ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "conqueror_of_stars"),
+            ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "galaxy_destroyer"));
+
     public static final ResourceKey<Race> DEFAULT = simpleRegister("undetermined_race",
            new RaceBuilder()::create
     );
@@ -3266,6 +3272,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3282,6 +3289,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3298,6 +3306,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3314,6 +3323,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3331,6 +3341,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3347,6 +3358,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3363,6 +3375,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3379,6 +3392,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3395,6 +3409,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3411,6 +3426,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3427,6 +3443,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 
@@ -3443,6 +3460,7 @@ public class RaceRegistry {
                     .setReferenceLevel(30)
                     .setTexture(PREDICATE_CHAMPIONS)
                     .setMajor(25, new RaceDifficulty.Range(2, 3), new RaceDifficulty.Range(2, 6), RaceDifficulty.Moods.NO_BAD, true)
+                    .setMajorSkills(ZODIAC_SKILLS)
                     ::create
     );
 

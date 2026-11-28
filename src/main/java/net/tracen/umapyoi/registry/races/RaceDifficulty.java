@@ -8,6 +8,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
 
@@ -59,14 +60,24 @@ public record RaceDifficulty(int strength, Optional<Major> major) {
         }
     }
 
-    public record Major(int floor, Range above, Range rise, Moods moods, boolean announce) {
+    /** @param skills what every computer runner gets on top, of those that suit the race's length */
+    public record Major(int floor, Range above, Range rise, Moods moods, boolean announce, List<ResourceLocation> skills) {
         public static final Codec<Major> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.intRange(1, 39).optionalFieldOf("floor", 1).forGetter(Major::floor),
                 Range.CODEC.optionalFieldOf("above", Range.ZERO).forGetter(Major::above),
                 Range.CODEC.optionalFieldOf("rise", Range.ZERO).forGetter(Major::rise),
                 Moods.CODEC.optionalFieldOf("moods", Moods.USUAL).forGetter(Major::moods),
-                Codec.BOOL.optionalFieldOf("announce", false).forGetter(Major::announce)
+                Codec.BOOL.optionalFieldOf("announce", false).forGetter(Major::announce),
+                ResourceLocation.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(Major::skills)
         ).apply(instance, Major::new));
+
+        public Major(int floor, Range above, Range rise, Moods moods, boolean announce) {
+            this(floor, above, rise, moods, announce, List.of());
+        }
+
+        public Major withSkills(List<ResourceLocation> skills) {
+            return new Major(floor, above, rise, moods, announce, List.copyOf(skills));
+        }
     }
 
     private static final Codec<RaceDifficulty> FULL = RecordCodecBuilder.create(instance -> instance.group(
