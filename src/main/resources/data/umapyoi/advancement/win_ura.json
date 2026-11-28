@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:win_gi",
+  "display": {
+    "icon": {
+      "id": "umapyoi:horseshoe_rainbow"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.win_ura.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.win_ura.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "win_ura"
+      }
+    }
+  }
+}

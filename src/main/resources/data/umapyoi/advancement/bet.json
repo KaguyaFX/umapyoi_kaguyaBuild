@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:watch_race",
+  "display": {
+    "icon": {
+      "id": "umapyoi:blank_ticket"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.bet.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.bet.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "bet"
+      }
+    }
+  }
+}

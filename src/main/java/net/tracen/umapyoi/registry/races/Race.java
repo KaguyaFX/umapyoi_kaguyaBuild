@@ -10,6 +10,7 @@ import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.tracen.umapyoi.Umapyoi;
@@ -34,6 +35,8 @@ import static net.tracen.umapyoi.registry.races.field.RaceFieldRegistry.CONST_AD
 public class Race {
     public static final ResourceKey<Registry<Race>> REGISTRY_KEY = ResourceKey
             .createRegistryKey(ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "races"));
+    /** The zodiac cups, the Major Matches after URA Finals (for the achievement for winning one). */
+    public static final TagKey<Race> ZODIAC_CUPS = TagKey.create(REGISTRY_KEY, ResourceLocation.fromNamespaceAndPath(Umapyoi.MODID, "zodiac_cups"));
 
     public static Codec<Race> CODEC = RecordCodecBuilder.create(instance -> instance
             .group(

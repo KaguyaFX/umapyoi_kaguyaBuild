@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:race_terminal",
+  "display": {
+    "icon": {
+      "id": "umapyoi:race_phone"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.watch_race.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.watch_race.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "watch_race"
+      }
+    }
+  }
+}

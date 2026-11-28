@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:race_debut",
+  "display": {
+    "icon": {
+      "id": "minecraft:red_bed"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.race_exhausted.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.race_exhausted.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "race_exhausted"
+      }
+    }
+  }
+}

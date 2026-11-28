@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:win_ura",
+  "display": {
+    "icon": {
+      "id": "minecraft:nether_star"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.win_zodiac.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.win_zodiac.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "win_zodiac"
+      }
+    }
+  }
+}

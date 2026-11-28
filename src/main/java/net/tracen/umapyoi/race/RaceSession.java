@@ -37,6 +37,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 import net.tracen.umapyoi.api.UmapyoiAPI;
 import net.tracen.umapyoi.block.BlockRegistry;
 import net.tracen.umapyoi.block.Gate;
@@ -812,6 +813,7 @@ final class RaceSession {
 
         private void gasp() {
             player.playNotifySound(SoundEvents.PLAYER_BREATH, SoundSource.PLAYERS, 1.0F, 0.8F);
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.RACE_EXHAUSTED);
         }
 
         void jump() {

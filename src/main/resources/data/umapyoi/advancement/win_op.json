@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:win_preop",
+  "display": {
+    "icon": {
+      "id": "minecraft:wheat_seeds"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.win_op.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.win_op.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "win_op"
+      }
+    }
+  }
+}

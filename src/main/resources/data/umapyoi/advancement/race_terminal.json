@@ -1,0 +1,30 @@
+{
+  "parent": "umapyoi:root",
+  "display": {
+    "icon": {
+      "id": "umapyoi:race_register"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.race_terminal.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.race_terminal.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "umapyoi:race_register"
+          }
+        ]
+      }
+    }
+  }
+}

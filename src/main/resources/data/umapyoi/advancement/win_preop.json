@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:race_debut",
+  "display": {
+    "icon": {
+      "id": "minecraft:pink_tulip"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.win_preop.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.win_preop.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "win_preop"
+      }
+    }
+  }
+}

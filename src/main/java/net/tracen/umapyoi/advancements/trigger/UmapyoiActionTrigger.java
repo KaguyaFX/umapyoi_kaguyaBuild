@@ -47,6 +47,24 @@ public class UmapyoiActionTrigger extends SimpleCriterionTrigger<UmapyoiActionTr
     public static final String LEARN_SKILL = "learn_skill";
     /** Finished a three-year career. */
     public static final String FINISH_CAREER = "finish_career";
+    /** Wearing a soul that has run its debut race, in any way (the terminal's quick race or a race meeting). */
+    public static final String RACE_DEBUT = "race_debut";
+    /** Won a race meeting by running in it: this and the race's grade, as in win_preop, win_op ... win_gi. */
+    public static final String WIN_PREFIX = "win_";
+    /** Won URA Finals that one held oneself. */
+    public static final String WIN_URA = "win_ura";
+    /** Won a zodiac cup that one held oneself. */
+    public static final String WIN_ZODIAC = "win_zodiac";
+    /** Watched a race meeting to its result without running in it. */
+    public static final String WATCH_RACE = "watch_race";
+    /** Bought a horse ticket. */
+    public static final String BET = "bet";
+    /** Put more than 1000 HT on one race and got nothing back. */
+    public static final String BET_LOST_ALL = "bet_lost_all";
+    /** Got more back from one race's horse tickets than was put on it. */
+    public static final String BET_PROFIT = "bet_profit";
+    /** Ran out of stamina in a race. */
+    public static final String RACE_EXHAUSTED = "race_exhausted";
 
     @Override
     public Codec<Instance> codec() {

@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:bet",
+  "display": {
+    "icon": {
+      "id": "minecraft:dead_bush"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.bet_lost_all.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.bet_lost_all.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "bet_lost_all"
+      }
+    }
+  }
+}

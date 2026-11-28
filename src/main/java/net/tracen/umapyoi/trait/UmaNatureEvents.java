@@ -131,6 +131,8 @@ public class UmaNatureEvents {
         if (soul.isEmpty())
             return;
         UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WEAR_SOUL);
+        if (UmaSoulUtils.hasUmaSoulDebut(soul))
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.RACE_DEBUT);
         if (!UmapyoiAPI.getUmaSuit(player).isEmpty())
             UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WEAR_COSTUME);
         if (player.getVehicle() instanceof AbstractHorse horse && !(horse instanceof Llama) && !(horse instanceof Camel))

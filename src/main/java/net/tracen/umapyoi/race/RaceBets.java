@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.tracen.umapyoi.UmapyoiConfig;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 
 /**
@@ -32,6 +33,8 @@ final class RaceBets {
     private static final int FIRST_RUNS = 30;
     /** Tells everyone at most this often. */
     private static final int TELL_EVERY = 10;
+    /** For an achievement: more than this on one race, and all of it lost. */
+    private static final long ALL_IN = 1000;
 
     private static final class Bet {
         private final UUID player;
@@ -202,6 +205,7 @@ final class RaceBets {
         }
         bet.amount += amount;
         tell = true;
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.BET);
         return null;
     }
 
@@ -295,8 +299,13 @@ final class RaceBets {
         sums.forEach((id, sum) -> {
             RaceAccounts.get(server).result(server, id, sum[1] - sum[0]);
             ServerPlayer player = server.getPlayerList().getPlayer(id);
-            if (player != null)
+            if (player != null) {
                 player.sendSystemMessage(Component.translatable("umapyoi.ticket.result", sum[0], sum[1]).withStyle(sum[1] > sum[0] ? ChatFormatting.GREEN : ChatFormatting.GRAY));
+                if (sum[1] > sum[0])
+                    UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.BET_PROFIT);
+                if (sum[1] == 0 && sum[0] > ALL_IN)
+                    UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.BET_LOST_ALL);
+            }
         });
         tell = true;
     }

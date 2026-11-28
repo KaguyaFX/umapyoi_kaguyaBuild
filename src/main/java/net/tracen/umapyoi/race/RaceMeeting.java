@@ -46,6 +46,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.tracen.umapyoi.advancements.trigger.UmapyoiActionTrigger;
 import net.tracen.umapyoi.registry.races.RaceDifficulty;
 import net.tracen.umapyoi.Umapyoi;
 import net.tracen.umapyoi.UmapyoiConfig;
@@ -947,6 +948,8 @@ public final class RaceMeeting {
                 player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 80, 20));
                 player.connection.send(new ClientboundSetSubtitleTextPacket(name()));
                 player.connection.send(new ClientboundSetTitleTextPacket(Component.translatable("umapyoi.meeting.winner", places.getFirst().name()).withStyle(ChatFormatting.GOLD)));
+                if (!bound.contains(player.getUUID()))
+                    UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WATCH_RACE);
             }
             player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0F, 1.0F);
         }
@@ -983,6 +986,19 @@ public final class RaceMeeting {
         // A Major Match counts as passed only for the one who held it: nobody is carried through by another.
         if (won && (!race.difficulty().isMajor() || player.getUUID().equals(applicant)))
             Race.pass(soul, race.id());
+        if (won)
+            achievements(player);
+    }
+
+    /** Achievements for winning this race by running in it; URA Finals and the zodiac cups only one's own. */
+    private void achievements(ServerPlayer player) {
+        UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WIN_PREFIX + race.ranking().name().toLowerCase(java.util.Locale.ROOT));
+        if (!player.getUUID().equals(applicant))
+            return;
+        if (race.id().equals(RaceRegistry.URA_FINALS.location()))
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WIN_URA);
+        if (level.registryAccess().registryOrThrow(Race.REGISTRY_KEY).getHolder(race.id()).map(holder -> holder.is(Race.ZODIAC_CUPS)).orElse(false))
+            UmapyoiActionTrigger.fire(player, UmapyoiActionTrigger.WIN_ZODIAC);
     }
 
     /** Prizes for everyone who came in. */

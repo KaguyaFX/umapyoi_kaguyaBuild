@@ -1,0 +1,26 @@
+{
+  "parent": "umapyoi:race_terminal",
+  "display": {
+    "icon": {
+      "id": "umapyoi:gate"
+    },
+    "title": {
+      "translate": "advancement.umapyoi.race_debut.title"
+    },
+    "description": {
+      "translate": "advancement.umapyoi.race_debut.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "action": {
+      "trigger": "umapyoi:action",
+      "conditions": {
+        "action": "race_debut"
+      }
+    }
+  }
+}
