@@ -16,8 +16,8 @@ import net.tracen.umapyoi.registry.skills.UmaSkill;
 public final class SkillTiers {
     /**
      * 256 x 256: plates of 96 x 20 at (0, row * 20), the four rarities then the same greyed; icons of 16 x 16
-     * at (column * 16, 160 + rarity * 16), buff, hinder, heal, passive, unique, then the same greyed; the unique
-     * plate's light, 12 frames at (160, frame * 20).
+     * at (column * 16, 160 + rarity * 16), buff, hinder, heal, passive, then the same greyed (columns 5 to 8),
+     * the unique row with the unique icons; the unique plate's light, 12 frames at (160, frame * 20).
      */
     public static final ResourceLocation SHEET = texture("skill_tiers");
     public static final int SHEET_SIZE = 256;
@@ -52,9 +52,9 @@ public final class SkillTiers {
         return (rarity.ordinal() + (dim ? 4 : 0)) * 20;
     }
 
-    /** A unique skill has the unique icon whatever it does (only a buff one is drawn so far). */
+    /** By what the skill does; its rarity's row has the frames (and for a unique skill, its own icons). */
     public static int iconU(UmaSkill skill, boolean dim) {
-        int column = skill.getRarity() == SkillRarity.UNIQUE ? 4 : switch (skill.getType()) {
+        int column = switch (skill.getType()) {
             case BUFF -> 0;
             case HINDER -> 1;
             case HEAL -> 2;
