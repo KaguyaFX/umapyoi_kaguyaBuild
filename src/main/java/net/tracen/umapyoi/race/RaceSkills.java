@@ -183,12 +183,13 @@ public final class RaceSkills {
             runner.boosts().release(0.15, 15 * 20);
             return 15 * 20;
         });
-        // A quarter of the stamina at once, then six seconds faster that cost none (less faster if already low).
+        // A quarter of the stamina at once, though never below half (where the speed bonus starts to fall), then six
+        // seconds faster that cost none (less faster if already below half).
         active("galaxy_destroyer", When.SPRINT_MILE, user -> {
             RaceRunner runner = user.runner();
-            boolean low = runner.staminaFraction() < 0.5;
-            runner.spend(0.25);
-            runner.boosts().flat(low ? 0.15 : 0.3, 6 * 20);
+            double left = runner.staminaFraction();
+            runner.spend(Math.min(0.25, Math.max(0, left - 0.5)));
+            runner.boosts().flat(left < 0.5 ? 0.15 : 0.3, 6 * 20);
             runner.boosts().free(6 * 20);
             return 6 * 20;
         });

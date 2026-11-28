@@ -46,6 +46,11 @@ public final class RaceLayout {
         this.finalStraightTo = Math.min(best + track.straight(), distance);
     }
 
+    /** The race's length, in blocks along the course. */
+    public double distance() {
+        return distance;
+    }
+
     /** Where the final leg starts. */
     public double finalFrom() {
         return Math.max(1, distance * UmapyoiConfig.RACE_PHASE_FINAL_FROM.get());

@@ -29,8 +29,8 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * any time is kept for the final leg, where races are won (used early it only burns her points).</li>
  * <li>Before the final leg she keeps enough points for the dearest speed skill she can use in it.</li>
  * <li>The zodiac cups' skills: Conqueror of Stars a few seconds before the final leg, so it covers the end of
- * saving up and the start of using it; Galaxy Destroyer in the final leg while sprinting, with stamina to
- * spare for its price.</li>
+ * saving up and the start of using it; Galaxy Destroyer in the last seconds while sprinting, so its
+ * stamina-free seconds carry her to the line and what it cost never comes to matter.</li>
  * <li>Wisdom decides how quickly she takes a good moment, from a second and a half or so (G) to about a
  * quarter of a second (S), and how often she wastes a skill at a bad one.</li>
  * </ul>
@@ -49,6 +49,8 @@ final class RaceAiSkills {
     private static final Set<String> SURGE = Set.of("galaxy_destroyer");
     /** Conqueror of Stars is used once the final leg is this many seconds away. */
     private static final double CHARGE_BEFORE = 8;
+    /** Galaxy Destroyer is used once the finish is this many seconds away (it lasts six). */
+    private static final double SURGE_BEFORE = 6.5;
     /** Wisdom levels: G and S. */
     private static final int DULLEST = 1, SHARPEST = 15;
 
@@ -121,8 +123,8 @@ final class RaceAiSkills {
             case HINDER -> late && user.near(RaceSkills.REACH) > 0;
             case CHARGE -> late ? runner.releasing()
                     : runner.phase() == RacePhase.MIDDLE && runner.layout().finalFrom() - runner.progress() <= runner.speed() * CHARGE_BEFORE;
-            // Only with stamina to spare: falling below half for its price costs more than it gives.
-            case SURGE -> late && runner.sprinting() && runner.heldTicks() == 0 && runner.staminaFraction() >= 0.75;
+            case SURGE -> late && runner.sprinting() && runner.heldTicks() == 0
+                    && runner.layout().distance() - runner.progress() <= runner.speed() * SURGE_BEFORE;
         };
     }
 
