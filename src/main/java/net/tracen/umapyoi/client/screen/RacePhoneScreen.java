@@ -21,6 +21,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.tracen.umapyoi.client.SkillTiers;
 import net.tracen.umapyoi.client.race.RaceArt;
 import net.tracen.umapyoi.client.race.RaceMap;
 import net.tracen.umapyoi.item.ItemRegistry;
@@ -428,14 +429,8 @@ public class RacePhoneScreen extends Screen {
     }
 
     private void skill(GuiGraphics graphics, UmaSkill skill, int x, int y, int mouseX, int mouseY) {
-        RaceArt.roundBox(graphics, x, y, 61, 11, RaceArt.MINE, 0xFFE6B04A);
-        int v = switch (skill.getType()) {
-            case BUFF -> 21;
-            case HINDER -> 37;
-            case HEAL -> 53;
-            case PASSIVE -> 69;
-        };
-        graphics.blit(RaceArt.SKILL, x + 2, y + 1, 9, 9, 176, v, 16, 16, 256, 256);
+        SkillTiers.phonePlate(graphics, skill.getRarity(), x, y);
+        SkillTiers.icon(graphics, skill, x + 2, y + 1, 9, false);
         RaceArt.line(graphics, skill.getDescription(), x + 13, y + 2, 47, RaceArt.DARK);
         if (mouseX >= x && mouseX < x + 61 && mouseY >= y && mouseY < y + 11)
             this.tooltip = List.of(skill.getDescription(), skill.getDescriptionDetail().copy().withStyle(ChatFormatting.GRAY));

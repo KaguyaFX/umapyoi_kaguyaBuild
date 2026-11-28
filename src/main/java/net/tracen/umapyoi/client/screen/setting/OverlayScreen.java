@@ -139,7 +139,7 @@ public class OverlayScreen extends Screen {
     public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        pGuiGraphics.blit(SkillOverlay.HUD, (int) (x + this.skillX), (int) (this.height + this.skillY), 0, 0, 96, 20, 128, 64);
+        SkillOverlay.renderFrame(UmaSkillRegistry.BASIC_PACE.get(), pGuiGraphics, (int) (x + this.skillX), (int) (this.height + this.skillY), false);
         renderSkill(UmaSkillRegistry.BASIC_PACE.get(), Minecraft.getInstance().font, pGuiGraphics, (int) (x + this.skillX), (int) (this.height + this.skillY));
         pGuiGraphics.blit(MotivationOverlay.HUD, (int) (x + this.motivationX), (int) (this.height + this.motivationY), 0, 0, 64, 14, 64, 96);
         pGuiGraphics.drawString(Minecraft.getInstance().font, Component.translatable("umapyoi.motivation.perfect"),

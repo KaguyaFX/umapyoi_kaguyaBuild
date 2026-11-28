@@ -20,6 +20,7 @@ public class UmaSkill{
     private final SoundEvent sound;
     private final ResourceLocation upperSkill;
     private final boolean inheritable;
+    private final SkillRarity rarity;
     private String descriptionId;
 
     public static final ResourceKey<Registry<UmaSkill>> REGISTRY_KEY = ResourceKey
@@ -33,6 +34,12 @@ public class UmaSkill{
         this.sound = builder.sound;
         this.upperSkill = builder.upperSkill;
         this.inheritable = builder.inheritable;
+        this.rarity = builder.rarity != null ? builder.rarity : SkillRarity.ofLevel(builder.level);
+    }
+
+    /** Which frame and fire it gets: by its level unless it was said. */
+    public SkillRarity getRarity() {
+        return rarity;
     }
 
     public SkillType getType() {
@@ -106,6 +113,7 @@ public class UmaSkill{
         private SoundEvent sound = SoundEvents.PLAYER_ATTACK_SWEEP;
         private ResourceLocation upperSkill;
         private boolean inheritable = true;
+        private SkillRarity rarity;
         public Builder type(SkillType type) {
             this.type = type;
             return this;
@@ -131,6 +139,12 @@ public class UmaSkill{
             return this;
         }
         
+        /** A rarity other than its level's (an evolved skill). */
+        public Builder rarity(SkillRarity rarity) {
+            this.rarity = rarity;
+            return this;
+        }
+
         public Builder nonInheritable() {
             this.inheritable = false;
             return this;

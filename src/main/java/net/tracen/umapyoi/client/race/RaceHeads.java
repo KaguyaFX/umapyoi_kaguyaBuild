@@ -19,7 +19,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 import net.tracen.umapyoi.Umapyoi;
-import net.tracen.umapyoi.client.SkillOverlay;
+import net.tracen.umapyoi.client.SkillTiers;
 import net.tracen.umapyoi.race.RaceMeeting;
 import net.tracen.umapyoi.race.RaceMeetingClient;
 import net.tracen.umapyoi.race.RaceMeetingPayload;
@@ -103,27 +103,23 @@ public final class RaceHeads {
         poseStack.mulPose(camera);
         poseStack.scale(SCALE, -SCALE, SCALE);
         Matrix4f pose = poseStack.last().pose();
-        VertexConsumer sheet = buffer.getBuffer(RenderType.text(SkillOverlay.HUD));
-        quad(sheet, pose, -48, -10, 96, 20, 0, 0, alpha);
-        int icon = switch (skill.getType()) {
-            case BUFF -> 0;
-            case HINDER -> 16;
-            case HEAL -> 32;
-            case PASSIVE -> 48;
-        };
-        quad(sheet, pose, -45, -8, 16, 16, icon, 48, alpha);
+        VertexConsumer sheet = buffer.getBuffer(RenderType.text(SkillTiers.SHEET));
+        quad(sheet, pose, -48, -10, 0, 96, 20, SkillTiers.plateU(skill.getRarity(), false), SkillTiers.plateV(skill.getRarity(), false), alpha);
+        // A hair nearer than the plate: the quads are sorted by distance, and the plate mustn't cover it.
+        quad(sheet, pose, -45, -8, 0.1F, 16, 16, SkillTiers.iconU(skill, false), SkillTiers.iconV(skill), alpha);
         int color = (Math.max(4, (int) (alpha * 255)) << 24) | 0x794016;
         font.drawInBatch(skill.getDescription(), -26, -4, color, false, pose, buffer, Font.DisplayMode.POLYGON_OFFSET, 0, LIGHT);
         poseStack.popPose();
     }
 
-    /** A piece of the skill sheet (128 x 64), in the order the font draws its glyphs, so it faces the same way. */
-    private static void quad(VertexConsumer to, Matrix4f pose, float x, float y, float w, float h, float u, float v, float alpha) {
-        float u0 = u / 128F, v0 = v / 64F, u1 = (u + w) / 128F, v1 = (v + h) / 64F;
-        to.addVertex(pose, x, y, 0).setColor(1F, 1F, 1F, alpha).setUv(u0, v0).setLight(LIGHT);
-        to.addVertex(pose, x, y + h, 0).setColor(1F, 1F, 1F, alpha).setUv(u0, v1).setLight(LIGHT);
-        to.addVertex(pose, x + w, y + h, 0).setColor(1F, 1F, 1F, alpha).setUv(u1, v1).setLight(LIGHT);
-        to.addVertex(pose, x + w, y, 0).setColor(1F, 1F, 1F, alpha).setUv(u1, v0).setLight(LIGHT);
+    /** A piece of the skill sheet, in the order the font draws its glyphs, so it faces the same way. */
+    private static void quad(VertexConsumer to, Matrix4f pose, float x, float y, float z, float w, float h, float u, float v, float alpha) {
+        float size = SkillTiers.SHEET_SIZE;
+        float u0 = u / size, v0 = v / size, u1 = (u + w) / size, v1 = (v + h) / size;
+        to.addVertex(pose, x, y, z).setColor(1F, 1F, 1F, alpha).setUv(u0, v0).setLight(LIGHT);
+        to.addVertex(pose, x, y + h, z).setColor(1F, 1F, 1F, alpha).setUv(u0, v1).setLight(LIGHT);
+        to.addVertex(pose, x + w, y + h, z).setColor(1F, 1F, 1F, alpha).setUv(u1, v1).setLight(LIGHT);
+        to.addVertex(pose, x + w, y, z).setColor(1F, 1F, 1F, alpha).setUv(u1, v0).setLight(LIGHT);
     }
 
     /** Players who run: their number and mood before the race, and the skills they use to everyone else. */
