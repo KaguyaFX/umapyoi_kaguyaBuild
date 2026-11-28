@@ -306,6 +306,7 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.race.motion.blocked", "Blocked");
         add("umapyoi.race.charge", "saved %s%%");
         add("umapyoi.race.charge.lost", "saved %s%% (lost touch)");
+        add("umapyoi.race.front_save", "stamina -%s%%");
         add("umapyoi.race.motion.cruising", "Cruising");
         add("umapyoi.race.motion.decelerating", "Slowing");
         add("umapyoi.race.motion.exhausted", "Exhausted");
@@ -477,6 +478,12 @@ public class UmapyoiLangProvider extends AbstractLangProvider {
         add("umapyoi.meeting.exit", "Leave the racecourse");
         add("umapyoi.meeting.exit.hint", "Right-click to go back to where you came from");
         add("umapyoi.meeting.exit.sneak", "Leaving now is giving up. Sneak and use it again if you're sure.");
+        add("umapyoi.meeting.hurry", "Skip to the stalls");
+        add("umapyoi.meeting.hurry.hint", "Right-click: entries and betting close, and into the stalls in %s seconds");
+        add("umapyoi.meeting.hurried", "%s skipped ahead: entries and betting are closed, into the stalls in %s seconds.");
+        add("umapyoi.meeting.problem.hurry_op", "In multiplayer only operators can skip ahead.");
+        add("umapyoi.meeting.problem.hurry_preparing", "The course is still being got ready; skip ahead in a moment.");
+        add("umapyoi.meeting.problem.hurry_late", "The runners are already on their way to the stalls.");
         add("umapyoi.race.section.turn_1", "Turn 1");
         add("umapyoi.race.section.turn_2", "Turn 2");
         add("umapyoi.race.section.turn_3", "Turn 3");

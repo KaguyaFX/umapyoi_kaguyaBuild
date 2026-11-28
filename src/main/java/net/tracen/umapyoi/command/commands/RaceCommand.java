@@ -36,7 +36,8 @@ import net.tracen.umapyoi.race.track.TrackBuilder;
 import net.tracen.umapyoi.race.track.TrackGeometry;
 
 /**
- * Race meetings, for everyone: /umapyoi meeting enter, watch, withdraw, leave. They do what the race terminal's
+ * Race meetings, for everyone: /umapyoi meeting enter, watch, withdraw, leave (and hurry: skip ahead to the stalls,
+ * for operators or in single player). They do what the race terminal's
  * page does (and the links in chat), and leave is the way home.
  * <p>
  * Test commands for the race world (operators only):
@@ -77,7 +78,8 @@ public class RaceCommand {
                 .then(Commands.literal("enter").executes(ctx -> answer(ctx.getSource(), RaceMeeting.enter(ctx.getSource().getPlayerOrException()))))
                 .then(Commands.literal("watch").executes(ctx -> answer(ctx.getSource(), RaceMeeting.watch(ctx.getSource().getPlayerOrException()))))
                 .then(Commands.literal("withdraw").executes(ctx -> answer(ctx.getSource(), RaceMeeting.withdraw(ctx.getSource().getPlayerOrException()))))
-                .then(Commands.literal("leave").executes(ctx -> answer(ctx.getSource(), RaceMeeting.leave(ctx.getSource().getPlayerOrException())))));
+                .then(Commands.literal("leave").executes(ctx -> answer(ctx.getSource(), RaceMeeting.leave(ctx.getSource().getPlayerOrException()))))
+                .then(Commands.literal("hurry").executes(ctx -> answer(ctx.getSource(), RaceMeeting.hurry(ctx.getSource().getPlayerOrException())))));
         return builder.then(Commands.literal("racetrack").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("rebuild")
                         .executes(ctx -> rebuild(ctx.getSource(), RaceWorld.configuredTrack()))

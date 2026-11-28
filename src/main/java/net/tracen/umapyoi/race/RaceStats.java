@@ -17,7 +17,8 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * +5% as in survival) and the speed stat, capped at {@code race_speed_max_bonus} instead of
  * survival's 0.84, times the aptitude for the race's distance.</li>
  * <li>Stamina: blocks of sprinting, from the stamina stat.</li>
- * <li>Power: acceleration, in blocks per second per second, times the aptitude for the surface.</li>
+ * <li>Power: acceleration, in blocks per second per second, times the aptitude for the surface; and how fast
+ * they get away from the gates.</li>
  * <li>Guts: how much of the speed bonus is left when stamina runs out.</li>
  * <li>Wisdom: how fast skill action points come back in the race world.</li>
  * </ul>
@@ -30,9 +31,10 @@ import net.tracen.umapyoi.utils.UmaSoulUtils;
  * @param distanceFactor aptitude for the distance
  * @param surfaceFactor  aptitude for the surface
  * @param mood           the race mood multiplier
+ * @param startDash      extra acceleration out of the gates, more with power, in blocks per second per second
  */
 public record RaceStats(Position style, double bonusRatio, double stamina, double accel, double apRegen, double emptyFloor,
-        double distanceFactor, double surfaceFactor, double mood) {
+        double distanceFactor, double surfaceFactor, double mood, double startDash) {
     private static final int SPEED = 0, STAMINA = 1, POWER = 2, GUTS = 3, WISDOM = 4;
 
     public static RaceStats of(ItemStack soul, Position style, Surface surface, Distance distance) {
@@ -45,7 +47,7 @@ public record RaceStats(Position style, double bonusRatio, double stamina, doubl
         double apMin = UmapyoiConfig.RACE_ACTION_POINT_REGEN.get();
         if (!UmaSoulUtils.hasSoulData(soul))
             return new RaceStats(style, 0, UmapyoiConfig.RACE_STAMINA_BASE.get(),
-                    UmapyoiConfig.RACE_ACCEL_BASE.get(), apMin, lowBonus, 1, 1, 1);
+                    UmapyoiConfig.RACE_ACCEL_BASE.get(), apMin, lowBonus, 1, 1, 1, UmapyoiConfig.RACE_START_DASH.get());
         double distanceFactor = distance == null ? 1 : distance.GetMultiplier(soul);
         double surfaceFactor = surface.GetMultiplier(soul);
         double mood = mood(soul);
@@ -55,7 +57,8 @@ public record RaceStats(Position style, double bonusRatio, double stamina, doubl
         double accel = (UmapyoiConfig.RACE_ACCEL_BASE.get() + UmapyoiConfig.RACE_ACCEL_SCALE.get() * boost * curve(soul, POWER)) * surfaceFactor;
         double floorMax = UmapyoiConfig.RACE_GUTS_FLOOR_MAX.get();
         double emptyFloor = lowBonus + (floorMax - lowBonus) * Math.min(1, boost * curve(soul, GUTS) / curveMax());
-        return new RaceStats(style, bonus, stamina, accel, apRegen(soul), emptyFloor, distanceFactor, surfaceFactor, mood);
+        double startDash = UmapyoiConfig.RACE_START_DASH.get() + UmapyoiConfig.RACE_START_DASH_POWER.get() * boost * curve(soul, POWER);
+        return new RaceStats(style, bonus, stamina, accel, apRegen(soul), emptyFloor, distanceFactor, surfaceFactor, mood, startDash);
     }
 
     /** Wisdom's action point rate for a soul, without needing its style. */

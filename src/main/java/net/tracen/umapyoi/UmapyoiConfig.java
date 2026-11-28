@@ -198,6 +198,7 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_ACCEL_SCALE;
     public static ModConfigSpec.DoubleValue RACE_DECEL;
     public static ModConfigSpec.DoubleValue RACE_START_DASH;
+    public static ModConfigSpec.DoubleValue RACE_START_DASH_POWER;
     public static ModConfigSpec.DoubleValue RACE_START_SPEED;
     public static ModConfigSpec.DoubleValue RACE_SPRINT_KICK;
     public static ModConfigSpec.DoubleValue RACE_MOMENTUM_MARGIN;
@@ -208,6 +209,7 @@ public class UmapyoiConfig {
     public static ModConfigSpec.DoubleValue RACE_CHARGE_BLOCKS;
     public static ModConfigSpec.DoubleValue RACE_CHARGE_SPEED;
     public static ModConfigSpec.DoubleValue RACE_CHARGE_GAP;
+    public static ModConfigSpec.DoubleValue RACE_FRONT_STAMINA_SAVE;
     public static ModConfigSpec.DoubleValue RACE_AI_FORM;
     public static ModConfigSpec.ConfigValue<java.util.List<? extends Integer>> RACE_BET_POOLS;
     public static ModConfigSpec.DoubleValue RACE_BET_KEEP;
@@ -652,8 +654,10 @@ public class UmapyoiConfig {
                 .defineInRange("race_accel_scale", 0.55, 0.0, 100.0);
         RACE_DECEL = COMMON_BUILDER.comment("Race deceleration, in blocks per second per second, when the target drops (stopped sprinting, stamina fell below the line).")
                 .defineInRange("race_decel", 0.8, 0.01, 100.0);
-        RACE_START_DASH = COMMON_BUILDER.comment("Race start: extra acceleration out of the gates, until cruising speed is first reached.")
-                .defineInRange("race_start_dash", 4.0, 0.0, 100.0);
+        RACE_START_DASH = COMMON_BUILDER.comment("Race start: extra acceleration out of the gates, until cruising speed is first reached, at the lowest power.")
+                .defineInRange("race_start_dash_base", 2.5, 0.0, 100.0);
+        RACE_START_DASH_POWER = COMMON_BUILDER.comment("Race start: what the power stat adds to that at most (same curve as speed), so strong runners get away first.")
+                .defineInRange("race_start_dash_power", 3.0, 0.0, 100.0);
         RACE_START_SPEED = COMMON_BUILDER.comment("Race start: speed when the gates open, as a fraction of the plain player's sprint.")
                 .defineInRange("race_start_speed", 0.15, 0.0, 2.0);
         RACE_SPRINT_KICK = COMMON_BUILDER.comment("Race: starting to sprint puts you at once this fraction of the way from cruising to full speed (it never stacks).")
@@ -671,6 +675,9 @@ public class UmapyoiConfig {
                 .defineInRange("race_charge_speed", 0.14, 0.0, 10.0);
         RACE_CHARGE_GAP = COMMON_BUILDER.comment("Saving up for the last leg: not while further than this many blocks behind the runner just in front.")
                 .defineInRange("race_charge_gap", 10.0, 0.0, 10000.0);
+        RACE_FRONT_STAMINA_SAVE = COMMON_BUILDER.comment("Leading: until the final third, a runner in the front-runner places (the first two of twelve) uses this much less stamina",
+                        "(the first all of it, the one behind half), times their aptitude for running in front; not runaways. What the others get from saving up. 0 = off.")
+                .defineInRange("race_front_stamina_save", 0.08, 0.0, 0.9);
         RACE_COAST_SECONDS = COMMON_BUILDER.comment("Race: after letting go of all movement keys you keep rolling for this long, slowing gently,",
                 "so you can settle into cruising without losing your speed; after that you stop quickly.")
                 .defineInRange("race_coast_seconds", 1.0, 0.0, 10.0);

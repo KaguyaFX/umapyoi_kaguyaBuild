@@ -148,6 +148,21 @@ final class RaceRunner {
         charge = Math.min(1, charge + done / layout.finalFrom() * (rank - 1) / (field - 1) * zoneAptitude().distanceFactor * chargeTimes);
     }
 
+    /**
+     * Until the final leg, whoever runs in front uses less stamina: what saving up is for the others. All of
+     * it for the first, half for the one behind (two neck and neck don't swap all or nothing), times their
+     * aptitude for running in front. Not alone (a time trial, or a computer runner working out its plan), and
+     * not for a runaway: going off in front at once is her way anyway, and she'd only run away with it.
+     */
+    double frontSave() {
+        RacePhase phase = phase();
+        if (field < 2 || zone != Position.FRONT_RUNNER || stats.style() == Position.RUNAWAY || phase == RacePhase.FINAL
+                || phase == RacePhase.LAST_SPURT)
+            return 0;
+        double share = rank == 1 ? 1 : 0.5;
+        return Math.min(1, UmapyoiConfig.RACE_FRONT_STAMINA_SAVE.get() * share * zoneAptitude().distanceFactor);
+    }
+
     /** The gates open: off from just behind (or on) the line. */
     void start(double progress) {
         this.motion = new RaceMotion(UmapyoiConfig.RACE_START_SPEED.get());
@@ -235,7 +250,7 @@ final class RaceRunner {
         return new RaceStatePayload(true, (float) stamina, (float) stats.stamina(), (float) sprint, (float) cruise,
                 (float) (accel * perTick),
                 (float) (UmapyoiConfig.RACE_DECEL.get() * perTick),
-                (float) (UmapyoiConfig.RACE_START_DASH.get() * perTick),
+                (float) (stats.startDash() * perTick),
                 UmapyoiConfig.RACE_SPRINT_KICK.get().floatValue(),
                 UmapyoiConfig.RACE_START_SPEED.get().floatValue(),
                 exhausted,
@@ -264,7 +279,7 @@ final class RaceRunner {
         double span = baseSprint - state.cruiseSpeed();
         double effort = span <= 0 ? 0 : Math.max(0, Math.min(1, (motion.speed() - state.cruiseSpeed()) / span));
         if (moved <= MAX_STEP)
-            stamina -= moved * effort * setup.ground().drain();
+            stamina -= moved * effort * setup.ground().drain() * (1 - frontSave());
         if (releasing() && motion.speed() > baseSprint)
             charge = Math.max(0, charge - Math.min(moved, (motion.speed() - baseSprint) * plainSprint / 20) / UmapyoiConfig.RACE_CHARGE_BLOCKS.get());
         stillTicks = moved < 0.01 ? stillTicks + 1 : 0;

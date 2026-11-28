@@ -887,6 +887,8 @@ final class RaceSession {
                     .append(" · ").append(Component.translatable(layout.sectionKey(runner.progress())))
                     .append(" | ").append(Component.translatable(RaceStyle.key(runner.zone()))).append(" ").append(runner.zoneAptitude().styledComponent())
                     .append(" ").append(Component.translatable(runner.lostTouch() ? "umapyoi.race.charge.lost" : "umapyoi.race.charge", Math.round(runner.charge() * 100)))
+                    .append(runner.frontSave() > 0 ? Component.literal(" ").append(Component.translatable("umapyoi.race.front_save", Math.round(runner.frontSave() * 100)))
+                            : Component.empty())
                     .append(" | ").append(Component.translatable(motionKey))
                     .append(" → ").append(Component.translatable("umapyoi.race.speed", String.format("%.2f", target)))
                     .append(" | ").append(Component.translatable("umapyoi.race.trial.hud",

@@ -815,6 +815,8 @@ public final class RaceMeeting {
                     called = true;
                     endParade();
                     toTheTrack();
+                    for (ServerPlayer player : level.players())
+                        RaceKit.takeHurry(player);
                     session.gather(true);
                     tell(Component.translatable("umapyoi.meeting.loading"));
                 }
@@ -1041,6 +1043,53 @@ public final class RaceMeeting {
         current.bets.touch();
         current.sync();
         return true;
+    }
+
+    /** How long after skipping ahead the runners go into the stalls. */
+    private static final int HURRY_SECONDS = 10;
+
+    /**
+     * Whether this player may skip a meeting ahead: an operator, or anyone playing in a world of their own
+     * (single player, not opened to LAN). In multiplayer nobody else may, so nobody has to agree.
+     */
+    static boolean mayHurry(ServerPlayer player) {
+        return player.hasPermissions(2) || player.server.isSingleplayerOwner(player.getGameProfile()) && !player.server.isPublished();
+    }
+
+    /** There's a meeting that can still be skipped ahead (before the runners are called to the stalls). */
+    static boolean hurryable() {
+        return current != null && current.stage.ordinal() <= Stage.CLOSED.ordinal() && !current.called;
+    }
+
+    static int hurrySeconds() {
+        return HURRY_SECONDS;
+    }
+
+    /** On to a little before the stalls: entries and betting close now. @return why not, or null */
+    @Nullable
+    public static Component hurry(ServerPlayer player) {
+        if (current == null)
+            return none();
+        if (!mayHurry(player))
+            return Component.translatable("umapyoi.meeting.problem.hurry_op");
+        return current.hurryOn(player);
+    }
+
+    @Nullable
+    private Component hurryOn(ServerPlayer player) {
+        if (stage == Stage.PREPARING)
+            return Component.translatable("umapyoi.meeting.problem.hurry_preparing");
+        if (called || stage.ordinal() > Stage.CLOSED.ordinal())
+            return Component.translatable("umapyoi.meeting.problem.hurry_late");
+        // Open: entries close on the next tick. Then the runners are called at once and go into the stalls after this.
+        left = Math.min(left, (UmapyoiConfig.RACE_MEETING_GATE_SECONDS.get() + HURRY_SECONDS) * 20);
+        if (bets != null)
+            bets.close();
+        tell(Component.translatable("umapyoi.meeting.hurried", player.getDisplayName(), HURRY_SECONDS).withStyle(ChatFormatting.YELLOW));
+        for (ServerPlayer someone : level.players())
+            RaceKit.takeHurry(someone);
+        sync();
+        return null;
     }
 
     /** Calls it off; the ticket goes back unless the race has started. */
